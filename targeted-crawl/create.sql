@@ -19,7 +19,7 @@ DROP TABLE IF EXISTS document_align;
 CREATE TABLE IF NOT EXISTS document
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    mime VARCHAR(255),
+    mime TINYTEXT,
     lang CHAR(2),
     md5 VARCHAR(32) UNIQUE KEY
 );
@@ -34,10 +34,10 @@ CREATE TABLE IF NOT EXISTS url
 CREATE TABLE IF NOT EXISTS link
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    text VARCHAR(255),
-    text_en VARCHAR(255),
-    hover VARCHAR(255),
-    image_url VARCHAR(255),
+    text TEXT,
+    text_en TEXT,
+    hover TEXT,
+    image_url TEXT,
     document_id INT REFERENCES document(id),
     url_id INT REFERENCES url(id)
 );
