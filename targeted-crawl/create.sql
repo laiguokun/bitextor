@@ -21,13 +21,14 @@ CREATE TABLE IF NOT EXISTS document
     id INT AUTO_INCREMENT PRIMARY KEY,
     mime TINYTEXT,
     lang CHAR(3),
-    md5 VARCHAR(32) UNIQUE KEY
+    md5 VARCHAR(32) NOT NULL UNIQUE KEY
 );
 
 CREATE TABLE IF NOT EXISTS url
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    val VARCHAR(1024) UNIQUE KEY,
+    val TEXT,
+    md5 VARCHAR(32) NOT NULL UNIQUE KEY,
     document_id INT REFERENCES document(id)
 );
 
@@ -39,8 +40,8 @@ CREATE TABLE IF NOT EXISTS link
     text_en TEXT,
     hover TEXT,
     image_url TEXT,
-    document_id INT REFERENCES document(id),
-    url_id INT REFERENCES url(id)
+    document_id INT NOT NULL REFERENCES document(id),
+    url_id INT NOT NULL REFERENCES url(id)
 );
 
 CREATE TABLE IF NOT EXISTS document_align

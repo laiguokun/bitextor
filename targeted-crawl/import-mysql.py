@@ -193,38 +193,42 @@ for record in f:
     #We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate files we discard them
     c = hashlib.md5()
     c.update(deboiled.encode())
-
-    hash = c.hexdigest()
+    hashDoc = c.hexdigest()
     #print("c", hash)
 
+    c = hashlib.md5()
+    c.update(pageURL.encode())
+    hashURL = c.hexdigest()
+    #print("hashURL", pageURL, hashURL)
+
     sql = "SELECT id FROM document WHERE md5 = %s"
-    val = (hash,)
+    val = (hashDoc,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
-    print("page", res, hash, pageURL)
+    print("page", res, hashDoc, pageURL)
 
     #checking for duplicate content (duplicates are discarded)
     if res is not None:
         # duplicate page
         docId = res[0]
 
-        sql = "SELECT id, document_id FROM url WHERE val = %s"
-        val = (pageURL, )
+        sql = "SELECT id, document_id FROM url WHERE md5 = %s"
+        val = (hashURL, )
         mycursor.execute(sql, val)
         res = mycursor.fetchone()
 
         if res is not None:
             # url exists
             if res[1] is None:
-                sql = "UPDATE url SET document_id = %s WHERE val = %s"
-                val = (docId, pageURL)
+                sql = "UPDATE url SET document_id = %s WHERE md5 = %s"
+                val = (docId, hashURL)
                 mycursor.execute(sql, val)
             else:
                 assert(res[1] == docId)
         else:
-            sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-            #print("url1", pageURL)
-            val = (pageURL, int(docId))
+            sql = "INSERT INTO url(val, md5, document_id) VALUES (%s, %s, %s)"
+            #print("url1", pageURL, hashURL)
+            val = (pageURL, hashURL, int(docId))
             mycursor.execute(sql, val)
 
         continue
@@ -274,13 +278,13 @@ for record in f:
     #print("{0}\t{1}\t{2}\t{3}\t{4}".format(lang, orig_encoding, mime, b64norm.decode("utf-8"), b64text.decode("utf-8")))
 
     sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
-    val = (mime, lang, hash)
+    val = (mime, lang, hashDoc)
     #print("val", type(val))
     mycursor.execute(sql, val)
     docId = mycursor.lastrowid
 
-    sql = "SELECT id, document_id FROM url WHERE val = %s"
-    val = (pageURL, )
+    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
+    val = (hashURL, )
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
 
@@ -291,9 +295,9 @@ for record in f:
         val = (int(docId), pageURL)
         mycursor.execute(sql, val)
     else:
-        sql = "INSERT INTO url(val, document_id) VALUES (%s, %s)"
-        #print("url1", pageURL)
-        val = (pageURL, int(docId))
+        sql = "INSERT INTO url(val, md5, document_id) VALUES (%s, %s, %s)"
+        #print("url1", pageURL, hashURL)
+        val = (pageURL, hashURL, int(docId))
         mycursor.execute(sql, val)
     #print(html_text)
 
@@ -327,7 +331,11 @@ for record in f:
             url = urllib.parse.unquote(url)
             url = urllib.parse.urljoin(pageURL, url)
             url = strip_scheme(url)
-            #print("url3", url)
+
+            c = hashlib.md5()
+            c.update(url.encode())
+            hashURL = c.hexdigest()
+            #print("url3", url, hashURL)
 
             imgURL = link.find('img')
             if imgURL:
@@ -341,8 +349,8 @@ for record in f:
             #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
 
             # does url already exist?
-            sql = "SELECT id FROM url WHERE val = %s"
-            val = (url, )
+            sql = "SELECT id FROM url WHERE md5 = %s"
+            val = (hashURL, )
             mycursor.execute(sql, val)
             res = mycursor.fetchone()
             #print("res", res, hash, url)
@@ -350,8 +358,8 @@ for record in f:
             if (res is not None):
                 urlId = res[0]
             else:
-                sql = "INSERT INTO url(val) VALUES(%s)"
-                val = (url, )
+                sql = "INSERT INTO url(val, md5) VALUES(%s, %s)"
+                val = (url, hashURL)
                 mycursor.execute(sql, val)
                 urlId = mycursor.lastrowid
 
