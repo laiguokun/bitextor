@@ -309,7 +309,9 @@ for record in f:
                 linkStr = linkStr.replace('\n', ' ')
 
                 # translate. Must be 1 sentence
-                if lang == options.l1:
+                langLinkStr = guess_lang_from_data2(linkStr)
+                #print("langLinkStr", langLinkStr)
+                if langLinkStr == options.l1:
                     tempStr = linkStr + "\n"
                     mtProc.stdin.write(tempStr.encode('utf-8'))
                     mtProc.stdin.flush()
@@ -355,9 +357,9 @@ for record in f:
 
             #print("urlId", urlId)
 
-            sql = "INSERT INTO link(text, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s)"
+            sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
 
-            val =(linkStr, linkStrTrans, "hover here", imgURL, int(docId), int(urlId))
+            val =(linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, int(docId), int(urlId))
             mycursor.execute(sql, val)
 
     # write html and text files
