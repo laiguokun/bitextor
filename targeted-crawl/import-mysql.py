@@ -163,12 +163,8 @@ mydb = mysql.connector.connect(
     database="paracrawl",
     charset='utf8'
 )
-
+mydb.autocommit = False
 mycursor = mydb.cursor()
-
-#mycursor.execute("SHOW TABLES")
-#for x in mycursor:
-#  print(x)
 
 f = warc.WARCFile(fileobj=sys.stdin.buffer)
 seen_md5={}
@@ -182,6 +178,7 @@ numPages = 0
 for record in f:
     numPages += 1
     if numPages % 1 == 0:
+        pass
         #print("write", numPages)
         mydb.commit()
 
@@ -359,6 +356,7 @@ for record in f:
                     linkStrTrans = linkStr
             else:
                 linkStrTrans = None
+                langLinkStr = None
 
             url = urllib.parse.unquote(url)
             url = urllib.parse.urljoin(pageURL, url)
