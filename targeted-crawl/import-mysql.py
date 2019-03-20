@@ -100,6 +100,38 @@ def split_sentences(original_text, sentence_splitter_cmd, prune_type, prune_thre
     #print("tmp5", len(tmp5))
 
     return tmp5
+######################################################################################
+def DocAlign():
+    if lang == options.l1:
+        otherLang = options.l2
+    else:
+        otherLang = options.l1
+
+    sql = "SELECT id FROM document WHERE lang=%s"
+    val = (otherLang,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchall()
+    #print("res", res)
+
+    tok1 = "../preprocess/moses/tokenizer/tokenizer.perl -l {lang1} -a -b -q".format(lang1=options.l1)
+
+    for rec in res:
+        otherDocId = rec[0]
+        print("other doc id", docId, otherDocId, lang, otherLang)
+
+        if lang == options.l1:
+            doc1 = transPath
+            doc2 = "{outDir}/{docId}.{lang}.extracted.xz".format(outDir=options.outDir, docId=otherDocId, lang=options.l2)
+            matchPath = "{outDir}/{doc1Id}-{doc2Id}.matches".format(outDir=options.outDir, doc1Id=docId, doc2Id=otherDocId)
+        else:
+            doc1 = "{outDir}/{docId}.trans.xz".format(outDir=options.outDir, docId=otherDocId)
+            doc2 = extractPath
+            matchPath = "{outDir}/{doc1Id}-{doc2Id}.matches".format(outDir=options.outDir, doc1Id=otherDocId, doc2Id=docId)
+
+        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=doc1, lang2=doc2, output=matchPath, DOC_THRESHOLD=0.2, WORDTOK1=tok1)
+        #print("cmd", cmd)
+        os.system(cmd)
+
 
 ######################################################################################
 
@@ -407,36 +439,8 @@ for record in f:
         transFile.close()
 
     # doc align
-    if lang == options.l1:
-        otherLang = options.l2
-    else:
-        otherLang = options.l1
-
-    sql = "SELECT id FROM document WHERE lang=%s"
-    val = (otherLang,)
-    mycursor.execute(sql, val)
-    res = mycursor.fetchall()
-    #print("res", res)
-
-    tok1 = "../preprocess/moses/tokenizer/tokenizer.perl -l {lang1} -a -b -q".format(lang1=options.l1)
-
-    for rec in res:
-        otherDocId = rec[0]
-        print("other doc id", docId, otherDocId, lang, otherLang)
-
-        if lang == options.l1:
-            doc1 = transPath
-            doc2 = "{outDir}/{docId}.{lang}.extracted.xz".format(outDir=options.outDir, docId=otherDocId, lang=options.l2)
-            matchPath = "{outDir}/{doc1Id}-{doc2Id}.matches".format(outDir=options.outDir, doc1Id=docId, doc2Id=otherDocId)
-        else:
-            doc1 = "{outDir}/{docId}.trans.xz".format(outDir=options.outDir, docId=otherDocId)
-            doc2 = extractPath
-            matchPath = "{outDir}/{doc1Id}-{doc2Id}.matches".format(outDir=options.outDir, doc1Id=otherDocId, doc2Id=docId)
-
-        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=doc1, lang2=doc2, output=matchPath, DOC_THRESHOLD=0.2, WORDTOK1=tok1)
-        #print("cmd", cmd)
-        os.system(cmd)
-
+    if 0:
+        DocAlign()
 
 
 # everything done
