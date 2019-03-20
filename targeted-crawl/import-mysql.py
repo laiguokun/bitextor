@@ -137,7 +137,7 @@ def DocAlign():
 
 print("Starting")
 
-oparser = argparse.ArgumentParser(description="Script that takes every record in a WARC file and runs preprocessing, which includes: HTML normalization, deduplication, MIME and language identification, and boilerplate removing. The result of each pre-processing step is stored in a XZ compressed file in the output directory.")
+oparser = argparse.ArgumentParser(description="import-mysql")
 oparser.add_argument("--boilerpipe", action="store_true", default=False, help="Use boilerpipe bodytext to do the de-boiling")
 oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
 oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', required=True)
