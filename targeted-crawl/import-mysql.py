@@ -323,8 +323,8 @@ for record in f:
     if res is not None:
         # url exists
         assert(res[1] == None)
-        sql = "UPDATE url SET document_id = %s WHERE val = %s"
-        val = (int(docId), pageURL)
+        sql = "UPDATE url SET document_id = %s WHERE md5 = %s"
+        val = (int(docId), hashURL)
         mycursor.execute(sql, val)
     else:
         sql = "INSERT INTO url(val, md5, document_id) VALUES (%s, %s, %s)"
