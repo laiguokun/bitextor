@@ -36,10 +36,12 @@ def ExpandDoc(mycursor, docIds, docId):
     for row in res:
         url = row[1]
         nextDocId = row[2]
-        print("   ", url, nextDocId)
 
-        if nextDocId is not None and nextDocId not in docIds:
-            ExpandDoc(mycursor, docIds, nextDocId)
+        if nextDocId is not None:
+            print(docId, "->", nextDocId)
+
+            if nextDocId not in docIds:
+                ExpandDoc(mycursor, docIds, nextDocId)
 
 ######################################################################################
 
