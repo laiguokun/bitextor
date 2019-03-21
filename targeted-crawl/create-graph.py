@@ -4,6 +4,34 @@ import os
 import sys
 import argparse
 import mysql.connector
+import hashlib
+
+######################################################################################
+def GetDocId(mycursor, url):
+    c = hashlib.md5()
+    c.update(url.encode())
+    hashURL = c.hexdigest()
+    #print("url", url)
+
+    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
+    val = (hashURL,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+    assert(res is not None)
+
+    docId = res[1]
+    assert (docId is not None)
+
+    return docId
+
+def ExpandDoc(mycursor, docId):
+    sql = "SELECT url_id FROM link WHERE document_id = %s"
+    val = (docId,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchall()
+    print("res", res)
+
+######################################################################################
 
 print("Starting")
 
@@ -22,6 +50,13 @@ mydb = mysql.connector.connect(
     database="paracrawl",
     charset='utf8'
 )
+mydb.autocommit = False
+mycursor = mydb.cursor()
 
+# root
+docId = GetDocId(mycursor, options.rootPage)
+print("docId", docId)
+
+ExpandDoc(mycursor, docId)
 
 print("Finished")

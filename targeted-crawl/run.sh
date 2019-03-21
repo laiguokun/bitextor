@@ -13,4 +13,4 @@ xzcat www.samsonite.be.xz | $BITEXTOR/targeted-crawl/import-mysql.py --out-dir o
 wait
 
 #cat fr-en.customMT.matches | ./import-doc-align.py --lang1 fr --lang2 en
-#./create-graph.py --out-file a.dot --lang1 fr --lang2 en --root-page www.elenacaffe1863.com/index_eng.html
+#./create-graph.py --out-file a.dot --lang1 fr --lang2 en --root-page www.elenacaffe1863.com/index_fra.htm
