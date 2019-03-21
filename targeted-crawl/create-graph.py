@@ -25,11 +25,18 @@ def GetDocId(mycursor, url):
     return docId
 
 def ExpandDoc(mycursor, docId):
-    sql = "SELECT url_id FROM link WHERE document_id = %s"
+    sql = "SELECT url_id, url.val, url.document_id FROM link, url WHERE link.url_id = url.id AND link.document_id = %s"
     val = (docId,)
     mycursor.execute(sql, val)
     res = mycursor.fetchall()
     print("res", res)
+
+    for row in res:
+        print("   ", row[1])
+        nextDocId = row[2]
+
+        if nextDocId is not None:
+            ExpandDoc(mycursor, nextDocId)
 
 ######################################################################################
 
