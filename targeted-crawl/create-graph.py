@@ -24,8 +24,23 @@ def GetDocId(mycursor, url):
 
     return docId
 
+def GetUrls(mycursor, docId):
+    sql = "SELECT val FROM url WHERE document_id = %s"
+    val = (docId,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchall()
+    #print("res", res)
+
+    ret = []
+    for row in res:
+        url = row[0]
+        ret.append(url)
+
+    return ret
+
 def ExpandDoc(mycursor, docIds, docId):
     docIds.add(docId)
+    urls1 = GetUrls(mycursor, docId)
 
     sql = "SELECT url_id, url.val, url.document_id FROM link, url WHERE link.url_id = url.id AND link.document_id = %s"
     val = (docId,)
@@ -38,7 +53,8 @@ def ExpandDoc(mycursor, docIds, docId):
         nextDocId = row[2]
 
         if nextDocId is not None:
-            print(docId, "->", nextDocId)
+            urls2 = GetUrls(mycursor, nextDocId)
+            print(docId, urls1, "->", nextDocId, urls2)
 
             if nextDocId not in docIds:
                 ExpandDoc(mycursor, docIds, nextDocId)
@@ -69,7 +85,7 @@ docIds = set()
 
 # root
 docId = GetDocId(mycursor, options.rootPage)
-print("docId", docId)
+#print("docId", docId)
 
 ExpandDoc(mycursor, docIds, docId)
 
