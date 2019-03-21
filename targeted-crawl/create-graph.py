@@ -24,19 +24,22 @@ def GetDocId(mycursor, url):
 
     return docId
 
-def ExpandDoc(mycursor, docId):
+def ExpandDoc(mycursor, docIds, docId):
+    docIds.add(docId)
+
     sql = "SELECT url_id, url.val, url.document_id FROM link, url WHERE link.url_id = url.id AND link.document_id = %s"
     val = (docId,)
     mycursor.execute(sql, val)
     res = mycursor.fetchall()
-    print("res", res)
+    #print("res", res)
 
     for row in res:
-        print("   ", row[1])
+        url = row[1]
         nextDocId = row[2]
+        print("   ", url, nextDocId)
 
-        if nextDocId is not None:
-            ExpandDoc(mycursor, nextDocId)
+        if nextDocId is not None and nextDocId not in docIds:
+            ExpandDoc(mycursor, docIds, nextDocId)
 
 ######################################################################################
 
@@ -60,10 +63,12 @@ mydb = mysql.connector.connect(
 mydb.autocommit = False
 mycursor = mydb.cursor()
 
+docIds = set()
+
 # root
 docId = GetDocId(mycursor, options.rootPage)
 print("docId", docId)
 
-ExpandDoc(mycursor, docId)
+ExpandDoc(mycursor, docIds, docId)
 
 print("Finished")
