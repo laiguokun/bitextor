@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS link
 CREATE TABLE IF NOT EXISTS document_align
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    document1 INT REFERENCES document(id),
-    document2 INT REFERENCES document(id),
+    document1 INT NOT NULL REFERENCES document(id),
+    document2 INT NOT NULL REFERENCES document(id),
     score FLOAT
 );
 

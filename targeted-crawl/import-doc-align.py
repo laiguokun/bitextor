@@ -8,18 +8,27 @@ import hashlib
 
 
 ######################################################################################
-def GetURLId(mycursor, url):
+def GetDocId(mycursor, url):
     c = hashlib.md5()
     c.update(url.encode())
     hashURL = c.hexdigest()
 
-    sql = "SELECT id FROM url WHERE md5 = %s"
+    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
     val = (hashURL,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
     assert(res is not None)
 
-    return res[0]
+    docId = res[1]
+    assert (docId is not None)
+
+    return docId
+
+######################################################################################
+def SaveDocAlign(mycursor, doc1Id, doc2Id, score):
+    sql = "INSERT INTO document_align(document1, document2, score) VALUES (%s, %s, %s)"
+    val = (doc1Id, doc2Id, score)
+    mycursor.execute(sql, val)
 
 ######################################################################################
 
@@ -52,9 +61,11 @@ for line in sys.stdin:
     url1 = toks[1]
     url2 = toks[2]
 
-    url1Id = GetURLId(mycursor, url1)
-    url2Id = GetURLId(mycursor, url2)
-    print("   ", url1Id, url2Id)
+    doc1Id = GetDocId(mycursor, url1)
+    doc2Id = GetDocId(mycursor, url2)
+    print("   ", doc1Id, doc2Id)
+
+    SaveDocAlign(mycursor, doc1Id, doc2Id, score)
 
 mydb.commit()
 
