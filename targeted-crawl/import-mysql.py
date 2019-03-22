@@ -140,8 +140,7 @@ print("Starting")
 oparser = argparse.ArgumentParser(description="import-mysql")
 oparser.add_argument("--boilerpipe", action="store_true", default=False, help="Use boilerpipe bodytext to do the de-boiling")
 oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
-oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', required=True)
-oparser.add_argument('--lang2', dest='l2', help='Language l2 in the crawl', required=True)
+oparser.add_argument('--langs', dest='langs', help='Languages in the crawl. Last is the dest language', required=True)
 oparser.add_argument('--out-dir', dest='outDir', help='Output directory', required=True)
 oparser.add_argument("--prune", dest="prune_threshold", type=int,
                     default=80, help="Prune sentences longer than n (words/characters)", required=False)
@@ -149,12 +148,8 @@ oparser.add_argument("--prune_type", dest="prune_type", choices={"words", "chars
                     default="words", help="Prune sentences either by words or charaters", required=False)
 options = oparser.parse_args()
 
-languages=[]
-if options.l1 != None:
-    languages.append(options.l1)
-if options.l2 != None:
-    languages.append(options.l2)
-
+languages = options.langs.split(",")
+assert(len(languages) == 2)
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -171,7 +166,7 @@ seen_md5={}
 magic.Magic(mime=True)
 
 mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
-                         options.l1
+                         languages[0]
                          ],
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 numPages = 0
@@ -344,7 +339,7 @@ for record in f:
                 # translate. Must be 1 sentence
                 langLinkStr = guess_lang_from_data2(linkStr)
                 #print("langLinkStr", langLinkStr)
-                if langLinkStr == options.l1:
+                if langLinkStr != languages[-1]:
                     tempStr = linkStr + "\n"
                     mtProc.stdin.write(tempStr.encode('utf-8'))
                     mtProc.stdin.flush()
@@ -411,7 +406,7 @@ for record in f:
         textFile.write(plaintext)
 
     #print("plaintext", len(plaintext))
-    splitterCmd = "../preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(lang1=options.l1)
+    splitterCmd = "../preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(lang1=lang)
     extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
     # write splitted file
@@ -420,7 +415,7 @@ for record in f:
         for extractedLine in extractedLines:
             extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
-    if lang == options.l1:
+    if lang != languages[-1]:
         # translate
         transPath = options.outDir + "/" + str(docId) + ".trans.xz"
         transFile = lzma.open(transPath, 'wt')
