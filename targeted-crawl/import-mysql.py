@@ -134,6 +134,14 @@ def DocAlign():
 
 ######################################################################################
 def SaveURL(mycursor, pageURL, docId):
+    ind = pageURL.find("#")
+    if ind >= 0:
+        pageURL = pageURL[:ind]
+        #print("pageURL", pageURL)
+    if pageURL[-5:].lower() == ".html":
+        pageURL = pageURL[:-5] + ".htm"
+        print("pageURL", pageURL)
+
     c = hashlib.md5()
     c.update(pageURL.encode())
     hashURL = c.hexdigest()
@@ -309,16 +317,6 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     #encodingFile.write(orig_encoding.encode()+b"\n")
 
     norm_html = cleantree.encode()
-    b64norm=base64.b64encode(norm_html)
-    #normHtmlFile.write(b64norm+b"\n")
-
-    if options.boilerpipe:
-        b64deboil=base64.b64encode(deboiled.encode())
-        #deboilFile.write(b64deboil+b"\n")
-
-    b64text=base64.b64encode(html.unescape(plaintext).encode())
-    #plainTextFile.write(b64text+b"\n")
-    #print("{0}\t{1}\t{2}\t{3}\t{4}".format(lang, orig_encoding, mime, b64norm.decode("utf-8"), b64text.decode("utf-8")))
 
     sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
     val = (mime, lang, hashDoc)
