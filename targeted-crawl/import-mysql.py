@@ -201,10 +201,17 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
     # print("link", url, " ||| ", linkStr, " ||| ", imgURL)
     urlId = SaveURL(mycursor, url, None)
 
-    sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-
-    val = (linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
+    sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
+    val = (docId, urlId)
     mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+
+    if res is None:
+        # not link yet
+        sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+
+        val = (linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
+        mycursor.execute(sql, val)
 
 
 ######################################################################################

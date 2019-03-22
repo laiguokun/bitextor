@@ -44,6 +44,10 @@ CREATE TABLE IF NOT EXISTS link
     url_id INT NOT NULL REFERENCES url(id)
 );
 
+ALTER TABLE link
+   ADD CONSTRAINT UQ_link_doc_url UNIQUE (document_id, url_id)
+;
+
 CREATE TABLE IF NOT EXISTS document_align
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
