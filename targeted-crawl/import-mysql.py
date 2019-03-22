@@ -224,6 +224,8 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
 ######################################################################################
 
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL):
+    print("page", pageURL)
+
     if pageURL == "unknown":
         logging.info("Unknown page url")
         return
@@ -246,9 +248,6 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
 
     # lang id
     lang = guess_lang_from_data2(cleantree)
-    if len(languages)>0 and lang not in languages:
-        logging.info("Language of document "+pageURL+": "+lang+". Not among searched languages.")
-        return
 
     #If enabled, remove boilerplate HTML
     if options.boilerpipe:
@@ -267,7 +266,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     val = (hashDoc,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
-    print("page", res, hashDoc, pageURL)
+    #print("page", res, hashDoc, pageURL)
 
     #checking for duplicate content (duplicates are discarded)
     if res is not None:
