@@ -164,6 +164,62 @@ def SaveURL(pageURL, docId):
     return urlId
 
 ######################################################################################
+def SaveLink(html_text, docId):
+    pass
+
+######################################################################################
+def SaveLinks(html_text, pageURL, docId):
+    soup = BeautifulSoup(html_text, features="lxml")
+    for link in soup.findAll('a'):
+        url = link.get('href')
+
+        if url is None:
+            continue
+
+        linkStr = link.string
+        if linkStr is not None:
+            linkStr = str(linkStr)
+            linkStr = linkStr.replace('\n', ' ')
+
+            # translate. Must be 1 sentence
+            langLinkStr = guess_lang_from_data2(linkStr)
+            #print("langLinkStr", langLinkStr)
+            if langLinkStr != languages[-1]:
+                tempStr = linkStr + "\n"
+                mtProc.stdin.write(tempStr.encode('utf-8'))
+                mtProc.stdin.flush()
+                linkStrTrans = mtProc.stdout.readline()
+                linkStrTrans = linkStrTrans.decode("utf-8")
+                linkStrTrans = linkStrTrans.strip("\n")
+                #print("linkStr", linkStr, "|||", linkStrTrans)
+            else:
+                linkStrTrans = linkStr
+        else:
+            linkStrTrans = None
+            langLinkStr = None
+
+        url = urllib.parse.unquote(url)
+        url = urllib.parse.urljoin(pageURL, url)
+        url = strip_scheme(url)
+
+        imgURL = link.find('img')
+        if imgURL:
+            #print("imgURL", imgURL)
+            imgURL = imgURL.get('src')
+            if imgURL is not None:
+                imgURL = str(imgURL)
+        else:
+            imgURL = None
+
+        #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
+        urlId = SaveURL(url, None)
+
+        sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+
+        val =(linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
+        mycursor.execute(sql, val)
+
+######################################################################################
 
 def ProcessPage(orig_encoding, html_text, pageURL):
     if pageURL == "unknown":
@@ -272,53 +328,7 @@ def ProcessPage(orig_encoding, html_text, pageURL):
     SaveURL(pageURL, docId)
 
     # links
-    soup = BeautifulSoup(html_text, features="lxml")
-    for link in soup.findAll('a'):
-        url = link.get('href')
-
-        if url is not None:
-            linkStr = link.string
-            if linkStr is not None:
-                linkStr = str(linkStr)
-                linkStr = linkStr.replace('\n', ' ')
-
-                # translate. Must be 1 sentence
-                langLinkStr = guess_lang_from_data2(linkStr)
-                #print("langLinkStr", langLinkStr)
-                if langLinkStr != languages[-1]:
-                    tempStr = linkStr + "\n"
-                    mtProc.stdin.write(tempStr.encode('utf-8'))
-                    mtProc.stdin.flush()
-                    linkStrTrans = mtProc.stdout.readline()
-                    linkStrTrans = linkStrTrans.decode("utf-8")
-                    linkStrTrans = linkStrTrans.strip("\n")
-                    #print("linkStr", linkStr, "|||", linkStrTrans)
-                else:
-                    linkStrTrans = linkStr
-            else:
-                linkStrTrans = None
-                langLinkStr = None
-
-            url = urllib.parse.unquote(url)
-            url = urllib.parse.urljoin(pageURL, url)
-            url = strip_scheme(url)
-
-            imgURL = link.find('img')
-            if imgURL:
-                #print("imgURL", imgURL)
-                imgURL = imgURL.get('src')
-                if imgURL is not None:
-                    imgURL = str(imgURL)
-            else:
-                imgURL = None
-
-            #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
-            urlId = SaveURL(url, None)
-
-            sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-
-            val =(linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
-            mycursor.execute(sql, val)
+    SaveLinks(html_text, pageURL, docId)
 
     # write html and text files
     filePrefix = options.outDir + "/" + str(docId)
@@ -361,57 +371,62 @@ def ProcessPage(orig_encoding, html_text, pageURL):
         DocAlign()
 
 ######################################################################################
+def Main():
+    pass
+######################################################################################
 
-print("Starting")
+if __name__ == "__main__":
 
-oparser = argparse.ArgumentParser(description="import-mysql")
-oparser.add_argument("--boilerpipe", action="store_true", default=False, help="Use boilerpipe bodytext to do the de-boiling")
-oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
-oparser.add_argument('--langs', dest='langs', help='Languages in the crawl. Last is the dest language', required=True)
-oparser.add_argument('--out-dir', dest='outDir', help='Output directory', required=True)
-oparser.add_argument("--prune", dest="prune_threshold", type=int,
-                    default=80, help="Prune sentences longer than n (words/characters)", required=False)
-oparser.add_argument("--prune_type", dest="prune_type", choices={"words", "chars"},
-                    default="words", help="Prune sentences either by words or charaters", required=False)
-options = oparser.parse_args()
+    print("Starting")
 
-languages = options.langs.split(",")
-assert(len(languages) == 2)
+    oparser = argparse.ArgumentParser(description="import-mysql")
+    oparser.add_argument("--boilerpipe", action="store_true", default=False, help="Use boilerpipe bodytext to do the de-boiling")
+    oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
+    oparser.add_argument('--langs', dest='langs', help='Languages in the crawl. Last is the dest language', required=True)
+    oparser.add_argument('--out-dir', dest='outDir', help='Output directory', required=True)
+    oparser.add_argument("--prune", dest="prune_threshold", type=int,
+                        default=80, help="Prune sentences longer than n (words/characters)", required=False)
+    oparser.add_argument("--prune_type", dest="prune_type", choices={"words", "chars"},
+                        default="words", help="Prune sentences either by words or charaters", required=False)
+    options = oparser.parse_args()
 
-mydb = mysql.connector.connect(
-    host="localhost",
-    user="paracrawl_user",
-    passwd="paracrawl_password",
-    database="paracrawl",
-    charset='utf8'
-)
-mydb.autocommit = False
-mycursor = mydb.cursor()
+    languages = options.langs.split(",")
+    assert(len(languages) == 2)
 
-f = warc.WARCFile(fileobj=sys.stdin.buffer)
-seen_md5={}
-magic.Magic(mime=True)
+    mydb = mysql.connector.connect(
+        host="localhost",
+        user="paracrawl_user",
+        passwd="paracrawl_password",
+        database="paracrawl",
+        charset='utf8'
+    )
+    mydb.autocommit = False
+    mycursor = mydb.cursor()
 
-mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
-                         languages[0]
-                         ],
-                        stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-numPages = 0
-for record in f:
-    numPages += 1
-    if numPages % 1 == 0:
-        pass
-        #print("write", numPages)
-        mydb.commit()
+    f = warc.WARCFile(fileobj=sys.stdin.buffer)
+    seen_md5={}
+    magic.Magic(mime=True)
 
-    #We convert into UTF8 first of all
-    orig_encoding,html_text = convert_encoding(record.payload.read())
-    pageURL=record.url
+    mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
+                             languages[0]
+                             ],
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    numPages = 0
+    for record in f:
+        numPages += 1
+        if numPages % 1 == 0:
+            pass
+            #print("write", numPages)
+            mydb.commit()
 
-    ProcessPage(orig_encoding, html_text, pageURL)
+        #We convert into UTF8 first of all
+        orig_encoding,html_text = convert_encoding(record.payload.read())
+        pageURL=record.url
 
-# everything done
-# commit in case there's any hanging transactions
-mydb.commit()
+        ProcessPage(orig_encoding, html_text, pageURL)
 
-print("Finished")
+    # everything done
+    # commit in case there's any hanging transactions
+    mydb.commit()
+
+    print("Finished")
