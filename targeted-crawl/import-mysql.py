@@ -164,8 +164,40 @@ def SaveURL(mycursor, pageURL, docId):
     return urlId
 
 ######################################################################################
-def SaveLink(html_text, docId):
-    pass
+def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
+    if linkStr is not None:
+        linkStr = str(linkStr)
+        linkStr = linkStr.replace('\n', ' ')
+
+        # translate. Must be 1 sentence
+        langLinkStr = guess_lang_from_data2(linkStr)
+        # print("langLinkStr", langLinkStr)
+        if langLinkStr != languages[-1]:
+            tempStr = linkStr + "\n"
+            mtProc.stdin.write(tempStr.encode('utf-8'))
+            mtProc.stdin.flush()
+            linkStrTrans = mtProc.stdout.readline()
+            linkStrTrans = linkStrTrans.decode("utf-8")
+            linkStrTrans = linkStrTrans.strip("\n")
+            # print("linkStr", linkStr, "|||", linkStrTrans)
+        else:
+            linkStrTrans = linkStr
+    else:
+        linkStrTrans = None
+        langLinkStr = None
+
+    url = urllib.parse.unquote(url)
+    url = urllib.parse.urljoin(pageURL, url)
+    url = strip_scheme(url)
+
+    # print("link", url, " ||| ", linkStr, " ||| ", imgURL)
+    urlId = SaveURL(mycursor, url, None)
+
+    sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+
+    val = (linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
+    mycursor.execute(sql, val)
+
 
 ######################################################################################
 def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
@@ -177,47 +209,17 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
             continue
 
         linkStr = link.string
-        if linkStr is not None:
-            linkStr = str(linkStr)
-            linkStr = linkStr.replace('\n', ' ')
-
-            # translate. Must be 1 sentence
-            langLinkStr = guess_lang_from_data2(linkStr)
-            #print("langLinkStr", langLinkStr)
-            if langLinkStr != languages[-1]:
-                tempStr = linkStr + "\n"
-                mtProc.stdin.write(tempStr.encode('utf-8'))
-                mtProc.stdin.flush()
-                linkStrTrans = mtProc.stdout.readline()
-                linkStrTrans = linkStrTrans.decode("utf-8")
-                linkStrTrans = linkStrTrans.strip("\n")
-                #print("linkStr", linkStr, "|||", linkStrTrans)
-            else:
-                linkStrTrans = linkStr
-        else:
-            linkStrTrans = None
-            langLinkStr = None
-
-        url = urllib.parse.unquote(url)
-        url = urllib.parse.urljoin(pageURL, url)
-        url = strip_scheme(url)
 
         imgURL = link.find('img')
         if imgURL:
-            #print("imgURL", imgURL)
+            # print("imgURL", imgURL)
             imgURL = imgURL.get('src')
             if imgURL is not None:
                 imgURL = str(imgURL)
         else:
             imgURL = None
 
-        #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
-        urlId = SaveURL(mycursor, url, None)
-
-        sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-
-        val =(linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
-        mycursor.execute(sql, val)
+        SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL)
 
 ######################################################################################
 
