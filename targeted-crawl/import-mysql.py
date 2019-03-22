@@ -140,7 +140,7 @@ def SaveURL(mycursor, pageURL, docId):
         #print("pageURL", pageURL)
     if pageURL[-5:].lower() == ".html":
         pageURL = pageURL[:-5] + ".htm"
-        print("pageURL", pageURL)
+        #print("pageURL", pageURL)
 
     c = hashlib.md5()
     c.update(pageURL.encode())
