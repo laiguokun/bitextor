@@ -133,7 +133,35 @@ def DocAlign():
         os.system(cmd)
 
 ######################################################################################
+def SaveURL(pageURL, docId):
+    c = hashlib.md5()
+    c.update(pageURL.encode())
+    hashURL = c.hexdigest()
 
+    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
+    val = (hashURL,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+
+    if res is not None:
+        # url exists
+        urlId = res[0]
+
+        if docId is not None:
+            if res[1] is None:
+                sql = "UPDATE url SET document_id = %s WHERE md5 = %s"
+                val = (docId, hashURL)
+                mycursor.execute(sql, val)
+            else:
+                assert (res[1] == docId)
+    else:
+        sql = "INSERT INTO url(val, md5, document_id) VALUES (%s, %s, %s)"
+        # print("url1", pageURL, hashURL)
+        val = (pageURL, hashURL, docId)
+        mycursor.execute(sql, val)
+        urlId = mycursor.lastrowid
+
+    return urlId
 
 ######################################################################################
 
@@ -177,11 +205,6 @@ def ProcessPage(orig_encoding, html_text, pageURL):
     hashDoc = c.hexdigest()
     #print("c", hash)
 
-    c = hashlib.md5()
-    c.update(pageURL.encode())
-    hashURL = c.hexdigest()
-    #print("hashURL", pageURL, hashURL)
-
     sql = "SELECT id FROM document WHERE md5 = %s"
     val = (hashDoc,)
     mycursor.execute(sql, val)
@@ -193,25 +216,7 @@ def ProcessPage(orig_encoding, html_text, pageURL):
         # duplicate page
         docId = res[0]
 
-        sql = "SELECT id, document_id FROM url WHERE md5 = %s"
-        val = (hashURL, )
-        mycursor.execute(sql, val)
-        res = mycursor.fetchone()
-
-        if res is not None:
-            # url exists
-            if res[1] is None:
-                sql = "UPDATE url SET document_id = %s WHERE md5 = %s"
-                val = (docId, hashURL)
-                mycursor.execute(sql, val)
-            else:
-                assert(res[1] == docId)
-        else:
-            sql = "INSERT INTO url(val, md5, document_id) VALUES (%s, %s, %s)"
-            #print("url1", pageURL, hashURL)
-            val = (pageURL, hashURL, int(docId))
-            mycursor.execute(sql, val)
-
+        SaveURL(pageURL, docId)
         return
 
     # new doc
@@ -264,23 +269,7 @@ def ProcessPage(orig_encoding, html_text, pageURL):
     mycursor.execute(sql, val)
     docId = mycursor.lastrowid
 
-    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
-    val = (hashURL, )
-    mycursor.execute(sql, val)
-    res = mycursor.fetchone()
-
-    if res is not None:
-        # url exists
-        assert(res[1] == None)
-        sql = "UPDATE url SET document_id = %s WHERE md5 = %s"
-        val = (int(docId), hashURL)
-        mycursor.execute(sql, val)
-    else:
-        sql = "INSERT INTO url(val, md5, document_id) VALUES (%s, %s, %s)"
-        #print("url1", pageURL, hashURL)
-        val = (pageURL, hashURL, int(docId))
-        mycursor.execute(sql, val)
-    #print(html_text)
+    SaveURL(pageURL, docId)
 
     # links
     soup = BeautifulSoup(html_text, features="lxml")
@@ -314,11 +303,6 @@ def ProcessPage(orig_encoding, html_text, pageURL):
             url = urllib.parse.urljoin(pageURL, url)
             url = strip_scheme(url)
 
-            c = hashlib.md5()
-            c.update(url.encode())
-            hashURL = c.hexdigest()
-            #print("url3", url, hashURL)
-
             imgURL = link.find('img')
             if imgURL:
                 #print("imgURL", imgURL)
@@ -329,27 +313,11 @@ def ProcessPage(orig_encoding, html_text, pageURL):
                 imgURL = None
 
             #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
-
-            # does url already exist?
-            sql = "SELECT id FROM url WHERE md5 = %s"
-            val = (hashURL, )
-            mycursor.execute(sql, val)
-            res = mycursor.fetchone()
-            #print("res", res, hash, url)
-
-            if (res is not None):
-                urlId = res[0]
-            else:
-                sql = "INSERT INTO url(val, md5) VALUES(%s, %s)"
-                val = (url, hashURL)
-                mycursor.execute(sql, val)
-                urlId = mycursor.lastrowid
-
-            #print("urlId", urlId)
+            urlId = SaveURL(url, None)
 
             sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
 
-            val =(linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, int(docId), int(urlId))
+            val =(linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
             mycursor.execute(sql, val)
 
     # write html and text files
