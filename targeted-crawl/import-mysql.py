@@ -133,7 +133,7 @@ def DocAlign():
         os.system(cmd)
 
 ######################################################################################
-def SaveURL(pageURL, docId):
+def SaveURL(mycursor, pageURL, docId):
     c = hashlib.md5()
     c.update(pageURL.encode())
     hashURL = c.hexdigest()
@@ -168,7 +168,7 @@ def SaveLink(html_text, docId):
     pass
 
 ######################################################################################
-def SaveLinks(html_text, pageURL, docId):
+def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
     soup = BeautifulSoup(html_text, features="lxml")
     for link in soup.findAll('a'):
         url = link.get('href')
@@ -212,7 +212,7 @@ def SaveLinks(html_text, pageURL, docId):
             imgURL = None
 
         #print("link", url, " ||| ", linkStr, " ||| ", imgURL)
-        urlId = SaveURL(url, None)
+        urlId = SaveURL(mycursor, url, None)
 
         sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
 
@@ -221,7 +221,7 @@ def SaveLinks(html_text, pageURL, docId):
 
 ######################################################################################
 
-def ProcessPage(orig_encoding, html_text, pageURL):
+def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL):
     if pageURL == "unknown":
         logging.info("Unknown page url")
         return
@@ -272,7 +272,7 @@ def ProcessPage(orig_encoding, html_text, pageURL):
         # duplicate page
         docId = res[0]
 
-        SaveURL(pageURL, docId)
+        SaveURL(mycursor, pageURL, docId)
         return
 
     # new doc
@@ -325,10 +325,10 @@ def ProcessPage(orig_encoding, html_text, pageURL):
     mycursor.execute(sql, val)
     docId = mycursor.lastrowid
 
-    SaveURL(pageURL, docId)
+    SaveURL(mycursor, pageURL, docId)
 
     # links
-    SaveLinks(html_text, pageURL, docId)
+    SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId)
 
     # write html and text files
     filePrefix = options.outDir + "/" + str(docId)
@@ -372,11 +372,6 @@ def ProcessPage(orig_encoding, html_text, pageURL):
 
 ######################################################################################
 def Main():
-    pass
-######################################################################################
-
-if __name__ == "__main__":
-
     print("Starting")
 
     oparser = argparse.ArgumentParser(description="import-mysql")
@@ -423,10 +418,15 @@ if __name__ == "__main__":
         orig_encoding,html_text = convert_encoding(record.payload.read())
         pageURL=record.url
 
-        ProcessPage(orig_encoding, html_text, pageURL)
+        ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL)
 
     # everything done
     # commit in case there's any hanging transactions
     mydb.commit()
 
     print("Finished")
+
+######################################################################################
+
+if __name__ == "__main__":
+    Main()
