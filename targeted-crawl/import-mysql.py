@@ -195,24 +195,28 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
         langLinkStr = None
 
     url = urllib.parse.unquote(url)
-    url = urllib.parse.urljoin(pageURL, url)
-    url = strip_scheme(url)
+    #print("URL", pageURL, url)
 
-    # print("link", url, " ||| ", linkStr, " ||| ", imgURL)
-    urlId = SaveURL(mycursor, url, None)
+    try:
+        url = urllib.parse.urljoin(pageURL, url)
+        url = strip_scheme(url)
 
-    sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
-    val = (docId, urlId)
-    mycursor.execute(sql, val)
-    res = mycursor.fetchone()
+        # print("link", url, " ||| ", linkStr, " ||| ", imgURL)
+        urlId = SaveURL(mycursor, url, None)
 
-    if res is None:
-        # not link yet
-        sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-
-        val = (linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
+        sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
+        val = (docId, urlId)
         mycursor.execute(sql, val)
+        res = mycursor.fetchone()
 
+        if res is None:
+            # not link yet
+            sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+
+            val = (linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
+            mycursor.execute(sql, val)
+    except:
+        pass
 
 ######################################################################################
 def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
