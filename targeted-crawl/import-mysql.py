@@ -24,7 +24,7 @@ import string
 from lxml.html.clean import Cleaner
 from lxml import etree
 from bs4 import BeautifulSoup
-
+from datetime import datetime
 
 sys.path.append("..")
 from external_processor import ExternalTextProcessor
@@ -133,7 +133,7 @@ def DocAlign():
         os.system(cmd)
 
 ######################################################################################
-def SaveURL(mycursor, pageURL, docId):
+def SaveURL(mycursor, pageURL, docId, crawlDate):
     ind = pageURL.find("#")
     if ind >= 0:
         pageURL = pageURL[:ind]
@@ -156,16 +156,17 @@ def SaveURL(mycursor, pageURL, docId):
         urlId = res[0]
 
         if docId is not None:
+            assert(crawlDate is not None)
             if res[1] is None:
-                sql = "UPDATE url SET document_id = %s WHERE md5 = %s"
-                val = (docId, hashURL)
+                sql = "UPDATE url SET document_id = %s AND crawl_date = %s WHERE md5 = %s"
+                val = (docId, crawlDate, hashURL)
                 mycursor.execute(sql, val)
             else:
                 assert (res[1] == docId)
     else:
-        sql = "INSERT INTO url(val, md5, document_id) VALUES (%s, %s, %s)"
+        sql = "INSERT INTO url(val, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s)"
         # print("url1", pageURL, hashURL)
-        val = (pageURL, hashURL, docId)
+        val = (pageURL, hashURL, docId, crawlDate)
         mycursor.execute(sql, val)
         urlId = mycursor.lastrowid
 
@@ -202,7 +203,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
         url = strip_scheme(url)
 
         # print("link", url, " ||| ", linkStr, " ||| ", imgURL)
-        urlId = SaveURL(mycursor, url, None)
+        urlId = SaveURL(mycursor, url, None, None)
 
         sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
         val = (docId, urlId)
@@ -242,7 +243,7 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
 
 ######################################################################################
 
-def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL):
+def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate):
     print("page", pageURL)
 
     if pageURL == "unknown":
@@ -292,7 +293,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
         # duplicate page
         docId = res[0]
 
-        SaveURL(mycursor, pageURL, docId)
+        SaveURL(mycursor, pageURL, docId, crawlDate)
         return
 
     # new doc
@@ -335,7 +336,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     mycursor.execute(sql, val)
     docId = mycursor.lastrowid
 
-    SaveURL(mycursor, pageURL, docId)
+    SaveURL(mycursor, pageURL, docId, crawlDate)
 
     # links
     SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId)
@@ -409,6 +410,7 @@ def Main():
     mycursor = mydb.cursor()
 
     f = warc.WARCFile(fileobj=sys.stdin.buffer)
+
     seen_md5={}
     magic.Magic(mime=True)
 
@@ -427,8 +429,14 @@ def Main():
         #We convert into UTF8 first of all
         orig_encoding,html_text = convert_encoding(record.payload.read())
         pageURL=record.url
+        crawlDate = record.date
+        crawlDate = crawlDate.replace("T", " ")
+        crawlDate = crawlDate.replace("Z", " ")
+        crawlDate = crawlDate.strip()
+        crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
+        #print("crawlDate", crawlDate, type(crawlDate))
 
-        ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL)
+        ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate)
 
     # everything done
     # commit in case there's any hanging transactions

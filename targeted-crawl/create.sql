@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS url
     id INT AUTO_INCREMENT PRIMARY KEY,
     val TEXT,
     md5 VARCHAR(32) NOT NULL UNIQUE KEY,
-    document_id INT REFERENCES document(id)
+    document_id INT REFERENCES document(id),
+    crawl_date DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS link
