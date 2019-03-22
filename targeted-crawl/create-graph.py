@@ -54,7 +54,7 @@ def ExpandDoc(mycursor, docIds, docId):
 
         if nextDocId is not None:
             urls2 = GetUrls(mycursor, nextDocId)
-            print(docId, urls1, "->", nextDocId, urls2)
+            print(docId, "->", nextDocId, urls1, "->", urls2)
 
             if nextDocId not in docIds:
                 ExpandDoc(mycursor, docIds, nextDocId)
