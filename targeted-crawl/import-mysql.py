@@ -436,7 +436,10 @@ def Main():
         crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
         #print("crawlDate", crawlDate, type(crawlDate))
 
-        ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate)
+        try:
+            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate)
+        except:
+            pass
 
     # everything done
     # commit in case there's any hanging transactions
