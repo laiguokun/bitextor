@@ -245,6 +245,33 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL)
 
 ######################################################################################
+def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
+    sql = "SELECT id FROM document WHERE md5 = %s"
+    val = (hashDoc,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+    #print("page", res, hashDoc, pageURL)
+
+    #checking for duplicate content (duplicates are discarded)
+    if res is None:
+        # new doc
+        newDoc = True
+        sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
+        val = (mime, lang, hashDoc)
+        # print("val", type(val))
+        mycursor.execute(sql, val)
+        docId = mycursor.lastrowid
+    else:
+        # duplicate page
+        newDoc = False
+        docId = res[0]
+
+    urlId = SaveURL(mycursor, pageURL, docId, crawlDate)
+    print("docId", docId, urlId)
+
+    return (newDoc, docId)
+
+######################################################################################
 
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate):
     print("page", pageURL)
@@ -285,20 +312,6 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     hashDoc = c.hexdigest()
     #print("c", hash)
 
-    sql = "SELECT id FROM document WHERE md5 = %s"
-    val = (hashDoc,)
-    mycursor.execute(sql, val)
-    res = mycursor.fetchone()
-    #print("page", res, hashDoc, pageURL)
-
-    #checking for duplicate content (duplicates are discarded)
-    if res is not None:
-        # duplicate page
-        docId = res[0]
-
-        SaveURL(mycursor, pageURL, docId, crawlDate)
-        return
-
     # new doc
     if options.alcazar:
         # get text with Alcazar library
@@ -327,62 +340,57 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     mime=magic.from_buffer(html_text, mime=True)
     #mimeFile.write(mime.encode()+b"\n")
 
-    #urlFile.write(url.encode()+b"\n")
-    #langFile.write(lang.encode()+b"\n")
-    #encodingFile.write(orig_encoding.encode()+b"\n")
+    (newDoc, docId) = SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime)
 
-    norm_html = cleantree.encode()
+    if newDoc:
+        #urlFile.write(url.encode()+b"\n")
+        #langFile.write(lang.encode()+b"\n")
+        #encodingFile.write(orig_encoding.encode()+b"\n")
 
-    sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
-    val = (mime, lang, hashDoc)
-    #print("val", type(val))
-    mycursor.execute(sql, val)
-    docId = mycursor.lastrowid
+        norm_html = cleantree.encode()
 
-    SaveURL(mycursor, pageURL, docId, crawlDate)
+        # links
+        SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId)
 
-    # links
-    SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId)
+        # write html and text files
+        filePrefix = options.outDir + "/" + str(docId)
 
-    # write html and text files
-    filePrefix = options.outDir + "/" + str(docId)
+        with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
+            htmlFile.write(html_text)
+        with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
+            normHtmlFile.write(norm_html.decode("utf-8"))
+        with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
+            textFile.write(plaintext)
 
-    with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
-        htmlFile.write(html_text)
-    with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
-        normHtmlFile.write(norm_html.decode("utf-8"))
-    with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
-        textFile.write(plaintext)
+        #print("plaintext", len(plaintext))
+        splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
+        extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
-    #print("plaintext", len(plaintext))
-    splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
-    extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
+        # write splitted file
+        extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
+        with lzma.open(extractPath, 'wt') as extractFile:
+            for extractedLine in extractedLines:
+                extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
-    # write splitted file
-    extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
-    with lzma.open(extractPath, 'wt') as extractFile:
-        for extractedLine in extractedLines:
-            extractFile.write(str(docId) + "\t" + extractedLine + "\n")
+        if lang != languages[-1]:
+            # translate
+            transPath = options.outDir + "/" + str(docId) + ".trans.xz"
+            transFile = lzma.open(transPath, 'wt')
 
-    if lang != languages[-1]:
-        # translate
-        transPath = options.outDir + "/" + str(docId) + ".trans.xz"
-        transFile = lzma.open(transPath, 'wt')
+            for inLine in extractedLines:
+                # print("inLine", inLine)
+                inLine += "\n"
+                mtProc.stdin.write(inLine.encode('utf-8'))
+                mtProc.stdin.flush()
+                outLine = mtProc.stdout.readline()
+                outLine = outLine.decode("utf-8")
+                transFile.write(str(docId) + "\t" + outLine)
 
-        for inLine in extractedLines:
-            # print("inLine", inLine)
-            inLine += "\n"
-            mtProc.stdin.write(inLine.encode('utf-8'))
-            mtProc.stdin.flush()
-            outLine = mtProc.stdout.readline()
-            outLine = outLine.decode("utf-8")
-            transFile.write(str(docId) + "\t" + outLine)
+            transFile.close()
 
-        transFile.close()
-
-    # doc align
-    if 0:
-        DocAlign()
+        # doc align
+        if 0:
+            DocAlign()
 
 ######################################################################################
 def Main():
