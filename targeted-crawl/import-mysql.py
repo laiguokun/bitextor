@@ -26,7 +26,9 @@ from lxml import etree
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-sys.path.append("/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted")
+BITEXTOR = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted"
+
+sys.path.append(BITEXTOR)
 from external_processor import ExternalTextProcessor
 
 ######################################################################################
@@ -113,7 +115,7 @@ def DocAlign():
     res = mycursor.fetchall()
     #print("res", res)
 
-    tok1 = "../preprocess/moses/tokenizer/tokenizer.perl -l {lang1} -a -b -q".format(lang1=options.l1)
+    tok1 = "{BITEXTOR}/preprocess/moses/tokenizer/tokenizer.perl -l {lang1} -a -b -q".format(BITEXTOR=BITEXTOR, lang1=options.l1)
 
     for rec in res:
         otherDocId = rec[0]
@@ -128,7 +130,7 @@ def DocAlign():
             doc2 = extractPath
             matchPath = "{outDir}/{doc1Id}-{doc2Id}.matches".format(outDir=options.outDir, doc1Id=otherDocId, doc2Id=docId)
 
-        cmd = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(lang1=doc1, lang2=doc2, output=matchPath, DOC_THRESHOLD=0.2, WORDTOK1=tok1)
+        cmd = "{BITEXTOR}/document-aligner/compute_matches.py --lang1 {lang1} --lang2 {lang2} --output_matches {output} --threshold {DOC_THRESHOLD} --word_tokeniser '{WORDTOK1}'".format(BITEXTOR=BITEXTOR, lang1=doc1, lang2=doc2, output=matchPath, DOC_THRESHOLD=0.2, WORDTOK1=tok1)
         #print("cmd", cmd)
         os.system(cmd)
 
@@ -248,6 +250,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
 
     if pageURL == "unknown":
         logging.info("Unknown page url")
+        print("HH1")
         return
 
     if orig_encoding == None:
@@ -255,7 +258,10 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
 
     if len(html_text) == 0:
         logging.info("Empty page")
+        print("HH2")
         return
+
+    print("HH3")
 
     # HTML is then normalized
     cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=False, safe_attrs_only=False)
@@ -266,8 +272,12 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     cleantree = tree.decode("utf8").replace("&#160;", " ")
     cleantree = cleantree.replace("\t", " ")
 
+    print("HH3")
+
     # lang id
     lang = guess_lang_from_data2(cleantree)
+
+    print("HH3")
 
     #If enabled, remove boilerplate HTML
     if options.boilerpipe:
@@ -276,11 +286,15 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     else:
         deboiled = cleantree
 
+    print("HH3")
+
     #We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate files we discard them
     c = hashlib.md5()
     c.update(deboiled.encode())
     hashDoc = c.hexdigest()
     #print("c", hash)
+
+    print("HH4")
 
     sql = "SELECT id FROM document WHERE md5 = %s"
     val = (hashDoc,)
@@ -352,7 +366,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
         textFile.write(plaintext)
 
     #print("plaintext", len(plaintext))
-    splitterCmd = "../preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(lang1=lang)
+    splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
     extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
     # write splitted file
@@ -436,10 +450,7 @@ def Main():
         crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
         #print("crawlDate", crawlDate, type(crawlDate))
 
-        try:
-            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate)
-        except:
-            pass
+        ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate)
 
     # everything done
     # commit in case there's any hanging transactions
