@@ -160,9 +160,10 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
         if docId is not None:
             assert(crawlDate is not None)
             if res[1] is None:
-                sql = "UPDATE url SET document_id = %s AND crawl_date = %s WHERE md5 = %s"
-                val = (docId, crawlDate, hashURL)
+                sql = "UPDATE url SET document_id = %s, crawl_date = %s WHERE id = %s"
+                val = (docId, crawlDate, urlId)
                 mycursor.execute(sql, val)
+                assert(mycursor.rowcount == 1)
             else:
                 assert (res[1] == docId)
     else:
@@ -267,7 +268,6 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
         docId = res[0]
 
     urlId = SaveURL(mycursor, pageURL, docId, crawlDate)
-    print("docId", docId, urlId)
 
     return (newDoc, docId)
 
@@ -341,6 +341,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     #mimeFile.write(mime.encode()+b"\n")
 
     (newDoc, docId) = SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime)
+    #print("docId", docId)
 
     if newDoc:
         #urlFile.write(url.encode()+b"\n")
