@@ -297,7 +297,11 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     cleantree = cleantree.replace("\t", " ")
 
     # lang id
-    lang = guess_lang_from_data2(cleantree)
+    try:
+        lang = guess_lang_from_data2(cleantree)
+    except:
+        sys.stderr.write("error guessing language")
+        return
 
     #If enabled, remove boilerplate HTML
     if options.boilerpipe:
