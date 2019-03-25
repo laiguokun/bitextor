@@ -26,7 +26,7 @@ from lxml import etree
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-sys.path.append("..")
+sys.path.append("/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted")
 from external_processor import ExternalTextProcessor
 
 ######################################################################################
