@@ -47,7 +47,7 @@ def convert_encoding(data):
             try:
                 return (enc,data.decode(enc))
             except UnicodeDecodeError:
-                pass
+                sys.stderr.write("encoding error")
 
     return (None,'')
 ######################################################################################
@@ -219,7 +219,8 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
             val = (linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
             mycursor.execute(sql, val)
     except:
-        pass
+        sys.stderr.write("error saving link")
+
 
 ######################################################################################
 def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
@@ -272,12 +273,12 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     cleantree = tree.decode("utf8").replace("&#160;", " ")
     cleantree = cleantree.replace("\t", " ")
 
-    print("HH3")
+    print("HH4")
 
     # lang id
     lang = guess_lang_from_data2(cleantree)
 
-    print("HH3")
+    print("HH5")
 
     #If enabled, remove boilerplate HTML
     if options.boilerpipe:
@@ -286,7 +287,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     else:
         deboiled = cleantree
 
-    print("HH3")
+    print("HH6")
 
     #We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate files we discard them
     c = hashlib.md5()
@@ -294,7 +295,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     hashDoc = c.hexdigest()
     #print("c", hash)
 
-    print("HH4")
+    print("HH7")
 
     sql = "SELECT id FROM document WHERE md5 = %s"
     val = (hashDoc,)
@@ -302,17 +303,23 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     res = mycursor.fetchone()
     #print("page", res, hashDoc, pageURL)
 
+    print("HH8")
+
     #checking for duplicate content (duplicates are discarded)
     if res is not None:
         # duplicate page
         docId = res[0]
 
         SaveURL(mycursor, pageURL, docId, crawlDate)
+        print("HH9")
         return
+
+    print("HH10")
 
     # new doc
     if options.alcazar:
         # get text with Alcazar library
+        print("HH11")
         btext = alcazar.bodytext.parse_article(cleantree)
         if btext.body_text:
             plaintext = btext.body_text
@@ -320,6 +327,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
             plaintext = ""
     else:
         # use beautifulsoup
+        print("HH12")
         if options.boilerpipe:
             soup = BeautifulSoup(deboiled, "lxml")
         else:
@@ -332,8 +340,10 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
 
     if len(plaintext) == 0:
         # empty doc. Should we still go thru links anyway?
+        print("HH13")
         return
 
+    print("HH14")
     #Guessing MIME of the file (checked on original content)
     mime=magic.from_buffer(html_text, mime=True)
     #mimeFile.write(mime.encode()+b"\n")
@@ -350,6 +360,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     mycursor.execute(sql, val)
     docId = mycursor.lastrowid
 
+    print("HH15")
     SaveURL(mycursor, pageURL, docId, crawlDate)
 
     # links
@@ -358,6 +369,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     # write html and text files
     filePrefix = options.outDir + "/" + str(docId)
 
+    print("HH16")
     with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
         htmlFile.write(html_text)
     with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
@@ -370,13 +382,16 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
     extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
     # write splitted file
+    print("HH17")
     extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
     with lzma.open(extractPath, 'wt') as extractFile:
         for extractedLine in extractedLines:
             extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
+    print("HH18")
     if lang != languages[-1]:
         # translate
+        print("HH19")
         transPath = options.outDir + "/" + str(docId) + ".trans.xz"
         transFile = lzma.open(transPath, 'wt')
 
@@ -390,6 +405,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, 
             transFile.write(str(docId) + "\t" + outLine)
 
         transFile.close()
+    print("HH20")
 
     # doc align
     if 0:
