@@ -8,7 +8,8 @@ import hashlib
 
 ######################################################################################
 def Relink(mycursor, fromId, toId):
-    sql =
+    pass
+    #sql =
 
 ######################################################################################
 
@@ -33,29 +34,18 @@ def Main():
         + " and t2.document_id is not null"
     mycursor.execute(sql)
     res = mycursor.fetchall()
+    print("res", len(res))
 
-    for row in res:
-        fromId = row[0]
-        toId = row[1]
-        Relink(fromId, toId)
+    row = res[0]
+    print("row", row)
+
+    #for row in res:
+    #    fromId = row[0]
+    #    toId = row[1]
+    #    Relink(fromId, toId)
 
     print("Finished")
 
 if __name__ == "__main__":
     Main()
-
-update link, url t1, url t2
-set url_id = t2.id
-where link.url_id = t1.id
-and right(t1.val, 4) = ".htm"
-and left(t1.val, length(t1.val) - 4) = t2.val
-and t1.document_id is null
-and t2.document_id is not null
-
-delete from url t1
-where right(t1.val, 4) = ".htm"
-and exists
-(select *
- from url t2
- where left(t1.val, length(t1.val) - 4) = t2.val)
 
