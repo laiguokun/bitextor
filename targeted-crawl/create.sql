@@ -9,31 +9,6 @@ mysql -u paracrawl_user -pparacrawl_password -Dparacrawl < create.sql
 mysqldump -u paracrawl_user -pparacrawl_password --databases paracrawl | xz -c > db.xz
 xzcat db.xz | mysql -u paracrawl_user -pparacrawl_password -Dparacrawl
 
-select t1.id, t2.id, t1.val, t2.val
-from url t1, url t2
-where right(t1.val, 4) = ".htm"
-and left(t1.val, length(t1.val) - 4) = t2.val
-and t1.document_id is null
-and t2.document_id is not null
-
-update link, url t1, url t2
-set url_id = t2.id
-where link.url_id = t1.id
-and right(t1.val, 4) = ".htm"
-and left(t1.val, length(t1.val) - 4) = t2.val
-and t1.document_id is null
-and t2.document_id is not null
-and t1.id < 1000
-and t2.id < 1000
-
-delete from url
-where right(val, 4) = ".htm"
-and id < 1000
-and exists
-(select *
- from url t2
- where left(url.val, length(url.val) - 4) = t2.val)
-
 */
 
 DROP TABLE IF EXISTS document;

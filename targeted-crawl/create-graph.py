@@ -51,7 +51,7 @@ def ExpandDoc(mycursor, docIds, docId):
     for row in res:
         url = row[1]
         nextDocId = row[2]
-        print("row", row)
+        #print("row", row)
 
         if nextDocId is not None:
             urls2 = GetUrls(mycursor, nextDocId)
