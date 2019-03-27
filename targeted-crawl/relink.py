@@ -68,6 +68,8 @@ def Main():
         numRec = len(res)
         print("res", numRec)
 
+        if numRec == 0:
+            break
         #row = res[0]
         #print("row", row)
 
