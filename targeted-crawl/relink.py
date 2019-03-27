@@ -58,8 +58,8 @@ def Main():
         + " where right(t1.val, 4) = '.htm'" \
         + " and left(t1.val, length(t1.val) - 4) = t2.val" \
         + " and t1.document_id is null" \
-        + " and t2.document_id is not null" \
-        + " and t1.id < 1000 and t2.id < 1000"
+        + " and t2.document_id is not null"
+        #+ " and t1.id < 1000 and t2.id < 1000"
     mycursor.execute(sql)
     res = mycursor.fetchall()
     print("res", len(res))

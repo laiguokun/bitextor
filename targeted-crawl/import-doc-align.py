@@ -8,6 +8,16 @@ import hashlib
 
 
 ######################################################################################
+def NormalizeURL(url):
+    ind = url.find("#")
+    if ind >= 0:
+        url = url[:ind]
+        #print("pageURL", pageURL)
+    if url[-5:].lower() == ".html":
+        pageURL = url[:-5] + ".htm"
+        #print("pageURL", pageURL)
+    return url
+
 def GetDocId(mycursor, url):
     c = hashlib.md5()
     c.update(url.encode())
@@ -58,8 +68,8 @@ for line in sys.stdin:
     assert(len(toks) == 3)
 
     score = toks[0]
-    url1 = toks[1]
-    url2 = toks[2]
+    url1 = NormalizeURL(toks[1])
+    url2 = NormalizeURL(toks[2])
 
     doc1Id = GetDocId(mycursor, url1)
     doc2Id = GetDocId(mycursor, url2)
