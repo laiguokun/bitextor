@@ -19,7 +19,7 @@ def Relink(mycursor, fromId, toId):
     mycursor.execute(sql, val)
     res = mycursor.fetchall()
     for row in res:
-        print("row", row)
+        #print("row", row)
         docId = row[0]
 
         sql = "DELETE FROM link WHERE url_id = %s AND document_id = %s"
