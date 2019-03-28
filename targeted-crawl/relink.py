@@ -44,8 +44,6 @@ def Main():
     print("Starting")
 
     oparser = argparse.ArgumentParser(description="import-mysql")
-    oparser.add_argument('--start-id', dest='fromId', help='start id to change', required=True)
-    oparser.add_argument('--end-id', dest='toId', help='end id to change', required=True)
     options = oparser.parse_args()
 
     mydb = mysql.connector.connect(
@@ -63,12 +61,10 @@ def Main():
         + " where right(t1.val, 4) = '.htm'" \
         + " and left(t1.val, length(t1.val) - 4) = t2.val" \
         + " and t1.document_id is null" \
-        + " and t2.document_id is not null" \
-        + " and t1.id BETWEEN %s AND %s"
+        + " and t2.document_id is not null"
         #+ " limit 10"
         #+ " and t1.id < 1000 and t2.id < 1000"
-    val = (options.fromId, options.toId)
-    mycursor.execute(sql, val)
+    mycursor.execute(sql)
     res = mycursor.fetchall()
 
     numLines = len(res)
