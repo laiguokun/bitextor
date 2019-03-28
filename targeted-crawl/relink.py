@@ -43,6 +43,11 @@ def Relink(mycursor, fromId, toId):
 def Main():
     print("Starting")
 
+    oparser = argparse.ArgumentParser(description="import-mysql")
+    oparser.add_argument('--start-id', dest='fromId', help='start id to change', required=True)
+    oparser.add_argument('--end-id', dest='toId', help='end id to change', required=True)
+    options = oparser.parse_args()
+
     mydb = mysql.connector.connect(
         host="localhost",
         user="paracrawl_user",
@@ -58,23 +63,29 @@ def Main():
         + " where right(t1.val, 4) = '.htm'" \
         + " and left(t1.val, length(t1.val) - 4) = t2.val" \
         + " and t1.document_id is null" \
-        + " and t2.document_id is not null" #\
+        + " and t2.document_id is not null" \
+        + " and t1.id BETWEEN %s AND %s"
         #+ " limit 10"
         #+ " and t1.id < 1000 and t2.id < 1000"
-    mycursor.execute(sql)
+    val = (options.fromId, options.toId)
+    mycursor.execute(sql, val)
     res = mycursor.fetchall()
 
-    print("res", len(res))
+    numLines = len(res)
+    print("res", numLines)
 
     #row = res[0]
     #print("row", row)
 
+    lineNum = 0
     for row in res:
-        print("row", row)
+        print("row", row, numLines - lineNum)
         fromId = row[0]
         toId = row[1]
         Relink(mycursor, fromId, toId)
+
         mydb.commit()
+        lineNum += 1
 
     mycursor.close()
     mydb.close()
