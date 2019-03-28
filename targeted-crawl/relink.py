@@ -8,7 +8,25 @@ import hashlib
 
 ######################################################################################
 def Relink(mycursor, fromId, toId):
-    sql = "UPDATE link SET url_id = %s WHERE url_id = %s AND document_id IS NULL"
+    # delete links in pages which have BOTH a and a.htm
+    # would havve been better to use subquery but mysql doesn't support them with same table in the sub
+    sql = "select document_id, count(*) as c" \
+        + " from link " \
+        + " where url_id in (%s, %s)" \
+        + " group by document_id" \
+        + " having c > 1"
+    val = (toId, fromId)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchall()
+    for row in res:
+        print("row", row)
+        docId = row[0]
+
+        sql = "DELETE FROM link WHERE url_id = %s AND document_id = %s"
+        val = (fromId, docId)
+        mycursor.execute(sql, val)
+
+    sql = "UPDATE link SET url_id = %s WHERE url_id = %s"
     val = (toId, fromId)
     mycursor.execute(sql, val)
 
