@@ -56,6 +56,7 @@ def Main():
         fromId = row[0]
         toId = row[1]
         Relink(mycursor, fromId, toId)
+        mydb.commit()
 
     mycursor.close()
     mydb.close()
