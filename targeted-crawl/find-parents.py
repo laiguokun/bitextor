@@ -6,7 +6,7 @@ import argparse
 import mysql.connector
 
 ######################################################################################
-def GetParents(mycursor, docId):
+def GetChildren(mycursor, child, parent):
     sql = "select link.document_id as parent_doc from link, url where link.url_id = url.id and url.document_id = %s"
     val =(docId, )
     mycursor.execute(sql, val)
@@ -34,7 +34,8 @@ def Main():
     sql = "select url.document_id as child, link.document_id as parent" \
         + " from link, url, document_align" \
         + " where link.url_id = url.id" \
-        + " and url.document_id = document_align.document1"
+        + " and url.document_id = document_align.document1" \
+        + " order by child"
 
     mycursor.execute(sql)
     res = mycursor.fetchall()
@@ -42,9 +43,9 @@ def Main():
 
     for row in res:
         print("row", row)
-        doc1 = row[1]
-        doc2 = row[2]
-        parents = GetParents(mycursor, doc1)
+        child = row[0]
+        parent = row[1]
+        parents = GetChildren(mycursor, child, parent)
 
     print("Finished")
 
