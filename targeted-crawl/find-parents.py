@@ -7,7 +7,7 @@ import mysql.connector
 
 ######################################################################################
 def GetParents(mycursor, docId):
-    sql = "select link.document_id from link, url where link.url_id = url.id and url.document_id = %s"
+    sql = "select link.document_id as parent_doc from link, url where link.url_id = url.id and url.document_id = %s"
     val =(docId, )
     mycursor.execute(sql, val)
     res = mycursor.fetchall()
@@ -31,7 +31,11 @@ def Main():
     mydb.autocommit = False
     mycursor = mydb.cursor(buffered=True)
 
-    sql = "SELECT id, document1, document2 FROM document_align"
+    sql = "select url.document_id as child, link.document_id as parent" \
+        + " from link, url, document_align" \
+        + " where link.url_id = url.id" \
+        + " and url.document_id = document_align.document1"
+
     mycursor.execute(sql)
     res = mycursor.fetchall()
     print("res", len(res))
