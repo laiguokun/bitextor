@@ -9,6 +9,28 @@ mysql -u paracrawl_user -pparacrawl_password -Dparacrawl < create.sql
 mysqldump -u paracrawl_user -pparacrawl_password --databases paracrawl | xz -c > db.xz
 xzcat db.xz | mysql -u paracrawl_user -pparacrawl_password -Dparacrawl
 
+# stats
+# child-parent language
+select parent.lang, child.lang, count(*)
+from document parent, link, url, document child
+where parent.id = link.document_id
+and link.url_id = url.id
+and url.document_id = child.id
+group by parent.lang, child.lang
+
+# number of matched pages for each parent
+select link.document_id parentDoc, urlParent.val parentURL, count(*)
+#select document1 childDoc, urlChild.val, link.document_id parentDoc, urlParent.val
+from document_align, url urlChild, link, url urlParent
+where document_align.document1 = urlChild.document_id
+and link.url_id = urlChild.id
+and urlParent.document_id = link.document_id
+
+group by parentDoc, parentURL
+order by count(*) desc
+#order by childDoc
+#order by parentDoc
+limit 100000000000
 */
 
 DROP TABLE IF EXISTS document;
