@@ -575,8 +575,10 @@ def PostCrawlExclude(hosts, postCrawlPath):
     with open(postCrawlPath, "rt") as f:
         excludeList = f.read().splitlines()
     for exclude in excludeList:
-        hosts.remove(exclude)
-	
+        exclude = exclude.strip()
+        if len(exclude) > 0: 
+            hosts.remove(exclude)
+
 ###############################################################################################
 if os.path.isfile(permanent + "/hosts.gz"):
     with gzip.open(permanent + "/hosts.gz", 'rt') as f:
@@ -1360,7 +1362,7 @@ rule tmx:
 
 rule deduped_tmx:
     input:
-        expand("{transientdir}/{webdomain}/{aligner}.{ext}.xz", transientdir=config["transientDir"], webdomain=domainKey2Hosts.keys(), aligner=SEGMENTALIGNER, ext={ELRCSCORES})
+        "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.sent.xz"
     output:
         "{permanentdir}".format(permanentdir=config["permanentDir"])+"/{l1}-{l2}.deduped.tmx.xz"
     shell:
