@@ -132,41 +132,21 @@ def Main():
     print("F", F)
 
     # R = np.random.rand(15, 15)  # Rewards
-    MOVE_REWARD = 1
-    R = np.zeros(shape=[15, 15], dtype=np.float)  # Rewards
-    R[0, 1] = MOVE_REWARD;
-    R[0, 5] = MOVE_REWARD;
-    R[1, 0] = MOVE_REWARD;
-    R[2, 3] = MOVE_REWARD
-    R[3, 2] = MOVE_REWARD;
-    R[3, 4] = MOVE_REWARD;
-    R[3, 8] = MOVE_REWARD;
-    R[4, 3] = MOVE_REWARD
-    R[4, 9] = MOVE_REWARD;
-    R[5, 0] = MOVE_REWARD;
-    R[5, 6] = MOVE_REWARD;
-    R[5, 10] = MOVE_REWARD
-    R[6, 5] = MOVE_REWARD;
-    R[7, 8] = MOVE_REWARD;
-    R[7, 12] = MOVE_REWARD;
-    R[8, 3] = MOVE_REWARD
-    R[8, 7] = MOVE_REWARD;
-    R[9, 4] = MOVE_REWARD;
-    R[9, 14] = 10.0;  # final move
-    R[10, 5] = MOVE_REWARD
-    R[10, 11] = MOVE_REWARD;
-    R[11, 10] = MOVE_REWARD;
-    R[11, 12] = MOVE_REWARD
-    R[12, 7] = MOVE_REWARD;
-    R[12, 11] = MOVE_REWARD;
-    R[12, 13] = MOVE_REWARD
-    R[13, 12] = MOVE_REWARD;
-    R[14, 14] = MOVE_REWARD
+    MOVE_REWARD = -1
+    R = np.empty(shape=F.shape, dtype=np.float)  # Rewards
+    R[:] = -999
+    for i in range(0, F.shape[0]):
+        for j in range(0, F.shape[1]):
+            if F[i, j] > 0:
+                R[i, j] = MOVE_REWARD;
+
+    R[:, 14] = 10.0;  # final move
     print("R", R)
 
     # =============================================================
 
-    Q = np.zeros(shape=[15, 15], dtype=np.float32)  # Quality
+    Q = np.empty(shape=[15, 15], dtype=np.float)  # Quality
+    Q[:] = -999
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
@@ -174,7 +154,7 @@ def Main():
     ns = 15  # number of states
     gamma = 0.5
     lrn_rate = 0.5
-    max_epochs = 10
+    max_epochs = 1000
     scores = train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
     print("Trained")
 
