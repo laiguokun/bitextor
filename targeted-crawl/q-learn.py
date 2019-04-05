@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import pylab as plt
 
 ######################################################################################
 # helpers
@@ -48,6 +49,8 @@ def walk(start, goal, Q):
 ######################################################################################
 
 def train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs):
+  scores = []
+
   for i in range(0,max_epochs):
     curr_s = np.random.randint(0,ns)  # random start state
 
@@ -73,6 +76,11 @@ def train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs):
 
       curr_s = next_s
       if curr_s == goal: break
+
+    score = (np.sum(Q / np.max(Q) * 100))
+    scores.append(score)
+
+  return scores
 
 ######################################################################################
 
@@ -156,11 +164,14 @@ def Main():
     gamma = 0.5
     lrn_rate = 0.5
     max_epochs = 1000
-    train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
-    print("Done ")
+    scores = train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
+    print("Trained")
 
     print("The Q matrix is: \n ")
     my_print(Q)
+
+    plt.plot(scores)
+    plt.show()
 
     print("Using Q to go from 0 to goal (14)")
     walk(start, goal, Q)

@@ -137,8 +137,8 @@ def Main():
     print("Trained Q matrix:")
     print(Q / np.max(Q) * 100)
 
-    #plt.plot(scores)
-    #plt.show()
+    plt.plot(scores)
+    plt.show()
 
     Test(Q)
 
