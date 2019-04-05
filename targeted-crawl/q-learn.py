@@ -113,35 +113,36 @@ def Main():
     print("F", F)
 
     #R = np.random.rand(15, 15)  # Rewards
-    R = np.zeros(shape=[15, 15], dtype=np.int)  # Rewards
-    R[0, 1] = -0.1;
-    R[0, 5] = -0.1;
-    R[1, 0] = -0.1;
-    R[2, 3] = -0.1
-    R[3, 2] = -0.1;
-    R[3, 4] = -0.1;
-    R[3, 8] = -0.1;
-    R[4, 3] = -0.1
-    R[4, 9] = -0.1;
-    R[5, 0] = -0.1;
-    R[5, 6] = -0.1;
-    R[5, 10] = -0.1
-    R[6, 5] = -0.1;
-    R[7, 8] = -0.1;
-    R[7, 12] = -0.1;
-    R[8, 3] = -0.1
-    R[8, 7] = -0.1;
-    R[9, 4] = -0.1;
-    R[9, 14] = 1 # 10.0;   # final move
-    R[10, 5] = -0.1
-    R[10, 11] = -0.1;
-    R[11, 10] = -0.1;
-    R[11, 12] = -0.1
-    R[12, 7] = -0.1;
-    R[12, 11] = -0.1;
-    R[12, 13] = -0.1
-    R[13, 12] = -0.1;
-    R[14, 14] = -0.1
+    MOVE_REWARD = 1
+    R = np.zeros(shape=[15, 15], dtype=np.float)  # Rewards
+    R[0, 1] = MOVE_REWARD;
+    R[0, 5] = MOVE_REWARD;
+    R[1, 0] = MOVE_REWARD;
+    R[2, 3] = MOVE_REWARD
+    R[3, 2] = MOVE_REWARD;
+    R[3, 4] = MOVE_REWARD;
+    R[3, 8] = MOVE_REWARD;
+    R[4, 3] = MOVE_REWARD
+    R[4, 9] = MOVE_REWARD;
+    R[5, 0] = MOVE_REWARD;
+    R[5, 6] = MOVE_REWARD;
+    R[5, 10] = MOVE_REWARD
+    R[6, 5] = MOVE_REWARD;
+    R[7, 8] = MOVE_REWARD;
+    R[7, 12] = MOVE_REWARD;
+    R[8, 3] = MOVE_REWARD
+    R[8, 7] = MOVE_REWARD;
+    R[9, 4] = MOVE_REWARD;
+    R[9, 14] = 10.0;   # final move
+    R[10, 5] = MOVE_REWARD
+    R[10, 11] = MOVE_REWARD;
+    R[11, 10] = MOVE_REWARD;
+    R[11, 12] = MOVE_REWARD
+    R[12, 7] = MOVE_REWARD;
+    R[12, 11] = MOVE_REWARD;
+    R[12, 13] = MOVE_REWARD
+    R[13, 12] = MOVE_REWARD;
+    R[14, 14] = MOVE_REWARD
     print("R", R)
 
     # =============================================================
@@ -154,7 +155,7 @@ def Main():
     ns = 15  # number of states
     gamma = 0.5
     lrn_rate = 0.5
-    max_epochs = 1000
+    max_epochs = 10000
     train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
     print("Done ")
 
