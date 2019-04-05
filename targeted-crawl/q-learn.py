@@ -62,10 +62,14 @@ def train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs):
         q = Q[next_s,nn_s]
         if q > max_Q:
           max_Q = q
+
+      before = Q[curr_s][next_s]
       # Q = [(1-a) * Q]  +  [a * (rt + (g * maxQ))]
       Q[curr_s][next_s] = ((1 - lrn_rate) * Q[curr_s] \
         [next_s]) + (lrn_rate * (R[curr_s][next_s] + \
         (gamma * max_Q)))
+      after = Q[curr_s][next_s]
+      #print("Q", before, after)
 
       curr_s = next_s
       if curr_s == goal: break
