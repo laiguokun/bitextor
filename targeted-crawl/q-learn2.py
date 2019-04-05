@@ -55,7 +55,27 @@ def Train(Q, R, gamma):
         score = update(current_state, action, gamma, Q, R)
         scores.append(score)
         #print ('Score:', str(score))
+    return scores
 
+def Test(Q):
+    # Testing
+    current_state = 0
+    steps = [current_state]
+
+    while current_state != 7:
+
+        next_step_index = np.where(Q[current_state,] == np.max(Q[current_state,]))[1]
+
+        if next_step_index.shape[0] > 1:
+            next_step_index = int(np.random.choice(next_step_index, size=1))
+        else:
+            next_step_index = int(next_step_index)
+
+        steps.append(next_step_index)
+        current_state = next_step_index
+
+    print("Most efficient path:")
+    print(steps)
 
 ######################################################################################
 
@@ -110,31 +130,17 @@ def Main():
 
     #update(initial_state, action, gamma, Q, R)
 
-    Train(Q, R, gamma)
+    scores = Train(Q, R, gamma)
     print("R", R.shape, R)
     print("Q", Q.shape, Q)
 
     print("Trained Q matrix:")
     print(Q / np.max(Q) * 100)
 
-    # Testing
-    current_state = 0
-    steps = [current_state]
+    #plt.plot(scores)
+    #plt.show()
 
-    while current_state != 7:
-
-        next_step_index = np.where(Q[current_state,] == np.max(Q[current_state,]))[1]
-
-        if next_step_index.shape[0] > 1:
-            next_step_index = int(np.random.choice(next_step_index, size=1))
-        else:
-            next_step_index = int(next_step_index)
-
-        steps.append(next_step_index)
-        current_state = next_step_index
-
-    print("Most efficient path:")
-    print(steps)
+    Test(Q)
 
     print("Finished")
 
