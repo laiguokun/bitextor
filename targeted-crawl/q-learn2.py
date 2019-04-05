@@ -25,7 +25,7 @@ def sample_next_action(available_actions_range):
     return next_action
 
 
-def update(current_state, action, gamma):
+def update(current_state, action, gamma, Q, R):
     max_index = np.where(Q[action,] == np.max(Q[action,]))[1]
 
     if max_index.shape[0] > 1:
@@ -88,20 +88,20 @@ def Main():
 
     initial_state = 1
 
-    available_act = available_actions(initial_state, R)
-    print("available_act", available_act)
-    action = sample_next_action(available_act)
-    print("action", action)
+    #available_act = available_actions(initial_state, R)
+    #print("available_act", available_act)
+    #action = sample_next_action(available_act)
+    #print("action", action)
 
-    #update(initial_state, action, gamma)
+    #update(initial_state, action, gamma, Q, R)
 
     # Training
     scores = []
-    for i in range(700):
+    for i in range(2):
         current_state = np.random.randint(0, int(Q.shape[0]))
         available_act = available_actions(current_state, R)
         action = sample_next_action(available_act)
-        score = update(current_state, action, gamma)
+        score = update(current_state, action, gamma, Q, R)
         scores.append(score)
         print ('Score:', str(score))
 
