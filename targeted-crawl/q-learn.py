@@ -31,11 +31,18 @@ def my_print(Q):
 
 def walk(start, goal, Q):
   curr = start
+  i = 0
   print(str(curr) + "->", end="")
   while curr != goal:
     next = np.argmax(Q[curr])
     print(str(next) + "->", end="")
     curr = next
+
+    i += 1
+    if i > 50:
+        print("LOOPING")
+        break
+
   print("done")
 
 ######################################################################################
@@ -102,7 +109,7 @@ def Main():
     print("F", F)
 
     R = np.random.rand(15, 15)  # Rewards
-    #R = np.zeros(shape=[15, 15], dtype=np.int)  # Rewards
+    # R = np.zeros(shape=[15, 15], dtype=np.int)  # Rewards
     # R[0, 1] = -0.1;
     # R[0, 5] = -0.1;
     # R[1, 0] = -0.1;
@@ -121,7 +128,7 @@ def Main():
     # R[8, 3] = -0.1
     # R[8, 7] = -0.1;
     # R[9, 4] = -0.1;
-    # R[9, 14] = 10.0;   # final move
+    # R[9, 14] = 1 # 10.0;   # final move
     # R[10, 5] = -0.1
     # R[10, 11] = -0.1;
     # R[11, 10] = -0.1;
@@ -151,7 +158,7 @@ def Main():
     my_print(Q)
 
     print("Using Q to go from 0 to goal (14)")
-    #walk(start, goal, Q)
+    walk(start, goal, Q)
 
     #for s in range(0,10):
     #    nextStates = get_poss_next_states(s, F, ns)
