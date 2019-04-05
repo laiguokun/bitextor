@@ -15,9 +15,7 @@ def get_poss_next_states(s, F, ns):
 
 def get_rnd_next_state(s, F, ns):
     poss_next_states = get_poss_next_states(s, F, ns)
-    next_state = \
-        poss_next_states[np.random.randint(0, \
-                                           len(poss_next_states))]
+    next_state = poss_next_states[np.random.randint(0, len(poss_next_states))]
     return next_state
 
 
@@ -35,7 +33,7 @@ def my_print(Q):
     print("")
 
 
-def walk(start, goal, Q):
+def Walk(start, goal, Q):
     curr = start
     i = 0
     print(str(curr) + "->", end="")
@@ -54,40 +52,43 @@ def walk(start, goal, Q):
 
 ######################################################################################
 
-def train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs):
+def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
+    while (True):
+        next_s = get_rnd_next_state(curr_s, F, ns)
+        poss_next_next_states = \
+            get_poss_next_states(next_s, F, ns)
+
+        max_Q = -9999.99
+        for j in range(len(poss_next_next_states)):
+            nn_s = poss_next_next_states[j]
+            q = Q[next_s, nn_s]
+            if q > max_Q:
+                max_Q = q
+
+        #before = Q[curr_s][next_s]
+        # Q = [(1-a) * Q]  +  [a * (rt + (g * maxQ))]
+        prevQ = ((1 - lrn_rate) * Q[curr_s][next_s])
+        V = (lrn_rate * (R[curr_s][next_s] + (gamma * max_Q)))
+        Q[curr_s][next_s] = prevQ + V
+        #after = Q[curr_s][next_s]
+        # print("Q", before, after)
+
+        curr_s = next_s
+        if curr_s == goal: break
+
+    if (np.max(Q) > 0):
+        score = (np.sum(Q / np.max(Q) * 100))
+    else:
+        score = (0)
+
+    return score
+
+def Train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs):
     scores = []
 
     for i in range(0, max_epochs):
         curr_s = np.random.randint(0, ns)  # random start state
-
-        while (True):
-            next_s = get_rnd_next_state(curr_s, F, ns)
-            poss_next_next_states = \
-                get_poss_next_states(next_s, F, ns)
-
-            max_Q = -9999.99
-            for j in range(len(poss_next_next_states)):
-                nn_s = poss_next_next_states[j]
-                q = Q[next_s, nn_s]
-                if q > max_Q:
-                    max_Q = q
-
-            before = Q[curr_s][next_s]
-            # Q = [(1-a) * Q]  +  [a * (rt + (g * maxQ))]
-            Q[curr_s][next_s] = ((1 - lrn_rate) * Q[curr_s] \
-                [next_s]) + (lrn_rate * (R[curr_s][next_s] + \
-                                         (gamma * max_Q)))
-            after = Q[curr_s][next_s]
-            # print("Q", before, after)
-
-            curr_s = next_s
-            if curr_s == goal: break
-
-        if (np.max(Q) > 0):
-            score = (np.sum(Q / np.max(Q) * 100))
-        else:
-            score = (0)
-
+        score = Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns)
         scores.append(score)
 
     return scores
@@ -155,7 +156,7 @@ def Main():
     gamma = 0.5
     lrn_rate = 0.5
     max_epochs = 100
-    scores = train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
+    scores = Train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
     print("Trained")
 
     print("The Q matrix is: \n ")
@@ -165,7 +166,7 @@ def Main():
     #plt.show()
 
     print("Using Q to go from 0 to goal (14)")
-    walk(start, goal, Q)
+    Walk(start, goal, Q)
 
     # for s in range(0,10):
     #    nextStates = get_poss_next_states(s, F, ns)
