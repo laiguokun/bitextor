@@ -63,12 +63,13 @@ def Main():
 
     # assign zeros to paths and 100 to goal-reaching point
     for point in points_list:
-        print(point)
+        print(point, point[::-1])
         if point[1] == goal:
             R[point] = 100
         else:
             R[point] = 0
 
+        # reverse, undirected graphs
         if point[0] == goal:
             R[point[::-1]] = 100
         else:
