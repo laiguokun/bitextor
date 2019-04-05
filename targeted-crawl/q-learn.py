@@ -115,6 +115,8 @@ def Main():
     F[5, 6] = 1;
     F[5, 10] = 1;
     F[6, 5] = 1;
+    #F[6, 7] = 1; # hole
+    #F[7, 6] = 1; # hole
     F[7, 8] = 1;
     F[7, 12] = 1
     F[8, 3] = 1;
@@ -133,7 +135,7 @@ def Main():
     print("F", F)
 
     # R = np.random.rand(15, 15)  # Rewards
-    MOVE_REWARD = 0
+    MOVE_REWARD = -1
     R = np.empty(shape=F.shape, dtype=np.float)  # Rewards
     R[:] = 0
     for i in range(0, F.shape[0]):
@@ -147,7 +149,7 @@ def Main():
     # =============================================================
 
     Q = np.empty(shape=F.shape, dtype=np.float)  # Quality
-    Q[:] = 0
+    Q[:] = -99
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
@@ -155,7 +157,7 @@ def Main():
     ns = 15  # number of states
     gamma = 0.5
     lrn_rate = 0.5
-    max_epochs = 100
+    max_epochs = 1000
     scores = Train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
     print("Trained")
 
