@@ -33,8 +33,12 @@ def get_poss_next_states(s, F, ns):
 
 def get_rnd_next_state(s, F, ns):
     poss_next_states, directions = get_poss_next_states(s, F, ns)
-    next_state = poss_next_states[np.random.randint(0, len(poss_next_states))]
-    return next_state
+
+    i = np.random.randint(0, len(poss_next_states))
+    next_state = poss_next_states[i]
+    action = directions[i]
+
+    return next_state, action
 
 
 def my_print(Q):
@@ -72,7 +76,7 @@ def Walk(start, goal, Q):
 
 def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
     while (True):
-        next_s = get_rnd_next_state(curr_s, F, ns)
+        next_s, action = get_rnd_next_state(curr_s, F, ns)
         poss_next_next_states, directions = get_poss_next_states(next_s, F, ns)
 
         max_Q = -9999.99
@@ -165,7 +169,7 @@ def Main():
 
     # =============================================================
 
-    Q = np.empty(shape=F.shape, dtype=np.float)  # Quality
+    Q = np.empty(shape=[15, 15], dtype=np.float)  # Quality
     Q[:] = 0
 
     print("Analyzing maze with RL Q-learning")
