@@ -21,7 +21,7 @@ def GetNextState(curr, action, goal):
     if next == goal:
         reward = 10
     else:
-        reward = 0
+        reward = -1
     return next, reward
 
 def get_poss_next_actions(s, F, ns):
