@@ -107,7 +107,8 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
         next_s, action, reward = get_rnd_next_state(curr_s, F, ns, goal)
         actions = get_poss_next_actions(next_s, F, ns)
 
-        DEBUG = action == 4
+        DEBUG = False
+        #DEBUG = action == 4
 
         max_Q = -9999.99
         for j in range(len(actions)):
