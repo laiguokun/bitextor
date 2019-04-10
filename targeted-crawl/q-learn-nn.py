@@ -19,7 +19,7 @@ def GetNextState(curr, action, goal):
         next = curr
 
     if next == goal:
-        reward = 10
+        reward = 20
     else:
         reward = -1
     return next, reward
@@ -74,6 +74,7 @@ def Walk(start, goal, Q):
     totReward = 0
     print(str(curr) + "->", end="")
     while curr != goal:
+        #print("curr", curr)
         action = np.argmax(Q[curr])
         next, reward = GetNextState(curr, action, goal)
         totReward += reward
@@ -179,7 +180,7 @@ def Main():
     # =============================================================
 
     Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
-    Q[:] = 0
+    Q[:] = -99
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
