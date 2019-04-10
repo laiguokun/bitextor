@@ -2,6 +2,22 @@
 
 import numpy as np
 import pylab as plt
+import tensorflow as tf
+
+######################################################################################
+class Qnetwork():
+    def __init__(self):
+        # These lines establish the feed-forward part of the network used to choose actions
+        self.inputs1 = tf.placeholder(shape=[1, 15], dtype=tf.float32)
+        self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
+        self.Qout = tf.matmul(self.inputs1, self.W)
+        self.predict = tf.argmax(self.Qout, 1)
+
+        # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
+        self.nextQ = tf.placeholder(shape=[1, 5], dtype=tf.float32)
+        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
+        self.trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
+        self.updateModel = self.trainer.minimize(self.loss)
 
 
 ######################################################################################
@@ -24,7 +40,7 @@ def GetNextState(curr, action, goal):
     elif action == 4:
         reward = 0
     else:
-        reward = -1
+        reward = 0
     return next, reward
 
 def get_poss_next_actions(s, F, ns):
@@ -102,8 +118,23 @@ def Walk(start, goal, Q):
 
 ######################################################################################
 
-def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
+def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns, sess, qn):
     while (True):
+        # neural
+        hh = np.identity(15)[curr_s:curr_s + 1]
+        #print("hh", next_s, hh)
+        a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: hh})
+        a = a[0]
+        s1, r = GetNextState(curr_s, a, goal)
+        print(curr_s, "a=", a, "->", s1, r, allQ)
+
+        # Obtain the Q' values by feeding the new state through our network
+        hh2 = np.identity(15)[s1:s1 + 1]
+        # print("  hh2", hh2)
+        Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: hh2})
+        # print("  Q1", Q1)
+
+        # tabular
         next_s, action, reward = get_rnd_next_state(curr_s, F, ns, goal)
         actions = get_poss_next_actions(next_s, F, ns)
 
@@ -143,12 +174,19 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
     return score
 
 def Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs):
+    tf.reset_default_graph()
+    qn = Qnetwork()
+    init = tf.initialize_all_variables()
+
     scores = []
 
-    for i in range(0, max_epochs):
-        curr_s = np.random.randint(0, ns)  # random start state
-        score = Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns)
-        scores.append(score)
+    with tf.Session() as sess:
+        sess.run(init)
+
+        for i in range(0, max_epochs):
+            curr_s = np.random.randint(0, ns)  # random start state
+            score = Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns, sess, qn)
+            scores.append(score)
 
     return scores
 
@@ -199,7 +237,7 @@ def Main():
     # =============================================================
 
     Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
-    Q[:] = -99
+    Q[:] = 0
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
