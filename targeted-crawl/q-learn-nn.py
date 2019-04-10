@@ -17,9 +17,10 @@ def GetNextState(curr, action, goal):
         next = curr - 1
     elif action == 4:
         next = curr
+    assert(next >= 0)
 
     if next == goal:
-        reward = 20
+        reward = 5
     else:
         reward = 0
     return next, reward
@@ -42,7 +43,10 @@ def get_poss_next_actions(s, F, ns):
                 assert(s == j)
                 actions.append(4)
 
-    #print("  ", poss_next_states, actions)
+    if s != j:
+        actions.append(4)
+
+    #print("  actions", actions)
     return actions
 
 
@@ -73,14 +77,18 @@ def Walk(start, goal, Q):
     i = 0
     totReward = 0
     print(str(curr) + "->", end="")
-    while curr != goal:
+    while True:
         #print("curr", curr)
         action = np.argmax(Q[curr])
         next, reward = GetNextState(curr, action, goal)
         totReward += reward
 
+        #print("(" + str(action) + ")", str(next) + " -> ", end="")
         print(str(next) + "->", end="")
         curr = next
+
+        if action == 4: break
+        if curr == goal: break
 
         i += 1
         if i > 50:
@@ -112,6 +120,9 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
         Q[curr_s][action] = prevQ + V
         #after = Q[curr_s][next_s]
         # print("Q", before, after)
+
+        if action == 4:
+            break
 
         curr_s = next_s
         if curr_s == goal: break
@@ -180,7 +191,7 @@ def Main():
     # =============================================================
 
     Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
-    Q[:] = 0
+    Q[:] = -99
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
