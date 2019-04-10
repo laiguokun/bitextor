@@ -44,9 +44,7 @@ def get_rnd_next_state(s, F, ns):
 def my_print(Q):
     rows = len(Q);
     cols = len(Q[0])
-    print("       0      1      2      3      4      5\
-      6      7      8      9      10     11     12\
-     13     14")
+    print("       0      1      2      3      4")
     for i in range(rows):
         print("%d " % i, end="")
         if i < 10: print(" ", end="")
@@ -60,7 +58,18 @@ def Walk(start, goal, Q):
     i = 0
     print(str(curr) + "->", end="")
     while curr != goal:
-        next = np.argmax(Q[curr])
+        action = np.argmax(Q[curr])
+        if action == 0:
+            next = curr - 5
+        elif action == 1:
+            next = curr + 1
+        elif action == 2:
+            next = curr + 5
+        elif action == 3:
+            next = curr - 1
+        elif action == 4:
+            next = curr
+
         print(str(next) + "->", end="")
         curr = next
 
@@ -82,15 +91,16 @@ def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
         max_Q = -9999.99
         for j in range(len(poss_next_next_states)):
             nn_s = poss_next_next_states[j]
-            q = Q[next_s, nn_s]
+            nn_a = directions[j]
+            q = Q[next_s, nn_a]
             if q > max_Q:
                 max_Q = q
 
         #before = Q[curr_s][next_s]
         # Q = [(1-a) * Q]  +  [a * (rt + (g * maxQ))]
-        prevQ = ((1 - lrn_rate) * Q[curr_s][next_s])
+        prevQ = ((1 - lrn_rate) * Q[curr_s][action])
         V = (lrn_rate * (R[curr_s][next_s] + (gamma * max_Q)))
-        Q[curr_s][next_s] = prevQ + V
+        Q[curr_s][action] = prevQ + V
         #after = Q[curr_s][next_s]
         # print("Q", before, after)
 
@@ -169,7 +179,7 @@ def Main():
 
     # =============================================================
 
-    Q = np.empty(shape=[15, 15], dtype=np.float)  # Quality
+    Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
     Q[:] = 0
 
     print("Analyzing maze with RL Q-learning")
