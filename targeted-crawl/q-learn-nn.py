@@ -21,7 +21,7 @@ def GetNextState(curr, action, goal):
     if next == goal:
         reward = 20
     else:
-        reward = -1
+        reward = 0
     return next, reward
 
 def get_poss_next_actions(s, F, ns):
@@ -180,7 +180,7 @@ def Main():
     # =============================================================
 
     Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
-    Q[:] = -99
+    Q[:] = 0
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
