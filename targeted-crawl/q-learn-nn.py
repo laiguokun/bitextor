@@ -207,7 +207,7 @@ def Main():
     ns = 15  # number of states
     gamma = 0.5
     lrn_rate = 0.5
-    max_epochs = 10000
+    max_epochs = 1000
     scores = Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs)
     print("Trained")
 
