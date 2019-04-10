@@ -199,7 +199,7 @@ def Main():
     # =============================================================
 
     Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
-    Q[:] = -99
+    Q[:] = 0
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
