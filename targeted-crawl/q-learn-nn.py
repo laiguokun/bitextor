@@ -6,7 +6,7 @@ import pylab as plt
 
 ######################################################################################
 # helpers
-def GetNextState(curr, action):
+def GetNextState(curr, action, goal):
     if action == 0:
         next = curr - 5
     elif action == 1:
@@ -17,7 +17,12 @@ def GetNextState(curr, action):
         next = curr - 1
     elif action == 4:
         next = curr
-    return next
+
+    if next == goal:
+        reward = 10
+    else:
+        reward = 0
+    return next, reward
 
 def get_poss_next_actions(s, F, ns):
     #print("s", s)
@@ -41,14 +46,14 @@ def get_poss_next_actions(s, F, ns):
     return actions
 
 
-def get_rnd_next_state(s, F, ns):
+def get_rnd_next_state(s, F, ns, goal):
     actions = get_poss_next_actions(s, F, ns)
 
     i = np.random.randint(0, len(actions))
     action = actions[i]
-    next_state = GetNextState(s, action)
+    next_state, reward = GetNextState(s, action, goal)
 
-    return next_state, action
+    return next_state, action, reward
 
 
 def my_print(Q):
@@ -66,10 +71,12 @@ def my_print(Q):
 def Walk(start, goal, Q):
     curr = start
     i = 0
+    totReward = 0
     print(str(curr) + "->", end="")
     while curr != goal:
         action = np.argmax(Q[curr])
-        next = GetNextState(curr, action)
+        next, reward = GetNextState(curr, action, goal)
+        totReward += reward
 
         print(str(next) + "->", end="")
         curr = next
@@ -79,20 +86,20 @@ def Walk(start, goal, Q):
             print("LOOPING")
             break
 
-    print("done")
+    print("done", totReward)
 
 
 ######################################################################################
 
-def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
+def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
     while (True):
-        next_s, action = get_rnd_next_state(curr_s, F, ns)
+        next_s, action, reward = get_rnd_next_state(curr_s, F, ns, goal)
         actions = get_poss_next_actions(next_s, F, ns)
 
         max_Q = -9999.99
         for j in range(len(actions)):
             nn_a = actions[j]
-            nn_s = GetNextState(next_s, nn_a)
+            nn_s = GetNextState(next_s, nn_a, goal)
             q = Q[next_s, nn_a]
             if q > max_Q:
                 max_Q = q
@@ -100,7 +107,7 @@ def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
         #before = Q[curr_s][next_s]
         # Q = [(1-a) * Q]  +  [a * (rt + (g * maxQ))]
         prevQ = ((1 - lrn_rate) * Q[curr_s][action])
-        V = (lrn_rate * (R[curr_s][next_s] + (gamma * max_Q)))
+        V = (lrn_rate * (reward + (gamma * max_Q)))
         Q[curr_s][action] = prevQ + V
         #after = Q[curr_s][next_s]
         # print("Q", before, after)
@@ -115,12 +122,12 @@ def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
 
     return score
 
-def Train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs):
+def Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs):
     scores = []
 
     for i in range(0, max_epochs):
         curr_s = np.random.randint(0, ns)  # random start state
-        score = Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns)
+        score = Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns)
         scores.append(score)
 
     return scores
@@ -168,15 +175,6 @@ def Main():
 
     # R = np.random.rand(15, 15)  # Rewards
     MOVE_REWARD = 0
-    R = np.empty(shape=F.shape, dtype=np.float)  # Rewards
-    R[:] = 0
-    for i in range(0, F.shape[0]):
-        for j in range(0, F.shape[1]):
-            if F[i, j] > 0:
-                R[i, j] = MOVE_REWARD;
-
-    R[:, 14] = 10.0;  # final move
-    print("R", R)
 
     # =============================================================
 
@@ -190,7 +188,7 @@ def Main():
     gamma = 0.5
     lrn_rate = 0.5
     max_epochs = 1000
-    scores = Train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs)
+    scores = Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs)
     print("Trained")
 
     print("The Q matrix is: \n ")
@@ -199,15 +197,11 @@ def Main():
     #plt.plot(scores)
     #plt.show()
 
-    print("Using Q to go from 0 to goal (14)")
-    Walk(start, goal, Q)
+    #print("Using Q to go from 0 to goal (14)")
+    #Walk(start, goal, Q)
 
-    # for s in range(0,10):
-    #    nextStates = get_poss_next_states(s, F, ns)
-    #    print("nextStates", nextStates)
-
-    #    nextState = get_rnd_next_state(s, F, ns)
-    #    print("   nextState", nextState)
+    for start in range(0,ns):
+        Walk(start, goal, Q)
 
     print("Finished")
 
