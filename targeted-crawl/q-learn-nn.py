@@ -21,8 +21,10 @@ def GetNextState(curr, action, goal):
 
     if next == goal:
         reward = 5
-    else:
+    elif action == 4:
         reward = 0
+    else:
+        reward = -1
     return next, reward
 
 def get_poss_next_actions(s, F, ns):
@@ -105,6 +107,8 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
         next_s, action, reward = get_rnd_next_state(curr_s, F, ns, goal)
         actions = get_poss_next_actions(next_s, F, ns)
 
+        DEBUG = action == 4
+
         max_Q = -9999.99
         for j in range(len(actions)):
             nn_a = actions[j]
@@ -113,13 +117,16 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
             if q > max_Q:
                 max_Q = q
 
-        #before = Q[curr_s][next_s]
-        # Q = [(1-a) * Q]  +  [a * (rt + (g * maxQ))]
+        if DEBUG:
+            before = Q[curr_s][action]
+
         prevQ = ((1 - lrn_rate) * Q[curr_s][action])
-        V = (lrn_rate * (reward + (gamma * max_Q)))
+        V = lrn_rate * (reward + (gamma * max_Q))
         Q[curr_s][action] = prevQ + V
-        #after = Q[curr_s][next_s]
-        # print("Q", before, after)
+
+        if DEBUG:
+            after = Q[curr_s][action]
+            print("Q", curr_s, reward, before, after)
 
         if action == 4:
             break
@@ -199,14 +206,15 @@ def Main():
     ns = 15  # number of states
     gamma = 0.5
     lrn_rate = 0.5
-    max_epochs = 1000
+    max_epochs = 10000
     scores = Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs)
     print("Trained")
 
     print("The Q matrix is: \n ")
     my_print(Q)
 
-    #plt.plot(scores)
+    #
+    # plt.plot(scores)
     #plt.show()
 
     #print("Using Q to go from 0 to goal (14)")
