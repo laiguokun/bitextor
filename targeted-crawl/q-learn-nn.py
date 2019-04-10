@@ -85,8 +85,8 @@ def Walk(start, goal, Q):
         next, reward = GetNextState(curr, action, goal)
         totReward += reward
 
-        #print("(" + str(action) + ")", str(next) + " -> ", end="")
-        print(str(next) + "->", end="")
+        print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+        #print(str(next) + "->", end="")
         curr = next
 
         if action == 4: break
