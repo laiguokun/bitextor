@@ -19,37 +19,34 @@ def GetNextState(curr, action):
         next = curr
     return next
 
-def get_poss_next_states(s, F, ns):
+def get_poss_next_actions(s, F, ns):
     #print("s", s)
-    poss_next_states = []
-    directions = []
+    actions = []
     for j in range(ns):
         #print("s", s, j)
         if F[s, j] == 1:
-            poss_next_states.append(j)
-
             if s - 1 == j:
-                directions.append(3)
+                actions.append(3)
             elif s == j - 1:
-                directions.append(1)
+                actions.append(1)
             elif s < j:
-                directions.append(2)
+                actions.append(2)
             elif s > j:
-                directions.append(0)
+                actions.append(0)
             else:
                 assert(s == j)
-                directions.append(4)
+                actions.append(4)
 
-    #print("  ", poss_next_states, directions)
-    return poss_next_states, directions
+    #print("  ", poss_next_states, actions)
+    return actions
 
 
 def get_rnd_next_state(s, F, ns):
-    poss_next_states, directions = get_poss_next_states(s, F, ns)
+    actions = get_poss_next_actions(s, F, ns)
 
-    i = np.random.randint(0, len(poss_next_states))
-    next_state = poss_next_states[i]
-    action = directions[i]
+    i = np.random.randint(0, len(actions))
+    action = actions[i]
+    next_state = GetNextState(s, action)
 
     return next_state, action
 
@@ -90,12 +87,12 @@ def Walk(start, goal, Q):
 def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
     while (True):
         next_s, action = get_rnd_next_state(curr_s, F, ns)
-        poss_next_next_states, directions = get_poss_next_states(next_s, F, ns)
+        actions = get_poss_next_actions(next_s, F, ns)
 
         max_Q = -9999.99
-        for j in range(len(poss_next_next_states)):
-            nn_s = poss_next_next_states[j]
-            nn_a = directions[j]
+        for j in range(len(actions)):
+            nn_a = actions[j]
+            nn_s = GetNextState(next_s, nn_a)
             q = Q[next_s, nn_a]
             if q > max_Q:
                 max_Q = q
