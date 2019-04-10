@@ -7,14 +7,32 @@ import pylab as plt
 ######################################################################################
 # helpers
 def get_poss_next_states(s, F, ns):
+    #print("s", s)
     poss_next_states = []
+    directions = []
     for j in range(ns):
-        if F[s, j] == 1: poss_next_states.append(j)
-    return poss_next_states
+        #print("s", s, j)
+        if F[s, j] == 1:
+            poss_next_states.append(j)
+
+            if s - 1 == j:
+                directions.append(3)
+            elif s == j - 1:
+                directions.append(1)
+            elif s < j:
+                directions.append(2)
+            elif s > j:
+                directions.append(0)
+            else:
+                assert(s == j)
+                directions.append(4)
+
+    #print("  ", poss_next_states, directions)
+    return poss_next_states, directions
 
 
 def get_rnd_next_state(s, F, ns):
-    poss_next_states = get_poss_next_states(s, F, ns)
+    poss_next_states, directions = get_poss_next_states(s, F, ns)
     next_state = poss_next_states[np.random.randint(0, len(poss_next_states))]
     return next_state
 
@@ -55,8 +73,7 @@ def Walk(start, goal, Q):
 def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
     while (True):
         next_s = get_rnd_next_state(curr_s, F, ns)
-        poss_next_next_states = \
-            get_poss_next_states(next_s, F, ns)
+        poss_next_next_states, directions = get_poss_next_states(next_s, F, ns)
 
         max_Q = -9999.99
         for j in range(len(poss_next_next_states)):
