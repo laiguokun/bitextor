@@ -6,6 +6,19 @@ import pylab as plt
 
 ######################################################################################
 # helpers
+def GetNextState(curr, action):
+    if action == 0:
+        next = curr - 5
+    elif action == 1:
+        next = curr + 1
+    elif action == 2:
+        next = curr + 5
+    elif action == 3:
+        next = curr - 1
+    elif action == 4:
+        next = curr
+    return next
+
 def get_poss_next_states(s, F, ns):
     #print("s", s)
     poss_next_states = []
@@ -59,16 +72,7 @@ def Walk(start, goal, Q):
     print(str(curr) + "->", end="")
     while curr != goal:
         action = np.argmax(Q[curr])
-        if action == 0:
-            next = curr - 5
-        elif action == 1:
-            next = curr + 1
-        elif action == 2:
-            next = curr + 5
-        elif action == 3:
-            next = curr - 1
-        elif action == 4:
-            next = curr
+        next = GetNextState(curr, action)
 
         print(str(next) + "->", end="")
         curr = next
