@@ -67,7 +67,7 @@ class Env:
             reward = -100
             die = True
         elif next == self.goal:
-            reward = 10
+            reward = 8.5
         else:
             reward = -1
 
@@ -135,6 +135,9 @@ def Walk(start, Q, env):
 
 ######################################################################################
 def GetMaxQ(next_s, actions, Q, env):
+    #if actions == 4:
+    #    return 0
+
     max_Q = -9999.99
     for j in range(len(actions)):
         nn_a = actions[j]
@@ -208,7 +211,7 @@ def Main():
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
-    gamma = 1
+    gamma = 0.99
     lrn_rate = 0.5
     max_epochs = 10000
     env = Env()
