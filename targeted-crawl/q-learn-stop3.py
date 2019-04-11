@@ -58,11 +58,11 @@ class Env:
         assert(next >= 0)
 
         if next == self.goal:
-            reward = 5
+            reward = 10
         elif action == 4:
             reward = 0
         else:
-            reward = -1
+            reward = 0
         return next, reward
 
     def get_poss_next_actions(self, s):
