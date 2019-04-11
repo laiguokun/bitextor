@@ -55,36 +55,31 @@ class Env:
             next = curr - 1
         elif action == 4:
             next = curr
-        assert(next >= 0)
+        #assert(next >= 0)
+        #print("next", next)
 
-        if next == self.goal:
-            reward = 10
+        die = False
+        if next < 0 or next >= self.ns or self.F[curr, next] == 0:
+            next = curr
+            reward = -100
+            die = True
+        elif next == self.goal:
+            reward = 5
         elif action == 4:
             reward = 0
+            die = True
         else:
-            reward = 0
-        return next, reward
+            reward = -1
+
+        return next, reward, die
 
     def get_poss_next_actions(self, s):
-        #print("s", s)
         actions = []
-        for j in range(self.ns):
-            #print("s", s, j)
-            if self.F[s, j] == 1:
-                if s - 1 == j:
-                    actions.append(3)
-                elif s == j - 1:
-                    actions.append(1)
-                elif s < j:
-                    actions.append(2)
-                elif s > j:
-                    actions.append(0)
-                else:
-                    assert(s == j)
-                    actions.append(4)
-
-        if s != j:
-            actions.append(4)
+        actions.append(0)
+        actions.append(1)
+        actions.append(2)
+        actions.append(3)
+        actions.append(4)
 
         #print("  actions", actions)
         return actions
@@ -95,9 +90,9 @@ def get_rnd_next_state(s, env):
 
     i = np.random.randint(0, len(actions))
     action = actions[i]
-    next_state, reward = env.GetNextState(s, action)
+    next_state, reward, die = env.GetNextState(s, action)
 
-    return next_state, action, reward
+    return next_state, action, reward, die
 
 
 def my_print(Q):
@@ -120,14 +115,14 @@ def Walk(start, Q, env):
     while True:
         #print("curr", curr)
         action = np.argmax(Q[curr])
-        next, reward = env.GetNextState(curr, action)
+        next, reward, die = env.GetNextState(curr, action)
         totReward += reward
 
         print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
         #print(str(next) + "->", end="")
         curr = next
 
-        if action == 4: break
+        if die: break
         if curr == env.goal: break
 
         i += 1
@@ -142,7 +137,7 @@ def Walk(start, Q, env):
 
 def Trajectory(curr_s, Q, gamma, lrn_rate, env):
     while (True):
-        next_s, action, reward = get_rnd_next_state(curr_s, env)
+        next_s, action, reward, die = get_rnd_next_state(curr_s, env)
         actions = env.get_poss_next_actions(next_s)
 
         DEBUG = False
@@ -167,8 +162,7 @@ def Trajectory(curr_s, Q, gamma, lrn_rate, env):
             after = Q[curr_s][action]
             print("Q", curr_s, reward, before, after)
 
-        if action == 4:
-            break
+        if die: break
 
         curr_s = next_s
         if curr_s == env.goal: break
@@ -204,7 +198,7 @@ def Main():
     # =============================================================
 
     Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
-    Q[:] = -99
+    Q[:] = 0
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
