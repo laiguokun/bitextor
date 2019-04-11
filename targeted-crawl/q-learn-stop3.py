@@ -11,6 +11,39 @@ class Env:
         self.goal = 14
         self.ns = 15  # number of states
 
+        self.F = np.zeros(shape=[15, 15], dtype=np.int)  # Feasible
+        self.F[0, 1] = 1;
+        self.F[0, 5] = 1;
+        self.F[1, 0] = 1;
+        self.F[2, 3] = 1;
+        self.F[3, 2] = 1
+        self.F[3, 4] = 1;
+        self.F[3, 8] = 1;
+        self.F[4, 3] = 1;
+        self.F[4, 9] = 1;
+        self.F[5, 0] = 1
+        self.F[5, 6] = 1;
+        self.F[5, 10] = 1;
+        self.F[6, 5] = 1;
+        # self.F[6, 7] = 1; # hole
+        # self.F[7, 6] = 1; # hole
+        self.F[7, 8] = 1;
+        self.F[7, 12] = 1
+        self.F[8, 3] = 1;
+        self.F[8, 7] = 1;
+        self.F[9, 4] = 1;
+        self.F[9, 14] = 1;
+        self.F[10, 5] = 1
+        self.F[10, 11] = 1;
+        self.F[11, 10] = 1;
+        self.F[11, 12] = 1;
+        self.F[12, 7] = 1;
+        self.F[12, 11] = 1;
+        self.F[12, 13] = 1;
+        self.F[13, 12] = 1;
+        self.F[14, 14] = 1
+        print("F", self.F)
+
     def GetNextState(self, curr, action):
         if action == 0:
             next = curr - 5
@@ -32,12 +65,12 @@ class Env:
             reward = -1
         return next, reward
 
-    def get_poss_next_actions(self, s, F):
+    def get_poss_next_actions(self, s):
         #print("s", s)
         actions = []
         for j in range(self.ns):
             #print("s", s, j)
-            if F[s, j] == 1:
+            if self.F[s, j] == 1:
                 if s - 1 == j:
                     actions.append(3)
                 elif s == j - 1:
@@ -57,8 +90,8 @@ class Env:
         return actions
 
 
-def get_rnd_next_state(s, F, env):
-    actions = env.get_poss_next_actions(s, F)
+def get_rnd_next_state(s, env):
+    actions = env.get_poss_next_actions(s)
 
     i = np.random.randint(0, len(actions))
     action = actions[i]
@@ -107,10 +140,10 @@ def Walk(start, Q, env):
 
 ######################################################################################
 
-def Trajectory(curr_s, F, Q, gamma, lrn_rate, env):
+def Trajectory(curr_s, Q, gamma, lrn_rate, env):
     while (True):
-        next_s, action, reward = get_rnd_next_state(curr_s, F, env)
-        actions = env.get_poss_next_actions(next_s, F)
+        next_s, action, reward = get_rnd_next_state(curr_s, env)
+        actions = env.get_poss_next_actions(next_s)
 
         DEBUG = False
         #DEBUG = action == 4
@@ -147,12 +180,12 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, env):
 
     return score
 
-def Train(F, Q, gamma, lrn_rate, max_epochs, env):
+def Train(Q, gamma, lrn_rate, max_epochs, env):
     scores = []
 
     for i in range(0, max_epochs):
         curr_s = np.random.randint(0, env.ns)  # random start state
-        score = Trajectory(curr_s, F, Q, gamma, lrn_rate, env)
+        score = Trajectory(curr_s, Q, gamma, lrn_rate, env)
         scores.append(score)
 
     return scores
@@ -164,39 +197,6 @@ def Main():
     print("Starting")
     np.random.seed()
     print("Setting up maze in memory")
-
-    F = np.zeros(shape=[15, 15], dtype=np.int)  # Feasible
-    F[0, 1] = 1;
-    F[0, 5] = 1;
-    F[1, 0] = 1;
-    F[2, 3] = 1;
-    F[3, 2] = 1
-    F[3, 4] = 1;
-    F[3, 8] = 1;
-    F[4, 3] = 1;
-    F[4, 9] = 1;
-    F[5, 0] = 1
-    F[5, 6] = 1;
-    F[5, 10] = 1;
-    F[6, 5] = 1;
-    #F[6, 7] = 1; # hole
-    #F[7, 6] = 1; # hole
-    F[7, 8] = 1;
-    F[7, 12] = 1
-    F[8, 3] = 1;
-    F[8, 7] = 1;
-    F[9, 4] = 1;
-    F[9, 14] = 1;
-    F[10, 5] = 1
-    F[10, 11] = 1;
-    F[11, 10] = 1;
-    F[11, 12] = 1;
-    F[12, 7] = 1;
-    F[12, 11] = 1;
-    F[12, 13] = 1;
-    F[13, 12] = 1;
-    F[14, 14] = 1
-    print("F", F)
 
     # R = np.random.rand(15, 15)  # Rewards
     MOVE_REWARD = 0
@@ -213,7 +213,7 @@ def Main():
     max_epochs = 1000
     env = Env()
 
-    scores = Train(F, Q, gamma, lrn_rate, max_epochs, env)
+    scores = Train(Q, gamma, lrn_rate, max_epochs, env)
     print("Trained")
 
     print("The Q matrix is: \n ")
