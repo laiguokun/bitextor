@@ -67,7 +67,7 @@ class Env:
             reward = -100
             die = True
         elif next == self.goal:
-            reward = 5
+            reward = 10
         else:
             reward = -1
 
@@ -210,7 +210,7 @@ def Main():
     start = 0;
     gamma = 1
     lrn_rate = 0.5
-    max_epochs = 1000
+    max_epochs = 10000
     env = Env()
 
     scores = Train(Q, gamma, lrn_rate, max_epochs, env)
