@@ -134,6 +134,16 @@ def Walk(start, Q, env):
 
 
 ######################################################################################
+def GetMaxQ(next_s, actions, Q, env):
+    max_Q = -9999.99
+    for j in range(len(actions)):
+        nn_a = actions[j]
+        nn_s = env.GetNextState(next_s, nn_a)
+
+        q = Q[next_s, nn_a]
+        if q > max_Q:
+            max_Q = q
+    return max_Q
 
 def Trajectory(curr_s, Q, gamma, lrn_rate, env):
     while (True):
@@ -144,17 +154,7 @@ def Trajectory(curr_s, Q, gamma, lrn_rate, env):
         #DEBUG = action == 4
         #DEBUG = curr_s == 0
 
-        max_Q = -9999.99
-        for j in range(len(actions)):
-            nn_a = actions[j]
-            nn_s = env.GetNextState(next_s, nn_a)
-
-            if DEBUG:
-                print("nn_s", nn_a, nn_s)
-
-            q = Q[next_s, nn_a]
-            if q > max_Q:
-                max_Q = q
+        max_Q = GetMaxQ(next_s, actions, Q, env)
 
         if DEBUG:
             print("max_Q", max_Q)
