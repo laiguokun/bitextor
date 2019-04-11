@@ -7,8 +7,11 @@ import pylab as plt
 ######################################################################################
 # helpers
 class Env:
+    def __init__(self):
+        self.goal = 14
+        self.ns = 15  # number of states
 
-    def GetNextState(self, curr, action, goal):
+    def GetNextState(self, curr, action):
         if action == 0:
             next = curr - 5
         elif action == 1:
@@ -21,7 +24,7 @@ class Env:
             next = curr
         assert(next >= 0)
 
-        if next == goal:
+        if next == self.goal:
             reward = 5
         elif action == 4:
             reward = 0
@@ -29,10 +32,10 @@ class Env:
             reward = -1
         return next, reward
 
-    def get_poss_next_actions(self, s, F, ns):
+    def get_poss_next_actions(self, s, F):
         #print("s", s)
         actions = []
-        for j in range(ns):
+        for j in range(self.ns):
             #print("s", s, j)
             if F[s, j] == 1:
                 if s - 1 == j:
@@ -54,12 +57,12 @@ class Env:
         return actions
 
 
-def get_rnd_next_state(s, F, ns, goal, env):
-    actions = env.get_poss_next_actions(s, F, ns)
+def get_rnd_next_state(s, F, env):
+    actions = env.get_poss_next_actions(s, F)
 
     i = np.random.randint(0, len(actions))
     action = actions[i]
-    next_state, reward = env.GetNextState(s, action, goal)
+    next_state, reward = env.GetNextState(s, action)
 
     return next_state, action, reward
 
@@ -76,7 +79,7 @@ def my_print(Q):
     print("")
 
 
-def Walk(start, goal, Q, env):
+def Walk(start, Q, env):
     curr = start
     i = 0
     totReward = 0
@@ -84,7 +87,7 @@ def Walk(start, goal, Q, env):
     while True:
         #print("curr", curr)
         action = np.argmax(Q[curr])
-        next, reward = env.GetNextState(curr, action, goal)
+        next, reward = env.GetNextState(curr, action)
         totReward += reward
 
         print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
@@ -92,7 +95,7 @@ def Walk(start, goal, Q, env):
         curr = next
 
         if action == 4: break
-        if curr == goal: break
+        if curr == env.goal: break
 
         i += 1
         if i > 50:
@@ -104,10 +107,10 @@ def Walk(start, goal, Q, env):
 
 ######################################################################################
 
-def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns, env):
+def Trajectory(curr_s, F, Q, gamma, lrn_rate, env):
     while (True):
-        next_s, action, reward = get_rnd_next_state(curr_s, F, ns, goal, env)
-        actions = env.get_poss_next_actions(next_s, F, ns)
+        next_s, action, reward = get_rnd_next_state(curr_s, F, env)
+        actions = env.get_poss_next_actions(next_s, F)
 
         DEBUG = False
         #DEBUG = action == 4
@@ -115,7 +118,7 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns, env):
         max_Q = -9999.99
         for j in range(len(actions)):
             nn_a = actions[j]
-            nn_s = env.GetNextState(next_s, nn_a, goal)
+            nn_s = env.GetNextState(next_s, nn_a)
             q = Q[next_s, nn_a]
             if q > max_Q:
                 max_Q = q
@@ -135,7 +138,7 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns, env):
             break
 
         curr_s = next_s
-        if curr_s == goal: break
+        if curr_s == env.goal: break
 
     if (np.max(Q) > 0):
         score = (np.sum(Q / np.max(Q) * 100))
@@ -144,12 +147,12 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns, env):
 
     return score
 
-def Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs, env):
+def Train(F, Q, gamma, lrn_rate, max_epochs, env):
     scores = []
 
     for i in range(0, max_epochs):
-        curr_s = np.random.randint(0, ns)  # random start state
-        score = Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns, env)
+        curr_s = np.random.randint(0, env.ns)  # random start state
+        score = Trajectory(curr_s, F, Q, gamma, lrn_rate, env)
         scores.append(score)
 
     return scores
@@ -205,14 +208,12 @@ def Main():
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
-    goal = 14
-    ns = 15  # number of states
     gamma = 0.5
     lrn_rate = 0.5
     max_epochs = 1000
     env = Env()
 
-    scores = Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs, env)
+    scores = Train(F, Q, gamma, lrn_rate, max_epochs, env)
     print("Trained")
 
     print("The Q matrix is: \n ")
@@ -225,8 +226,8 @@ def Main():
     #print("Using Q to go from 0 to goal (14)")
     #Walk(start, goal, Q)
 
-    for start in range(0,ns):
-        Walk(start, goal, Q, env)
+    for start in range(0,env.ns):
+        Walk(start, Q, env)
 
     print("Finished")
 
