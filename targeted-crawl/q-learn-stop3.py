@@ -59,15 +59,15 @@ class Env:
         #print("next", next)
 
         die = False
-        if next < 0 or next >= self.ns or self.F[curr, next] == 0:
+        if action == 4:
+            reward = 0
+            die = True
+        elif next < 0 or next >= self.ns or self.F[curr, next] == 0:
             next = curr
             reward = -100
             die = True
         elif next == self.goal:
             reward = 5
-        elif action == 4:
-            reward = 0
-            die = True
         else:
             reward = -1
 
@@ -142,16 +142,22 @@ def Trajectory(curr_s, Q, gamma, lrn_rate, env):
 
         DEBUG = False
         #DEBUG = action == 4
+        #DEBUG = curr_s == 0
 
         max_Q = -9999.99
         for j in range(len(actions)):
             nn_a = actions[j]
             nn_s = env.GetNextState(next_s, nn_a)
+
+            if DEBUG:
+                print("nn_s", nn_a, nn_s)
+
             q = Q[next_s, nn_a]
             if q > max_Q:
                 max_Q = q
 
         if DEBUG:
+            print("max_Q", max_Q)
             before = Q[curr_s][action]
 
         prevQ = ((1 - lrn_rate) * Q[curr_s][action])
@@ -202,7 +208,7 @@ def Main():
 
     print("Analyzing maze with RL Q-learning")
     start = 0;
-    gamma = 0.5
+    gamma = 1
     lrn_rate = 0.5
     max_epochs = 1000
     env = Env()
