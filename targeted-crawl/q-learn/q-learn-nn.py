@@ -196,6 +196,9 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # print("hh", next_s, hh)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
     a = a[0]
+    if np.random.rand(1) < eps:
+        a = np.random.randint(0, 5)
+
     next_s, r, die = env.GetNextState(curr_s, a)
     #print("curr_s=", curr_s, "a=", a, "next_s=", next_s, "r=", r, "allQ=", allQ)
 
@@ -305,7 +308,7 @@ def Main():
     start = 0;
     gamma = 0.99
     lrn_rate = 0.5
-    max_epochs = 200000
+    max_epochs = 20000
     env = Env()
     eps = 0.1
 
