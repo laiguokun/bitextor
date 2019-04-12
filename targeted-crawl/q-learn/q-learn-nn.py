@@ -249,6 +249,10 @@ def Train(Q, eps, gamma, lrn_rate, max_epochs, env, sess, qn):
         score = Trajectory(curr_s, Q, eps, gamma, lrn_rate, env, sess, qn)
         scores.append(score)
 
+        #eps = 1. / ((i/50) + 10)
+        #eps *= .99
+        #print("eps", eps)
+
     return scores
 
 ######################################################################################
@@ -270,6 +274,7 @@ def Walk(start, env, sess, qn):
         curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
         # print("hh", next_s, hh)
         action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+        action= action[0]
         next, reward, die = env.GetNextState(curr_s, action)
         totReward += reward
 
@@ -308,9 +313,9 @@ def Main():
     start = 0;
     gamma = 0.99
     lrn_rate = 0.5
-    max_epochs = 20000
+    max_epochs = 2000
     env = Env()
-    eps = 0.1
+    eps = 1 #0.7
 
     tf.reset_default_graph()
     qn = Qnetwork()
