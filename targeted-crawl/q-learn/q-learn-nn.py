@@ -178,7 +178,14 @@ def Trajectory(curr_s, Q, gamma, lrn_rate, env, sess, qn):
         # print("  hh2", hh2)
         Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: hh2})
         # print("  Q1", Q1)
+        maxQ1 = np.max(Q1)
+        #print("  Q1", Q1, maxQ1)
 
+        targetQ = allQ
+        targetQ[0, a] = r + gamma * maxQ1
+
+        inputs = np.identity(env.ns)[curr_s: curr_s + 1]
+        _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
         # TABULAR
         next_s, action, reward, die = get_rnd_next_state(curr_s, env)
