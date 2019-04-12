@@ -163,6 +163,33 @@ def GetMaxQ(next_s, actions, Q, env):
             max_Q = q
     return max_Q
 
+def Tabular(curr_s, Q, gamma, lrn_rate, env):
+    next_s, action, reward, die = get_rnd_next_state(curr_s, env)
+    actions = env.get_poss_next_actions(next_s)
+
+    DEBUG = False
+    # DEBUG = action == 4
+    # DEBUG = curr_s == 0
+
+    max_Q = GetMaxQ(next_s, actions, Q, env)
+
+    if DEBUG:
+        print("max_Q", max_Q)
+        before = Q[curr_s][action]
+
+    prevQ = ((1 - lrn_rate) * Q[curr_s][action])
+    V = lrn_rate * (reward + (gamma * max_Q))
+    Q[curr_s][action] = prevQ + V
+
+    if DEBUG:
+        after = Q[curr_s][action]
+        print("Q", curr_s, reward, before, after)
+
+    if die or curr_s == env.goal:
+        return next_s, True
+
+    return next_s, False
+
 def Trajectory(curr_s, Q, gamma, lrn_rate, env, sess, qn):
     while (True):
         # NEURAL
@@ -188,31 +215,10 @@ def Trajectory(curr_s, Q, gamma, lrn_rate, env, sess, qn):
         _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
         # TABULAR
-        next_s, action, reward, die = get_rnd_next_state(curr_s, env)
-        actions = env.get_poss_next_actions(next_s)
-
-        DEBUG = False
-        #DEBUG = action == 4
-        #DEBUG = curr_s == 0
-
-        max_Q = GetMaxQ(next_s, actions, Q, env)
-
-        if DEBUG:
-            print("max_Q", max_Q)
-            before = Q[curr_s][action]
-
-        prevQ = ((1 - lrn_rate) * Q[curr_s][action])
-        V = lrn_rate * (reward + (gamma * max_Q))
-        Q[curr_s][action] = prevQ + V
-
-        if DEBUG:
-            after = Q[curr_s][action]
-            print("Q", curr_s, reward, before, after)
-
-        if die: break
-
+        next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
         curr_s = next_s
-        if curr_s == env.goal: break
+
+        if done: break
 
     if (np.max(Q) > 0):
         score = (np.sum(Q / np.max(Q) * 100))
