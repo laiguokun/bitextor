@@ -57,7 +57,7 @@ class Env:
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
         self.F[14, 14] = 1
-        print("F", self.F)
+        #print("F", self.F)
 
     def GetNextState(self, curr, action):
         if action == 0:
@@ -190,35 +190,40 @@ def Tabular(curr_s, Q, gamma, lrn_rate, env):
 
     return next_s, False
 
+def Neural(curr_s, gamma, lrn_rate, env, sess, qn):
+    # NEURAL
+    curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+    # print("hh", next_s, hh)
+    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+    a = a[0]
+    next_s, r, die = env.GetNextState(curr_s, a)
+    #print("curr_s=", curr_s, "a=", a, "allQ=", allQ)
+
+    # Obtain the Q' values by feeding the new state through our network
+    next1Hot = np.identity(env.ns)[next_s:next_s + 1]
+    # print("  hh2", hh2)
+    Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: next1Hot})
+    # print("  Q1", Q1)
+    maxQ1 = np.max(Q1)
+    # print("  Q1", Q1, maxQ1)
+
+    targetQ = allQ
+    targetQ[0, a] = r + gamma * maxQ1
+
+    inputs = np.identity(env.ns)[curr_s: curr_s + 1]
+    _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+
+    return next_s, die
+
+
 def Trajectory(curr_s, Q, gamma, lrn_rate, env, sess, qn):
     while (True):
-        # NEURAL
-        hh = np.identity(env.ns)[curr_s:curr_s + 1]
-        #print("hh", next_s, hh)
-        a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: hh})
-        a = a[0]
-        s1, r, die = env.GetNextState(curr_s, a)
-        #print(curr_s, "a=", a, "->", s1, r, allQ)
-
-        # Obtain the Q' values by feeding the new state through our network
-        hh2 = np.identity(env.ns)[s1:s1 + 1]
-        # print("  hh2", hh2)
-        Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: hh2})
-        # print("  Q1", Q1)
-        maxQ1 = np.max(Q1)
-        #print("  Q1", Q1, maxQ1)
-
-        targetQ = allQ
-        targetQ[0, a] = r + gamma * maxQ1
-
-        inputs = np.identity(env.ns)[curr_s: curr_s + 1]
-        _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
-
-        # TABULAR
-        next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
+        next_s, done = Neural(curr_s, gamma, lrn_rate, env, sess, qn)
+        #next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
         curr_s = next_s
 
         if done: break
+    #print()
 
     if (np.max(Q) > 0):
         score = (np.sum(Q / np.max(Q) * 100))
@@ -231,6 +236,7 @@ def Train(Q, gamma, lrn_rate, max_epochs, env):
     tf.reset_default_graph()
     qn = Qnetwork()
     init = tf.initialize_all_variables()
+    print("qn.Qout", qn.Qout)
 
     with tf.Session() as sess:
         sess.run(init)
