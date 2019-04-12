@@ -190,14 +190,22 @@ def Tabular(curr_s, Q, gamma, lrn_rate, env):
 
     return next_s, False
 
-def Neural(curr_s, gamma, lrn_rate, env, sess, qn):
+def my_print(qn):
+    for curr_s in range(15):
+        curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+        # print("hh", next_s, hh)
+        a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+        print("curr_s=", curr_s, "a=", a, "next_s=", next_s, "r=", r, "allQ=", allQ)
+
+
+def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # NEURAL
     curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
     # print("hh", next_s, hh)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
     a = a[0]
     next_s, r, die = env.GetNextState(curr_s, a)
-    #print("curr_s=", curr_s, "a=", a, "allQ=", allQ)
+    print("curr_s=", curr_s, "a=", a, "next_s=", next_s, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
     next1Hot = np.identity(env.ns)[next_s:next_s + 1]
@@ -208,22 +216,27 @@ def Neural(curr_s, gamma, lrn_rate, env, sess, qn):
     # print("  Q1", Q1, maxQ1)
 
     targetQ = allQ
+    print("  targetQ", targetQ)
     targetQ[0, a] = r + gamma * maxQ1
+    print("  targetQ", targetQ)
 
     inputs = np.identity(env.ns)[curr_s: curr_s + 1]
     _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
+    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+    print("  new Q", a, allQ)
+
     return next_s, die
 
 
-def Trajectory(curr_s, Q, gamma, lrn_rate, env, sess, qn):
+def Trajectory(curr_s, Q, eps, gamma, lrn_rate, env, sess, qn):
     while (True):
-        next_s, done = Neural(curr_s, gamma, lrn_rate, env, sess, qn)
+        next_s, done = Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn)
         #next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
         curr_s = next_s
 
         if done: break
-    #print()
+    print()
 
     if (np.max(Q) > 0):
         score = (np.sum(Q / np.max(Q) * 100))
@@ -232,7 +245,7 @@ def Trajectory(curr_s, Q, gamma, lrn_rate, env, sess, qn):
 
     return score
 
-def Train(Q, gamma, lrn_rate, max_epochs, env):
+def Train(Q, eps, gamma, lrn_rate, max_epochs, env):
     tf.reset_default_graph()
     qn = Qnetwork()
     init = tf.initialize_all_variables()
@@ -245,7 +258,7 @@ def Train(Q, gamma, lrn_rate, max_epochs, env):
 
         for i in range(0, max_epochs):
             curr_s = np.random.randint(0, env.ns)  # random start state
-            score = Trajectory(curr_s, Q, gamma, lrn_rate, env, sess, qn)
+            score = Trajectory(curr_s, Q, eps, gamma, lrn_rate, env, sess, qn)
             scores.append(score)
 
     return scores
@@ -256,6 +269,7 @@ def Train(Q, gamma, lrn_rate, max_epochs, env):
 def Main():
     print("Starting")
     np.random.seed()
+    np.set_printoptions(formatter={'float': lambda x: "{0:0.5f}".format(x)})
     print("Setting up maze in memory")
 
     # R = np.random.rand(15, 15)  # Rewards
@@ -270,14 +284,16 @@ def Main():
     start = 0;
     gamma = 0.99
     lrn_rate = 0.5
-    max_epochs = 10000
+    max_epochs = 2
     env = Env()
+    eps = 0.1
 
-    scores = Train(Q, gamma, lrn_rate, max_epochs, env)
+    scores = Train(Q, eps, gamma, lrn_rate, max_epochs, env)
     print("Trained")
 
-    print("The Q matrix is: \n ")
-    my_print(Q)
+    #print("The Q matrix is: \n ")
+    #my_print(Q)
+    #my_print(qn)
 
     #
     # plt.plot(scores)
