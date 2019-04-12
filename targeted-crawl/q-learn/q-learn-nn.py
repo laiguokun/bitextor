@@ -248,12 +248,42 @@ def Train(Q, eps, gamma, lrn_rate, max_epochs, env, sess, qn):
 
     return scores
 
+######################################################################################
+
 def my_print(env, sess, qn):
     for curr_s in range(15):
         curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
         # print("hh", next_s, hh)
         a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
         print("curr_s=", curr_s, "a=", a, "allQ=", allQ)
+
+def Walk(start, env, sess, qn):
+    curr_s = start
+    i = 0
+    totReward = 0
+    print(str(curr_s) + "->", end="")
+    while True:
+        # print("curr", curr)
+        curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+        # print("hh", next_s, hh)
+        action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+        next, reward, die = env.GetNextState(curr_s, action)
+        totReward += reward
+
+        print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+        # print(str(next) + "->", end="")
+        curr_s = next
+
+        if die: break
+        if curr_s == env.goal: break
+
+        i += 1
+        if i > 50:
+            print("LOOPING")
+            break
+
+    print("done", totReward)
+
 
 ######################################################################################
 
@@ -275,7 +305,7 @@ def Main():
     start = 0;
     gamma = 0.99
     lrn_rate = 0.5
-    max_epochs = 2000
+    max_epochs = 200000
     env = Env()
     eps = 0.1
 
@@ -295,17 +325,17 @@ def Main():
         #my_print(Q)
         my_print(env, sess, qn)
 
-    #
-    # plt.plot(scores)
-    #plt.show()
+        #print("Using Q to go from 0 to goal (14)")
+        #Walk(start, goal, Q)
 
-    #print("Using Q to go from 0 to goal (14)")
-    #Walk(start, goal, Q)
+        for start in range(0,env.ns):
+            #Walk(start, Q, env)
+            Walk(start, env, sess, qn)
 
-    for start in range(0,env.ns):
-        Walk(start, Q, env)
+        # plt.plot(scores)
+        # plt.show()
 
-    print("Finished")
+        print("Finished")
 
 
 if __name__ == "__main__":
