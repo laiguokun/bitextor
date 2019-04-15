@@ -206,6 +206,25 @@ def GetStartNode(mycursor, url):
 
     return docId
 
+def GetChildren(mycursor, parentNode):
+    sql = "select link.document_id, url.val, url.document_id " \
+        + "from link, url " \
+        + "where url.id = link.url_id " \
+        + "and url.document_id is not null " \
+        + "and link.document_id = %s"
+    val =(parentNode, )
+    mycursor.execute(sql, val)
+    res = mycursor.fetchall()
+    # print("  res", len(res))
+
+    children = []
+    for row in res:
+        #print("  row", row)
+        childNode = row[2]
+        children.append(childNode)
+
+    return children
+
 ######################################################################################
 
 def Main():
@@ -228,7 +247,8 @@ def Main():
 
     startNode = GetStartNode(mycursor, "vade-retro.fr/")
     print("startNode", startNode)
-
+    children = GetChildren(mycursor, startNode)
+    print("children", children)
 
     # =============================================================
     print("Analyzing maze with RL Q-learning")
