@@ -313,7 +313,7 @@ def Main():
     start = 0;
     gamma = 0.99
     lrn_rate = 0.5
-    max_epochs = 2000
+    max_epochs = 20000
     env = Env()
     eps = 1 #0.7
 
