@@ -3,6 +3,7 @@
 import numpy as np
 import pylab as plt
 import tensorflow as tf
+import mysql.connector
 
 ######################################################################################
 class Qnetwork():
@@ -99,7 +100,97 @@ class Env:
         #print("  actions", actions)
         return actions
 
+
+def get_rnd_next_state(s, env):
+    actions = env.get_poss_next_actions(s)
+
+    i = np.random.randint(0, len(actions))
+    action = actions[i]
+    next_state, reward, die = env.GetNextState(s, action)
+
+    return next_state, action, reward, die
+
+
+def my_print(Q):
+    rows = len(Q);
+    cols = len(Q[0])
+    print("       0      1      2      3      4")
+    for i in range(rows):
+        print("%d " % i, end="")
+        if i < 10: print(" ", end="")
+        for j in range(cols): print(" %6.2f" % Q[i, j], end="")
+        print("")
+    print("")
+
+
+def Walk(start, Q, env):
+    curr = start
+    i = 0
+    totReward = 0
+    print(str(curr) + "->", end="")
+    while True:
+        #print("curr", curr)
+        action = np.argmax(Q[curr])
+        next, reward, die = env.GetNextState(curr, action)
+        totReward += reward
+
+        print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+        #print(str(next) + "->", end="")
+        curr = next
+
+        if die: break
+        if curr == env.goal: break
+
+        i += 1
+        if i > 50:
+            print("LOOPING")
+            break
+
+    print("done", totReward)
+
+
 ######################################################################################
+def GetMaxQ(next_s, actions, Q, env):
+    #if actions == 4:
+    #    return 0
+
+    max_Q = -9999.99
+    for j in range(len(actions)):
+        nn_a = actions[j]
+        nn_s = env.GetNextState(next_s, nn_a)
+
+        q = Q[next_s, nn_a]
+        if q > max_Q:
+            max_Q = q
+    return max_Q
+
+def Tabular(curr_s, Q, gamma, lrn_rate, env):
+    next_s, action, reward, die = get_rnd_next_state(curr_s, env)
+    actions = env.get_poss_next_actions(next_s)
+
+    DEBUG = False
+    # DEBUG = action == 4
+    # DEBUG = curr_s == 0
+
+    max_Q = GetMaxQ(next_s, actions, Q, env)
+
+    if DEBUG:
+        print("max_Q", max_Q)
+        before = Q[curr_s][action]
+
+    prevQ = ((1 - lrn_rate) * Q[curr_s][action])
+    V = lrn_rate * (reward + (gamma * max_Q))
+    Q[curr_s][action] = prevQ + V
+
+    if DEBUG:
+        after = Q[curr_s][action]
+        print("Q", curr_s, reward, before, after)
+
+    if die or curr_s == env.goal:
+        return next_s, True
+
+    return next_s, False
+
 def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # NEURAL
     curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
@@ -134,7 +225,7 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     return next_s, die
 
 
-def Trajectory(curr_s, eps, gamma, lrn_rate, env, sess, qn):
+def Trajectory(curr_s, Q, eps, gamma, lrn_rate, env, sess, qn):
     while (True):
         next_s, done = Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn)
         #next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
@@ -143,13 +234,21 @@ def Trajectory(curr_s, eps, gamma, lrn_rate, env, sess, qn):
         if done: break
     #print()
 
-def Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn):
+    if (np.max(Q) > 0):
+        score = (np.sum(Q / np.max(Q) * 100))
+    else:
+        score = (0)
+
+    return score
+
+def Train(Q, eps, gamma, lrn_rate, max_epochs, env, sess, qn):
 
     scores = []
 
     for i in range(0, max_epochs):
         curr_s = np.random.randint(0, env.ns)  # random start state
-        Trajectory(curr_s, eps, gamma, lrn_rate, env, sess, qn)
+        score = Trajectory(curr_s, Q, eps, gamma, lrn_rate, env, sess, qn)
+        scores.append(score)
 
         #eps = 1. / ((i/50) + 10)
         #eps *= .99
@@ -203,7 +302,21 @@ def Main():
     np.set_printoptions(formatter={'float': lambda x: "{0:0.5f}".format(x)})
     print("Setting up maze in memory")
 
+    mydb = mysql.connector.connect(
+        host="localhost",
+        user="paracrawl_user",
+        passwd="paracrawl_password",
+        database="paracrawl",
+        charset='utf8'
+    )
+    mydb.autocommit = False
+    mycursor = mydb.cursor(buffered=True)
+
     # =============================================================
+
+    Q = np.empty(shape=[15, 5], dtype=np.float)  # Quality
+    Q[:] = 0
+
     print("Analyzing maze with RL Q-learning")
     start = 0;
     gamma = 0.99
@@ -220,12 +333,19 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
-        scores = Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn)
+        scores = Train(Q, eps, gamma, lrn_rate, max_epochs, env, sess, qn)
+
         print("Trained")
 
+        #print("The Q matrix is: \n ")
+        #my_print(Q)
         my_print(env, sess, qn)
 
+        #print("Using Q to go from 0 to goal (14)")
+        #Walk(start, goal, Q)
+
         for start in range(0,env.ns):
+            #Walk(start, Q, env)
             Walk(start, env, sess, qn)
 
         # plt.plot(scores)
