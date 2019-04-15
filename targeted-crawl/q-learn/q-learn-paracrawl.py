@@ -245,7 +245,7 @@ def Main():
     mydb.autocommit = False
     mycursor = mydb.cursor(buffered=True)
 
-    startNode = GetStartNode(mycursor, "vade-retro.fr/")
+    startNode = GetStartNode(mycursor, "www.vade-retro.fr/")
     print("startNode", startNode)
     children = GetChildren(mycursor, startNode)
     print("children", children)
