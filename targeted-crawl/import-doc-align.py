@@ -14,7 +14,7 @@ def NormalizeURL(url):
         url = url[:ind]
         #print("pageURL", pageURL)
     if url[-5:].lower() == ".html":
-        pageURL = url[:-5] + ".htm"
+        url = url[:-5] + ".htm"
         #print("pageURL", pageURL)
     return url
 
@@ -22,6 +22,7 @@ def GetDocId(mycursor, url):
     c = hashlib.md5()
     c.update(url.encode())
     hashURL = c.hexdigest()
+    print("url", url, hashURL)
 
     sql = "SELECT id, document_id FROM url WHERE md5 = %s"
     val = (hashURL,)
