@@ -225,6 +225,18 @@ def GetChildren(mycursor, parentNode):
 
     return children
 
+def GetMatches(mycursor):
+    sql = "select document1, document2 from document_align"
+    mycursor.execute(sql)
+    res = mycursor.fetchall()
+
+    docIds = []
+    for row in res:
+        docIds.append(row[0])
+        docIds.append(row[1])
+
+    return docIds
+
 ######################################################################################
 
 def Main():
@@ -245,6 +257,8 @@ def Main():
     mydb.autocommit = False
     mycursor = mydb.cursor(buffered=True)
 
+    matchedDocIds = GetMatches(mycursor)
+    print("matchedDocIds", matchedDocIds)
     startNode = GetStartNode(mycursor, "www.vade-retro.fr/")
     print("startNode", startNode)
     children = GetChildren(mycursor, startNode)
