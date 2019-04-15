@@ -60,6 +60,24 @@ class Env:
         self.F[14, 14] = 1
         #print("F", self.F)
 
+        # paracrawl
+        self.mydb = mysql.connector.connect(
+        host="localhost",
+        user="paracrawl_user",
+        passwd="paracrawl_password",
+        database="paracrawl",
+        charset='utf8'
+        )
+        self.mydb.autocommit = False
+        self.mycursor = self.mydb.cursor(buffered=True)
+
+        self.matchedDocIds = self.GetMatches(self.mycursor)
+        print("matchedDocIds", self.matchedDocIds)
+        startNode = self.GetStartNode(self.mycursor, "www.vade-retro.fr/")
+        print("startNode", startNode)
+        children = self.GetChildren(self.mycursor, startNode)
+        print("children", children)
+
     def GetNextState(self, curr, action):
         if action == 0:
             next = curr - 5
@@ -99,6 +117,48 @@ class Env:
 
         #print("  actions", actions)
         return actions
+
+    def GetStartNode(self, mycursor, url):
+        sql = "select id, document_id from url where val = %s"
+        val = (url,)
+        mycursor.execute(sql, val)
+        res = mycursor.fetchone()
+        assert (res is not None)
+        docId = res[1]
+
+        return docId
+
+    def GetChildren(self, mycursor, parentNode):
+        sql = "select link.document_id, url.val, url.document_id " \
+              + "from link, url " \
+              + "where url.id = link.url_id " \
+              + "and url.document_id is not null " \
+              + "and link.document_id = %s"
+        val = (parentNode,)
+        mycursor.execute(sql, val)
+        res = mycursor.fetchall()
+        # print("  res", len(res))
+
+        children = []
+        for row in res:
+            # print("  row", row)
+            childNode = row[2]
+            children.append(childNode)
+
+        return children
+
+    def GetMatches(self, mycursor):
+        sql = "select document1, document2 from document_align"
+        mycursor.execute(sql)
+        res = mycursor.fetchall()
+
+        docIds = []
+        for row in res:
+            docIds.append(row[0])
+            docIds.append(row[1])
+
+        return docIds
+
 
 ######################################################################################
 def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
@@ -196,46 +256,6 @@ def Walk(start, env, sess, qn):
     print("done", totReward)
 
 ######################################################################################
-def GetStartNode(mycursor, url):
-    sql = "select id, document_id from url where val = %s"
-    val =(url, )
-    mycursor.execute(sql, val)
-    res = mycursor.fetchone()
-    assert(res is not None)
-    docId = res[1]
-
-    return docId
-
-def GetChildren(mycursor, parentNode):
-    sql = "select link.document_id, url.val, url.document_id " \
-        + "from link, url " \
-        + "where url.id = link.url_id " \
-        + "and url.document_id is not null " \
-        + "and link.document_id = %s"
-    val =(parentNode, )
-    mycursor.execute(sql, val)
-    res = mycursor.fetchall()
-    # print("  res", len(res))
-
-    children = []
-    for row in res:
-        #print("  row", row)
-        childNode = row[2]
-        children.append(childNode)
-
-    return children
-
-def GetMatches(mycursor):
-    sql = "select document1, document2 from document_align"
-    mycursor.execute(sql)
-    res = mycursor.fetchall()
-
-    docIds = []
-    for row in res:
-        docIds.append(row[0])
-        docIds.append(row[1])
-
-    return docIds
 
 ######################################################################################
 
@@ -247,22 +267,6 @@ def Main():
 
     # =============================================================
 
-    mydb = mysql.connector.connect(
-        host="localhost",
-        user="paracrawl_user",
-        passwd="paracrawl_password",
-        database="paracrawl",
-        charset='utf8'
-    )
-    mydb.autocommit = False
-    mycursor = mydb.cursor(buffered=True)
-
-    matchedDocIds = GetMatches(mycursor)
-    print("matchedDocIds", matchedDocIds)
-    startNode = GetStartNode(mycursor, "www.vade-retro.fr/")
-    print("startNode", startNode)
-    children = GetChildren(mycursor, startNode)
-    print("children", children)
 
     # =============================================================
     print("Analyzing maze with RL Q-learning")
@@ -278,6 +282,7 @@ def Main():
     init = tf.initialize_all_variables()
     print("qn.Qout", qn.Qout)
 
+    # =============================================================
     with tf.Session() as sess:
         sess.run(init)
 
