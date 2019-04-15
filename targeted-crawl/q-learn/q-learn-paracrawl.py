@@ -195,6 +195,16 @@ def Walk(start, env, sess, qn):
 
     print("done", totReward)
 
+######################################################################################
+def GetStartNode(mycursor, url):
+    sql = "select id, document_id from url where val = %s"
+    val =(url, )
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+    assert(res is not None)
+    docId = res[1]
+
+    return docId
 
 ######################################################################################
 
@@ -203,6 +213,8 @@ def Main():
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.5f}".format(x)})
     print("Setting up maze in memory")
+
+    # =============================================================
 
     mydb = mysql.connector.connect(
         host="localhost",
@@ -213,6 +225,10 @@ def Main():
     )
     mydb.autocommit = False
     mycursor = mydb.cursor(buffered=True)
+
+    startNode = GetStartNode(mycursor, "vade-retro.fr/")
+    print("startNode", startNode)
+
 
     # =============================================================
     print("Analyzing maze with RL Q-learning")
