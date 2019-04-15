@@ -71,11 +71,11 @@ class Env:
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
 
-        self.matchedDocIds = self.GetMatches(self.mycursor)
+        self.matchedDocIds = self.GetMatches()
         print("matchedDocIds", self.matchedDocIds)
-        startNode = self.GetStartNode(self.mycursor, "www.vade-retro.fr/")
+        startNode = self.GetStartNode("www.vade-retro.fr/")
         print("startNode", startNode)
-        children = self.GetChildren(self.mycursor, startNode)
+        children = self.GetChildren(startNode)
         print("children", children)
 
     def GetNextState(self, curr, action):
@@ -118,25 +118,38 @@ class Env:
         #print("  actions", actions)
         return actions
 
-    def GetStartNode(self, mycursor, url):
+    # paracrawl ##########################################################
+    def GetMatches(self):
+        sql = "select document1, document2 from document_align"
+        self.mycursor.execute(sql)
+        res = self.mycursor.fetchall()
+
+        docIds = []
+        for row in res:
+            docIds.append(row[0])
+            docIds.append(row[1])
+
+        return docIds
+
+    def GetStartNode(self, url):
         sql = "select id, document_id from url where val = %s"
         val = (url,)
-        mycursor.execute(sql, val)
-        res = mycursor.fetchone()
+        self.mycursor.execute(sql, val)
+        res = self.mycursor.fetchone()
         assert (res is not None)
         docId = res[1]
 
         return docId
 
-    def GetChildren(self, mycursor, parentNode):
+    def GetChildren(self, parentNode):
         sql = "select link.document_id, url.val, url.document_id " \
               + "from link, url " \
               + "where url.id = link.url_id " \
               + "and url.document_id is not null " \
               + "and link.document_id = %s"
         val = (parentNode,)
-        mycursor.execute(sql, val)
-        res = mycursor.fetchall()
+        self.mycursor.execute(sql, val)
+        res = self.mycursor.fetchall()
         # print("  res", len(res))
 
         children = []
@@ -146,18 +159,6 @@ class Env:
             children.append(childNode)
 
         return children
-
-    def GetMatches(self, mycursor):
-        sql = "select document1, document2 from document_align"
-        mycursor.execute(sql)
-        res = mycursor.fetchall()
-
-        docIds = []
-        for row in res:
-            docIds.append(row[0])
-            docIds.append(row[1])
-
-        return docIds
 
 
 ######################################################################################
