@@ -78,6 +78,8 @@ class Env:
         children = self.GetChildren(startNode)
         print("children", children)
 
+        self.docsVisited = set()
+
     def GetNextState(self, curr, action):
         if action == 0:
             next = curr - 5
@@ -162,10 +164,22 @@ class Env:
 
 
 ######################################################################################
+def Int2Arrray(num, size):
+    str = np.binary_repr(num).zfill(size)
+    l = list(str)
+    ret = np.array(l).astype(np.float)
+    print("num", num, ret)
+    return ret
+
+
 def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # NEURAL
+    startNode = env.GetStartNode("www.vade-retro.fr/")
+    curr_1Hot = Int2Arrray(startNode, env.ns)
+
     curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
-    # print("hh", next_s, hh)
+    #print("curr_s", curr_s, curr_1Hot)
+
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
     a = a[0]
     if np.random.rand(1) < eps:
