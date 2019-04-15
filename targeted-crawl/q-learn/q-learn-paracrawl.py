@@ -81,21 +81,21 @@ class Env:
         self.docsVisited = set()
 
     def GetNextState(self, curr, action):
-        if action == 0:
+        if action == 1:
             next = curr - 5
-        elif action == 1:
-            next = curr + 1
         elif action == 2:
-            next = curr + 5
+            next = curr + 1
         elif action == 3:
-            next = curr - 1
+            next = curr + 5
         elif action == 4:
+            next = curr - 1
+        elif action == 0:
             next = curr
         #assert(next >= 0)
         #print("next", next)
 
         die = False
-        if action == 4:
+        if action == 0:
             reward = 0
             die = True
         elif next < 0 or next >= self.ns or self.F[curr, next] == 0:
@@ -174,8 +174,8 @@ def Int2Arrray(num, size):
 
 def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # NEURAL
-    startNode = env.GetStartNode("www.vade-retro.fr/")
-    curr_1Hot = Int2Arrray(startNode, env.ns)
+    #startNode = env.GetStartNode("www.vade-retro.fr/")
+    #curr_1Hot = Int2Arrray(startNode, env.ns)
 
     curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
     #print("curr_s", curr_s, curr_1Hot)
