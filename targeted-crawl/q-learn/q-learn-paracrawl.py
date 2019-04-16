@@ -165,10 +165,13 @@ class Env:
 
 ######################################################################################
 def Int2Arrray(num, size):
+    ret = np.identity(size)[num:num + 1]
+    return ret
+
     str = np.binary_repr(num).zfill(size)
     l = list(str)
-    ret = np.array(l).astype(np.float)
-    print("num", num, ret)
+    ret = np.array(l, ndmin=2).astype(np.float)
+    #print("num", num, ret)
     return ret
 
 
@@ -177,7 +180,8 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     #startNode = env.GetStartNode("www.vade-retro.fr/")
     #curr_1Hot = Int2Arrray(startNode, env.ns)
 
-    curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+    #curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+    curr_1Hot = Int2Arrray(curr_s, env.ns)
     #print("curr_s", curr_s, curr_1Hot)
 
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
@@ -189,7 +193,8 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     #print("curr_s=", curr_s, "a=", a, "next_s=", next_s, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
-    next1Hot = np.identity(env.ns)[next_s:next_s + 1]
+    #next1Hot = np.identity(env.ns)[next_s:next_s + 1]
+    next1Hot = Int2Arrray(next_s, env.ns)
     # print("  hh2", hh2)
     Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: next1Hot})
     # print("  Q1", Q1)
@@ -201,7 +206,8 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     targetQ[0, a] = r + gamma * maxQ1
     #print("  targetQ", targetQ)
 
-    inputs = np.identity(env.ns)[curr_s: curr_s + 1]
+    #inputs = np.identity(env.ns)[curr_s: curr_s + 1]
+    inputs = Int2Arrray(curr_s, env.ns)
     _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
@@ -237,7 +243,8 @@ def Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn):
 
 def my_print(env, sess, qn):
     for curr_s in range(15):
-        curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+        #curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+        curr_1Hot = Int2Arrray(curr_s, env.ns)
         # print("hh", next_s, hh)
         a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
         print("curr_s=", curr_s, "a=", a, "allQ=", allQ)
@@ -249,7 +256,8 @@ def Walk(start, env, sess, qn):
     print(str(curr_s) + "->", end="")
     while True:
         # print("curr", curr)
-        curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+        #curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
+        curr_1Hot = Int2Arrray(curr_s, env.ns)
         # print("hh", next_s, hh)
         action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
         action= action[0]
