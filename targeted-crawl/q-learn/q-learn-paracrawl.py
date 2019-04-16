@@ -312,7 +312,6 @@ def Main():
     tf.reset_default_graph()
     qn = Qnetwork()
     init = tf.initialize_all_variables()
-    print("qn.Qout", qn.Qout)
 
     # =============================================================
     with tf.Session() as sess:
