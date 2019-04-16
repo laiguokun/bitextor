@@ -10,16 +10,22 @@ class Qnetwork():
     def __init__(self):
         # These lines establish the feed-forward part of the network used to choose actions
         self.inputs1 = tf.placeholder(shape=[1, 15], dtype=tf.float32)
+        self.hidden = self.inputs1
 
         #self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
         #self.hidden = tf.matmul(self.inputs1, self.Whidden)
+
+        #self.biashidden = tf.Variable(tf.random_uniform([1, 15], 0, 0.01))
+        #self.hidden = tf.add(self.hidden, self.biashidden)
+
         #self.hidden = tf.nn.relu(self.hidden)
         #self.hidden = tf.nn.softmax(self.hidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
 
-        self.Qout = tf.matmul(self.inputs1, self.W)
-        #self.Qout = tf.matmul(self.hidden, self.W)
+        #self.Qout = tf.matmul(self.inputs1, self.W)
+        self.Qout = tf.matmul(self.hidden, self.W)
+        #self.Qout = tf.nn.softmax(self.Qout)
         self.predict = tf.argmax(self.Qout, 1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
@@ -192,6 +198,7 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     #print("curr_s", curr_s, curr_1Hot)
 
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+    #print("a", a, allQ)
     a = a[0]
     if np.random.rand(1) < eps:
         a = np.random.randint(0, 5)
@@ -204,7 +211,7 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # print("  hh2", hh2)
     Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: next1Hot})
     #print("  Q1", Q1)
-    #ss
+
     maxQ1 = np.max(Q1)
     # print("  Q1", Q1, maxQ1)
 
@@ -215,9 +222,7 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
 
     inputs = Int2Arrray(curr_s, env.ns)
     _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
-
-    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
-    #print("  new Q", a, allQ)
+    #print("  Whidden1", Whidden1)
 
     return next_s, die
 
