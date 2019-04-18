@@ -298,6 +298,14 @@ def Walk(start, env, sess, qn):
     print("done", totReward)
 
 ######################################################################################
+class LearningParams:
+    def __init__(self):
+        self.gamma = 0.99
+        self.lrn_rate = 0.5
+        self.max_epochs = 20000
+        self.env = Env()
+        self.eps = 1  # 0.7
+
 
 ######################################################################################
 
@@ -312,12 +320,12 @@ def Main():
 
     # =============================================================
     print("Analyzing maze with RL Q-learning")
-    start = 0;
     gamma = 0.99
     lrn_rate = 0.5
     max_epochs = 20000
     env = Env()
     eps = 1 #0.7
+    params = LearningParams
 
     tf.reset_default_graph()
     qn = Qnetwork()
