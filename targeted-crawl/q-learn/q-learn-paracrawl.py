@@ -13,8 +13,9 @@ class Qnetwork():
         self.hidden = self.inputs1
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+
         self.hidden = tf.matmul(self.hidden, self.Whidden)
-        self.hidden = tf.nn.softmax(self.hidden)
 
         #self.biashidden = tf.Variable(tf.random_uniform([1, 15], 0, 0.01))
         #self.hidden = tf.add(self.hidden, self.biashidden)
@@ -190,7 +191,7 @@ def Int2Arrray(num, size):
     return ret
 
 
-def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
+def Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # NEURAL
     #startNode = env.GetStartNode("www.vade-retro.fr/")
     #curr_1Hot = Int2Arrray(startNode, env.ns)
@@ -222,15 +223,23 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     #print("  targetQ", targetQ)
 
     inputs = Int2Arrray(curr_s, env.ns)
-    _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
-    #print("  Whidden1", Whidden1)
+    #_, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+    _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+    #print("  Whidden", Whidden, inputs.shape, Whidden.shape)
+    sumWhidden = np.sum(Whidden, 1)
+    sumhidden = np.sum(hidden)
+    #print("sums", sumWhidden, sumhidden)
+    #sdssess
+
+    if epoch % 10000 == 0:
+        print("  Whidden", Whidden)
 
     return next_s, die
 
 
-def Trajectory(curr_s, eps, gamma, lrn_rate, env, sess, qn):
+def Trajectory(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
     while (True):
-        next_s, done = Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn)
+        next_s, done = Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn)
         #next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
         curr_s = next_s
 
@@ -241,9 +250,9 @@ def Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn):
 
     scores = []
 
-    for i in range(0, max_epochs):
+    for epoch in range(max_epochs):
         curr_s = np.random.randint(0, env.ns)  # random start state
-        Trajectory(curr_s, eps, gamma, lrn_rate, env, sess, qn)
+        Trajectory(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn)
 
         #eps = 1. / ((i/50) + 10)
         #eps *= .99
