@@ -12,8 +12,9 @@ class Qnetwork():
         self.inputs1 = tf.placeholder(shape=[1, 15], dtype=tf.float32)
         self.hidden = self.inputs1
 
-        #self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        #self.hidden = tf.matmul(self.inputs1, self.Whidden)
+        self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
+        self.hidden = tf.matmul(self.hidden, self.Whidden)
+        self.hidden = tf.nn.softmax(self.hidden)
 
         #self.biashidden = tf.Variable(tf.random_uniform([1, 15], 0, 0.01))
         #self.hidden = tf.add(self.hidden, self.biashidden)
