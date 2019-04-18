@@ -217,16 +217,16 @@ def Neural(epoch, curr_s, params, env, sess, qn):
     #print("  targetQ", targetQ)
 
     inputs = Int2Arrray(curr_s, env.ns)
-    _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+    #_, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
-    #_, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+    _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
     #print("  Whidden", Whidden, inputs.shape, Whidden.shape)
     #sumWhidden = np.sum(Whidden, 1)
     #sumhidden = np.sum(hidden)
     #print("sums", sumWhidden, sumhidden)
     #sdssess
-    #if epoch % 10000 == 0:
-    #    print("  Whidden", Whidden)
+    if epoch % 10000 == 0:
+        print("  Whidden", Whidden)
 
     return next_s, die
 
@@ -239,6 +239,7 @@ def Trajectory(epoch, curr_s, params, env, sess, qn):
 
         if done: break
     #print()
+    return next_s
 
 def Train(params, env, sess, qn):
 
@@ -246,11 +247,12 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         curr_s = np.random.randint(0, env.ns)  # random start state
-        Trajectory(epoch, curr_s, params, env, sess, qn)
+        stopState = Trajectory(epoch, curr_s, params, env, sess, qn)
 
-        #eps = 1. / ((i/50) + 10)
-        #eps *= .99
-        #print("eps", eps)
+        if stopState == env.goal:
+            #params.eps = 1. / ((i/50) + 10)
+            params.eps *= 1 #.999
+            #print("eps", params.eps)
 
     return scores
 
@@ -295,7 +297,7 @@ def Walk(start, env, sess, qn):
 class LearningParams:
     def __init__(self):
         self.gamma = 0.99
-        self.lrn_rate = 0.5
+        self.lrn_rate = 0.1
         self.max_epochs = 20000
         self.eps = 1  # 0.7
 
