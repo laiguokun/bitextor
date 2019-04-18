@@ -12,10 +12,10 @@ class Qnetwork():
         self.inputs1 = tf.placeholder(shape=[1, 15], dtype=tf.float32)
         self.hidden = self.inputs1
 
-        #self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
 
-        #self.hidden = tf.matmul(self.hidden, self.Whidden)
+        self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
 
@@ -297,7 +297,6 @@ class LearningParams:
         self.gamma = 0.99
         self.lrn_rate = 0.5
         self.max_epochs = 20000
-        self.env = Env()
         self.eps = 1  # 0.7
 
 
