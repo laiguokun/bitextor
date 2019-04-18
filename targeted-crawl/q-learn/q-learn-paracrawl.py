@@ -7,7 +7,7 @@ import mysql.connector
 
 ######################################################################################
 class Qnetwork():
-    def __init__(self):
+    def __init__(self, lrn_rate):
         # These lines establish the feed-forward part of the network used to choose actions
         self.inputs1 = tf.placeholder(shape=[1, 15], dtype=tf.float32)
         self.hidden = self.inputs1
@@ -27,7 +27,7 @@ class Qnetwork():
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[1, 5], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
-        self.trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
+        self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.updateModel = self.trainer.minimize(self.loss)
 
 ######################################################################################
@@ -185,7 +185,7 @@ def Int2Arrray(num, size):
     return ret
 
 
-def Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
+def Neural(epoch, curr_s, params, env, sess, qn):
     # NEURAL
     #startNode = env.GetStartNode("www.vade-retro.fr/")
     #curr_1Hot = Int2Arrray(startNode, env.ns)
@@ -196,7 +196,7 @@ def Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
     #print("a", a, allQ)
     a = a[0]
-    if np.random.rand(1) < eps:
+    if np.random.rand(1) < params.eps:
         a = np.random.randint(0, 5)
 
     next_s, r, die = env.GetNextState(curr_s, a)
@@ -213,7 +213,7 @@ def Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
 
     targetQ = allQ
     #print("  targetQ", targetQ)
-    targetQ[0, a] = r + gamma * maxQ1
+    targetQ[0, a] = r + params.gamma * maxQ1
     #print("  targetQ", targetQ)
 
     inputs = Int2Arrray(curr_s, env.ns)
@@ -231,22 +231,22 @@ def Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
     return next_s, die
 
 
-def Trajectory(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
+def Trajectory(epoch, curr_s, params, env, sess, qn):
     while (True):
-        next_s, done = Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn)
+        next_s, done = Neural(epoch, curr_s, params, env, sess, qn)
         #next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
         curr_s = next_s
 
         if done: break
     #print()
 
-def Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn):
+def Train(params, env, sess, qn):
 
     scores = []
 
-    for epoch in range(max_epochs):
+    for epoch in range(params.max_epochs):
         curr_s = np.random.randint(0, env.ns)  # random start state
-        Trajectory(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn)
+        Trajectory(epoch, curr_s, params, env, sess, qn)
 
         #eps = 1. / ((i/50) + 10)
         #eps *= .99
@@ -314,27 +314,23 @@ def Main():
 
     # =============================================================
     print("Analyzing maze with RL Q-learning")
-    gamma = 0.99
-    lrn_rate = 0.5
-    max_epochs = 20000
     env = Env()
-    eps = 1 #0.7
-    params = LearningParams
+    params = LearningParams()
 
     tf.reset_default_graph()
-    qn = Qnetwork()
+    qn = Qnetwork(params.lrn_rate)
     init = tf.initialize_all_variables()
 
     # =============================================================
     with tf.Session() as sess:
         sess.run(init)
 
-        scores = Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn)
+        scores = Train(params, env, sess, qn)
         print("Trained")
 
         my_print(env, sess, qn)
 
-        for start in range(0,env.ns):
+        for start in range(env.ns):
             Walk(start, env, sess, qn)
 
         # plt.plot(scores)
