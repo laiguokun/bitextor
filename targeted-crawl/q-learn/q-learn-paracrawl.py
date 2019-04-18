@@ -12,16 +12,10 @@ class Qnetwork():
         self.inputs1 = tf.placeholder(shape=[1, 15], dtype=tf.float32)
         self.hidden = self.inputs1
 
-        self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
 
-        self.hidden = tf.matmul(self.hidden, self.Whidden)
-
-        #self.biashidden = tf.Variable(tf.random_uniform([1, 15], 0, 0.01))
-        #self.hidden = tf.add(self.hidden, self.biashidden)
-
-        #self.hidden = tf.nn.relu(self.hidden)
-        #self.hidden = tf.nn.softmax(self.hidden)
+        #self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
 
@@ -223,16 +217,16 @@ def Neural(epoch, curr_s, eps, gamma, lrn_rate, env, sess, qn):
     #print("  targetQ", targetQ)
 
     inputs = Int2Arrray(curr_s, env.ns)
-    #_, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
-    _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+    _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+
+    #_, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
     #print("  Whidden", Whidden, inputs.shape, Whidden.shape)
-    sumWhidden = np.sum(Whidden, 1)
-    sumhidden = np.sum(hidden)
+    #sumWhidden = np.sum(Whidden, 1)
+    #sumhidden = np.sum(hidden)
     #print("sums", sumWhidden, sumhidden)
     #sdssess
-
-    if epoch % 10000 == 0:
-        print("  Whidden", Whidden)
+    #if epoch % 10000 == 0:
+    #    print("  Whidden", Whidden)
 
     return next_s, die
 
