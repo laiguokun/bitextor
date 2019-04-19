@@ -9,7 +9,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99
         self.lrn_rate = 0.1
-        self.max_epochs = 50000 #0
+        self.max_epochs = 500 #0
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -37,6 +37,16 @@ class Qnetwork():
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.updateModel = self.trainer.minimize(self.loss)
+
+    def my_print1(self, curr, env, sess):
+        curr_1Hot = Int2Arrray(curr, env.ns)
+        # print("hh", next, hh)
+        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.inputs: curr_1Hot})
+        print("curr=", curr, "a=", a, "allQ=", allQ)
+
+    def my_print(self, env, sess):
+        for curr in range(15):
+            self.my_print1(curr, env, sess)
 
     def ResizeBatch(self, batchSize):
         tf.reshape(self.inputs, [batchSize, 15])
@@ -81,6 +91,8 @@ class Qnetwork():
 
             i += 1
 
+        self.my_print1(9, env, sess)
+
         # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
 
         _, W1, Whidden, hidden = sess.run([self.updateModel, self.W, self.Whidden, self.hidden],
@@ -90,9 +102,10 @@ class Qnetwork():
         # sumhidden = np.sum(hidden)
         # print("sums", sumWhidden, sumhidden)
         # sdssess
-        if epoch % 10000 == 0:
-           print("  Whidden", Whidden)
-
+        #if epoch % 10000 == 0:
+        #   print("  Whidden", Whidden)
+        self.my_print1(9, env, sess)
+        print()
 
 ######################################################################################
 # helpers
@@ -236,13 +249,6 @@ def Train(params, env, sess, qn):
 
 ######################################################################################
 
-def my_print(env, sess, qn):
-    for curr in range(15):
-        curr_1Hot = Int2Arrray(curr, env.ns)
-        # print("hh", next, hh)
-        a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
-        print("curr=", curr, "a=", a, "allQ=", allQ)
-
 def Walk(start, env, sess, qn):
     curr = start
     i = 0
@@ -298,7 +304,7 @@ def Main():
         scores = Train(params, env, sess, qn)
         print("Trained")
 
-        my_print(env, sess, qn)
+        qn.my_print(env, sess)
 
         for start in range(env.ns):
             Walk(start, env, sess, qn)
