@@ -45,6 +45,7 @@ class Qnetwork():
         tf.reshape(self.nextQ, [batchSize, 5])
         inputs = np.empty([1, 15])
         outputs = np.empty([1, 15])
+        targetQ = np.empty([1, 5])
 
         for tuple in path:
             # print(tuple)
@@ -68,8 +69,8 @@ class Qnetwork():
             maxQ1 = np.max(Q1)
             # print("  Q1", Q1, maxQ1)
 
-            targetQ = allQ
-            # print("  targetQ", targetQ)
+            targetQ[0, :] = allQ
+            #print("  targetQ", type(targetQ), targetQ.shape)
             targetQ[0, action] = r + params.gamma * maxQ1
             # print("  targetQ", targetQ)
 
