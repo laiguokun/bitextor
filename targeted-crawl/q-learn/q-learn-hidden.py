@@ -5,6 +5,14 @@ import pylab as plt
 import tensorflow as tf
 
 ######################################################################################
+class LearningParams:
+    def __init__(self):
+        self.gamma = 0.99
+        self.lrn_rate = 0.1
+        self.max_epochs = 500 #0 #0
+        self.eps = 1  # 0.7
+
+######################################################################################
 class Qnetwork():
     def __init__(self, lrn_rate):
         # These lines establish the feed-forward part of the network used to choose actions
@@ -31,6 +39,9 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def UpdateQN(self, path, params, env, sess):
+        #print("path", len(path))
+        tf.reshape(self.inputs, [1, 15])
+
         for tuple in path:
             # print(tuple)
             curr = tuple[1]
@@ -243,15 +254,6 @@ def Walk(start, env, sess, qn):
             break
 
     print("done", totReward)
-
-######################################################################################
-class LearningParams:
-    def __init__(self):
-        self.gamma = 0.99
-        self.lrn_rate = 0.1
-        self.max_epochs = 20000
-        self.eps = 1  # 0.7
-
 
 ######################################################################################
 
