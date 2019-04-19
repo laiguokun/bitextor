@@ -122,13 +122,13 @@ def Int2Arrray(num, size):
     return ret
 
 
-def Neural(epoch, curr_s, params, env, sess, qn):
+def Neural(epoch, curr, params, env, sess, qn):
     # NEURAL
     #startNode = env.GetStartNode("www.vade-retro.fr/")
     #curr_1Hot = Int2Arrray(startNode, env.ns)
 
-    curr_1Hot = Int2Arrray(curr_s, env.ns)
-    #print("curr_s", curr_s, curr_1Hot)
+    curr_1Hot = Int2Arrray(curr, env.ns)
+    #print("curr", curr, curr_1Hot)
 
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
     #print("a", a, allQ)
@@ -136,11 +136,11 @@ def Neural(epoch, curr_s, params, env, sess, qn):
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, 5)
 
-    next_s, r, die = env.GetNextState(curr_s, a)
-    #print("curr_s=", curr_s, "a=", a, "next_s=", next_s, "r=", r, "allQ=", allQ)
+    next, r, die = env.GetNextState(curr, a)
+    #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
-    next1Hot = Int2Arrray(next_s, env.ns)
+    next1Hot = Int2Arrray(next, env.ns)
     # print("  hh2", hh2)
     Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: next1Hot})
     #print("  Q1", Q1)
@@ -153,7 +153,7 @@ def Neural(epoch, curr_s, params, env, sess, qn):
     targetQ[0, a] = r + params.gamma * maxQ1
     #print("  targetQ", targetQ)
 
-    inputs = Int2Arrray(curr_s, env.ns)
+    inputs = Int2Arrray(curr, env.ns)
     #_, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
     _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
@@ -165,26 +165,26 @@ def Neural(epoch, curr_s, params, env, sess, qn):
     if epoch % 10000 == 0:
         print("  Whidden", Whidden)
 
-    return next_s, die
+    return next, die
 
 
-def Trajectory(epoch, curr_s, params, env, sess, qn):
+def Trajectory(epoch, curr, params, env, sess, qn):
     while (True):
-        next_s, done = Neural(epoch, curr_s, params, env, sess, qn)
-        #next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
-        curr_s = next_s
+        next, done = Neural(epoch, curr, params, env, sess, qn)
+        #next, done = Tabular(curr, Q, gamma, lrn_rate, env)
+        curr = next
 
         if done: break
     #print()
-    return next_s
+    return next
 
 def Train(params, env, sess, qn):
 
     scores = []
 
     for epoch in range(params.max_epochs):
-        curr_s = np.random.randint(0, env.ns)  # random start state
-        stopState = Trajectory(epoch, curr_s, params, env, sess, qn)
+        curr = np.random.randint(0, env.ns)  # random start state
+        stopState = Trajectory(epoch, curr, params, env, sess, qn)
 
         if stopState == env.goal:
             #params.eps = 1. / ((i/50) + 10)
@@ -196,32 +196,32 @@ def Train(params, env, sess, qn):
 ######################################################################################
 
 def my_print(env, sess, qn):
-    for curr_s in range(15):
-        curr_1Hot = Int2Arrray(curr_s, env.ns)
-        # print("hh", next_s, hh)
+    for curr in range(15):
+        curr_1Hot = Int2Arrray(curr, env.ns)
+        # print("hh", next, hh)
         a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
-        print("curr_s=", curr_s, "a=", a, "allQ=", allQ)
+        print("curr=", curr, "a=", a, "allQ=", allQ)
 
 def Walk(start, env, sess, qn):
-    curr_s = start
+    curr = start
     i = 0
     totReward = 0
-    print(str(curr_s) + "->", end="")
+    print(str(curr) + "->", end="")
     while True:
         # print("curr", curr)
-        curr_1Hot = Int2Arrray(curr_s, env.ns)
-        # print("hh", next_s, hh)
+        curr_1Hot = Int2Arrray(curr, env.ns)
+        # print("hh", next, hh)
         action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
         action= action[0]
-        next, reward, die = env.GetNextState(curr_s, action)
+        next, reward, die = env.GetNextState(curr, action)
         totReward += reward
 
         print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
         # print(str(next) + "->", end="")
-        curr_s = next
+        curr = next
 
         if die: break
-        if curr_s == env.goal: break
+        if curr == env.goal: break
 
         i += 1
         if i > 50:
