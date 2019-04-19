@@ -9,7 +9,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99
         self.lrn_rate = 0.1
-        self.max_epochs = 500 #0 #0
+        self.max_epochs = 50000 #0
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -20,10 +20,10 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         #self.Whidden = tf.contrib.layers.l2_regularizer(self.Whidden)
 
-        #self.hidden = tf.matmul(self.hidden, self.Whidden)
+        self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
 
@@ -42,7 +42,7 @@ class Qnetwork():
         tf.reshape(self.inputs, [batchSize, 15])
         tf.reshape(self.nextQ, [batchSize, 5])
 
-    def UpdateQN(self, path, params, env, sess):
+    def UpdateQN(self, path, params, env, sess, epoch):
         batchSize = len(path)
         #print("path", batchSize)
         #self.ResizeBatch(batchSize)
@@ -90,8 +90,8 @@ class Qnetwork():
         # sumhidden = np.sum(hidden)
         # print("sums", sumWhidden, sumhidden)
         # sdssess
-        # if epoch % 10000 == 0:
-        #    print("  Whidden", Whidden)
+        if epoch % 10000 == 0:
+           print("  Whidden", Whidden)
 
 
 ######################################################################################
@@ -215,7 +215,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         if tuple[0]: break
 
     #print(path)
-    qn.UpdateQN(path, params, env, sess)
+    qn.UpdateQN(path, params, env, sess, epoch)
 
     return next
 
