@@ -8,8 +8,8 @@ import tensorflow as tf
 class Qnetwork():
     def __init__(self, lrn_rate):
         # These lines establish the feed-forward part of the network used to choose actions
-        self.inputs1 = tf.placeholder(shape=[1, 15], dtype=tf.float32)
-        self.hidden = self.inputs1
+        self.inputs = tf.placeholder(shape=[1, 15], dtype=tf.float32)
+        self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
@@ -19,7 +19,7 @@ class Qnetwork():
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
 
-        #self.Qout = tf.matmul(self.inputs1, self.W)
+        #self.Qout = tf.matmul(self.inputs, self.W)
         self.Qout = tf.matmul(self.hidden, self.W)
         #self.Qout = tf.nn.softmax(self.Qout)
         self.predict = tf.argmax(self.Qout, 1)
@@ -130,7 +130,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     curr_1Hot = Int2Arrray(curr, env.ns)
     #print("curr", curr, curr_1Hot)
 
-    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
     #print("a", a, allQ)
     action = action[0]
     if np.random.rand(1) < params.eps:
@@ -154,7 +154,7 @@ def UpdateQN(path, params, env, sess, qn):
         # Obtain the Q' values by feeding the new state through our network
         next1Hot = Int2Arrray(next, env.ns)
         # print("  hh2", hh2)
-        Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: next1Hot})
+        Q1 = sess.run(qn.Qout, feed_dict={qn.inputs: next1Hot})
         #print("  Q1", Q1)
 
         maxQ1 = np.max(Q1)
@@ -165,9 +165,9 @@ def UpdateQN(path, params, env, sess, qn):
         targetQ[0, action] = r + params.gamma * maxQ1
         # print("  targetQ", targetQ)
 
-        # _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+        # _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs: inputs, qn.nextQ: targetQ})
 
-        _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: curr_1Hot, qn.nextQ: targetQ})
+        _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
         #print("  Whidden", Whidden, inputs.shape, Whidden.shape)
         #sumWhidden = np.sum(Whidden, 1)
         #sumhidden = np.sum(hidden)
@@ -211,7 +211,7 @@ def my_print(env, sess, qn):
     for curr in range(15):
         curr_1Hot = Int2Arrray(curr, env.ns)
         # print("hh", next, hh)
-        a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+        a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
         print("curr=", curr, "a=", a, "allQ=", allQ)
 
 def Walk(start, env, sess, qn):
@@ -223,7 +223,7 @@ def Walk(start, env, sess, qn):
         # print("curr", curr)
         curr_1Hot = Int2Arrray(curr, env.ns)
         # print("hh", next, hh)
-        action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+        action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
         action= action[0]
         next, reward, die = env.GetNextState(curr, action)
         totReward += reward
