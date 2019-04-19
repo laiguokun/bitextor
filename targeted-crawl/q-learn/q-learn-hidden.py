@@ -153,10 +153,9 @@ def Neural(epoch, curr, params, env, sess, qn):
     targetQ[0, action] = r + params.gamma * maxQ1
     #print("  targetQ", targetQ)
 
-    inputs = Int2Arrray(curr, env.ns)
     #_, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
-    _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+    _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: curr_1Hot, qn.nextQ: targetQ})
     #print("  Whidden", Whidden, inputs.shape, Whidden.shape)
     #sumWhidden = np.sum(Whidden, 1)
     #sumhidden = np.sum(hidden)
@@ -165,20 +164,55 @@ def Neural(epoch, curr, params, env, sess, qn):
     #if epoch % 10000 == 0:
     #    print("  Whidden", Whidden)
 
-    return action, next, die
+    return (die, curr, next, action, allQ, r)
 
+def UpdateQN(path, params, env, sess, qn):
+    for tuple in path:
+        #print(tuple)
+        curr = tuple[1]
+        next = tuple[2]
+        action = tuple[3]
+        allQ = tuple[4]
+        r = tuple[5]
+        curr_1Hot = Int2Arrray(curr, env.ns)
+
+        # Obtain the Q' values by feeding the new state through our network
+        next1Hot = Int2Arrray(next, env.ns)
+        # print("  hh2", hh2)
+        Q1 = sess.run(qn.Qout, feed_dict={qn.inputs1: next1Hot})
+        #print("  Q1", Q1)
+
+        maxQ1 = np.max(Q1)
+        # print("  Q1", Q1, maxQ1)
+
+        targetQ = allQ
+        # print("  targetQ", targetQ)
+        targetQ[0, action] = r + params.gamma * maxQ1
+        # print("  targetQ", targetQ)
+
+        # _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
+
+        _, W1, Whidden, hidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.hidden], feed_dict={qn.inputs1: curr_1Hot, qn.nextQ: targetQ})
+        #print("  Whidden", Whidden, inputs.shape, Whidden.shape)
+        #sumWhidden = np.sum(Whidden, 1)
+        #sumhidden = np.sum(hidden)
+        #print("sums", sumWhidden, sumhidden)
+        #sdssess
+        #if epoch % 10000 == 0:
+        #    print("  Whidden", Whidden)
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     while (True):
-        action, next, done = Neural(epoch, curr, params, env, sess, qn)
-
-        tuple = (curr, next, action)
+        tuple = Neural(epoch, curr, params, env, sess, qn)
         path.append(tuple)
 
-        curr = next
-        if done: break
+        curr = tuple[1]
+        if tuple[0]: break
+
     #print(path)
+    #UpdateQN(path, params, env, sess, qn)
+
     return next
 
 def Train(params, env, sess, qn):
