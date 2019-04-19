@@ -38,14 +38,18 @@ class Qnetwork():
         self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.updateModel = self.trainer.minimize(self.loss)
 
+    def ResizeBatch(self, batchSize):
+        tf.reshape(self.inputs, [batchSize, 15])
+        tf.reshape(self.nextQ, [batchSize, 5])
+
     def UpdateQN(self, path, params, env, sess):
         batchSize = 1 #len(path)
         #print("path", batchSize)
-        tf.reshape(self.inputs, [batchSize, 15])
-        tf.reshape(self.nextQ, [batchSize, 5])
-        inputs = np.empty([1, 15])
-        outputs = np.empty([1, 15])
-        targetQ = np.empty([1, 5])
+        self.ResizeBatch(batchSize)
+
+        inputs = np.empty([batchSize, 15])
+        outputs = np.empty([batchSize, 15])
+        targetQ = np.empty([batchSize, 5])
 
         for tuple in path:
             # print(tuple)
