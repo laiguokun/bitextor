@@ -16,7 +16,7 @@ class LearningParams:
 class Qnetwork():
     def __init__(self, lrn_rate):
         # These lines establish the feed-forward part of the network used to choose actions
-        self.inputs = tf.placeholder(shape=[1, 15], dtype=tf.float32)
+        self.inputs = tf.placeholder(shape=[None, 15], dtype=tf.float32)
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
@@ -33,7 +33,7 @@ class Qnetwork():
         self.predict = tf.argmax(self.Qout, 1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[1, 5], dtype=tf.float32)
+        self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.updateModel = self.trainer.minimize(self.loss)
@@ -45,7 +45,7 @@ class Qnetwork():
     def UpdateQN(self, path, params, env, sess):
         batchSize = 1 #len(path)
         #print("path", batchSize)
-        self.ResizeBatch(batchSize)
+        #self.ResizeBatch(batchSize)
 
         inputs = np.empty([batchSize, 15])
         outputs = np.empty([batchSize, 15])
