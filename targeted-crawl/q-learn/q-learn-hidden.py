@@ -48,14 +48,9 @@ class Qnetwork():
         for curr in range(15):
             self.my_print1(curr, env, sess)
 
-    def ResizeBatch(self, batchSize):
-        tf.reshape(self.inputs, [batchSize, 15])
-        tf.reshape(self.nextQ, [batchSize, 5])
-
     def UpdateQN(self, path, params, env, sess, epoch):
         batchSize = len(path)
         #print("path", batchSize)
-        #self.ResizeBatch(batchSize)
 
         inputs = np.empty([batchSize, 15])
         outputs = np.empty([batchSize, 15])
