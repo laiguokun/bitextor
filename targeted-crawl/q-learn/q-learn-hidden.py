@@ -39,8 +39,12 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def UpdateQN(self, path, params, env, sess):
-        #print("path", len(path))
-        tf.reshape(self.inputs, [1, 15])
+        batchSize = 1 #len(path)
+        #print("path", batchSize)
+        tf.reshape(self.inputs, [batchSize, 15])
+        tf.reshape(self.nextQ, [batchSize, 5])
+        inputs = np.empty([1, 15])
+        outputs = np.empty([1, 15])
 
         for tuple in path:
             # print(tuple)
@@ -49,11 +53,15 @@ class Qnetwork():
             action = tuple[3]
             allQ = tuple[4]
             r = tuple[5]
-            curr_1Hot = Int2Arrray(curr, env.ns)
+            curr1Hot = Int2Arrray(curr, env.ns)
+            #print("  curr_1Hot", curr_1Hot.shape, inputs.shape)
+            inputs[0, :] = curr1Hot
 
             # Obtain the Q' values by feeding the new state through our network
             next1Hot = Int2Arrray(next, env.ns)
-            # print("  hh2", hh2)
+            #print("  next1Hot", type(next1Hot))
+            outputs[0, :] = next1Hot
+
             Q1 = sess.run(self.Qout, feed_dict={self.inputs: next1Hot})
             # print("  Q1", Q1)
 
@@ -68,7 +76,7 @@ class Qnetwork():
             # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
 
             _, W1, Whidden, hidden = sess.run([self.updateModel, self.W, self.Whidden, self.hidden],
-                                              feed_dict={self.inputs: curr_1Hot, self.nextQ: targetQ})
+                                              feed_dict={self.inputs: inputs, self.nextQ: targetQ})
             # print("  Whidden", Whidden, inputs.shape, Whidden.shape)
             # sumWhidden = np.sum(Whidden, 1)
             # sumhidden = np.sum(hidden)
