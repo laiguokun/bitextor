@@ -3,7 +3,6 @@
 import numpy as np
 import pylab as plt
 import tensorflow as tf
-import mysql.connector
 
 ######################################################################################
 class Qnetwork():
@@ -13,10 +12,10 @@ class Qnetwork():
         self.hidden = self.inputs1
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         #self.Whidden = tf.contrib.layers.l2_regularizer(self.Whidden)
 
-        self.hidden = tf.matmul(self.hidden, self.Whidden)
+        #self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
 
@@ -71,26 +70,6 @@ class Env:
         self.F[14, 14] = 1
         #print("F", self.F)
 
-        # paracrawl
-        self.mydb = mysql.connector.connect(
-        host="localhost",
-        user="paracrawl_user",
-        passwd="paracrawl_password",
-        database="paracrawl",
-        charset='utf8'
-        )
-        self.mydb.autocommit = False
-        self.mycursor = self.mydb.cursor(buffered=True)
-
-        self.matchedDocIds = self.GetMatches()
-        print("matchedDocIds", self.matchedDocIds)
-        startNode = self.GetStartNode("www.vade-retro.fr/")
-        print("startNode", startNode)
-        children = self.GetChildren(startNode)
-        print("children", children)
-
-        self.docsVisited = set()
-
     def GetNextState(self, curr, action):
         if action == 1:
             next = curr - 5
@@ -130,49 +109,6 @@ class Env:
 
         #print("  actions", actions)
         return actions
-
-    # paracrawl ##########################################################
-    def GetMatches(self):
-        sql = "select document1, document2 from document_align"
-        self.mycursor.execute(sql)
-        res = self.mycursor.fetchall()
-
-        docIds = []
-        for row in res:
-            docIds.append(row[0])
-            docIds.append(row[1])
-
-        return docIds
-
-    def GetStartNode(self, url):
-        sql = "select id, document_id from url where val = %s"
-        val = (url,)
-        self.mycursor.execute(sql, val)
-        res = self.mycursor.fetchone()
-        assert (res is not None)
-        docId = res[1]
-
-        return docId
-
-    def GetChildren(self, parentNode):
-        sql = "select link.document_id, url.val, url.document_id " \
-              + "from link, url " \
-              + "where url.id = link.url_id " \
-              + "and url.document_id is not null " \
-              + "and link.document_id = %s"
-        val = (parentNode,)
-        self.mycursor.execute(sql, val)
-        res = self.mycursor.fetchall()
-        # print("  res", len(res))
-
-        children = []
-        for row in res:
-            # print("  row", row)
-            childNode = row[2]
-            children.append(childNode)
-
-        return children
-
 
 ######################################################################################
 def Int2Arrray(num, size):
