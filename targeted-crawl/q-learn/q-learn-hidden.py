@@ -43,7 +43,7 @@ class Qnetwork():
         tf.reshape(self.nextQ, [batchSize, 5])
 
     def UpdateQN(self, path, params, env, sess):
-        batchSize = 1 #len(path)
+        batchSize = len(path)
         #print("path", batchSize)
         #self.ResizeBatch(batchSize)
 
@@ -51,6 +51,7 @@ class Qnetwork():
         outputs = np.empty([batchSize, 15])
         targetQ = np.empty([batchSize, 5])
 
+        i = 0
         for tuple in path:
             # print(tuple)
             curr = tuple[1]
@@ -59,13 +60,13 @@ class Qnetwork():
             allQ = tuple[4]
             r = tuple[5]
             curr1Hot = Int2Arrray(curr, env.ns)
-            #print("  curr_1Hot", curr_1Hot.shape, inputs.shape)
-            inputs[0, :] = curr1Hot
+            #print("  curr_1Hot", curr1Hot.shape, inputs.shape)
+            inputs[i, :] = curr1Hot
 
             # Obtain the Q' values by feeding the new state through our network
             next1Hot = Int2Arrray(next, env.ns)
             #print("  next1Hot", type(next1Hot))
-            outputs[0, :] = next1Hot
+            outputs[i, :] = next1Hot
 
             Q1 = sess.run(self.Qout, feed_dict={self.inputs: next1Hot})
             # print("  Q1", Q1)
@@ -73,22 +74,24 @@ class Qnetwork():
             maxQ1 = np.max(Q1)
             # print("  Q1", Q1, maxQ1)
 
-            targetQ[0, :] = allQ
+            targetQ[i, :] = allQ
             #print("  targetQ", type(targetQ), targetQ.shape)
-            targetQ[0, action] = r + params.gamma * maxQ1
+            targetQ[i, action] = r + params.gamma * maxQ1
             # print("  targetQ", targetQ)
 
-            # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
+            i += 1
 
-            _, W1, Whidden, hidden = sess.run([self.updateModel, self.W, self.Whidden, self.hidden],
-                                              feed_dict={self.inputs: inputs, self.nextQ: targetQ})
-            # print("  Whidden", Whidden, inputs.shape, Whidden.shape)
-            # sumWhidden = np.sum(Whidden, 1)
-            # sumhidden = np.sum(hidden)
-            # print("sums", sumWhidden, sumhidden)
-            # sdssess
-            # if epoch % 10000 == 0:
-            #    print("  Whidden", Whidden)
+        # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
+
+        _, W1, Whidden, hidden = sess.run([self.updateModel, self.W, self.Whidden, self.hidden],
+                                          feed_dict={self.inputs: inputs, self.nextQ: targetQ})
+        # print("  Whidden", Whidden, inputs.shape, Whidden.shape)
+        # sumWhidden = np.sum(Whidden, 1)
+        # sumhidden = np.sum(hidden)
+        # print("sums", sumWhidden, sumhidden)
+        # sdssess
+        # if epoch % 10000 == 0:
+        #    print("  Whidden", Whidden)
 
 
 ######################################################################################
