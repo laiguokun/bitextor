@@ -130,13 +130,13 @@ def Neural(epoch, curr, params, env, sess, qn):
     curr_1Hot = Int2Arrray(curr, env.ns)
     #print("curr", curr, curr_1Hot)
 
-    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
+    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
     #print("a", a, allQ)
-    a = a[0]
+    action = action[0]
     if np.random.rand(1) < params.eps:
-        a = np.random.randint(0, 5)
+        action = np.random.randint(0, 5)
 
-    next, r, die = env.GetNextState(curr, a)
+    next, r, die = env.GetNextState(curr, action)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
@@ -150,7 +150,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     targetQ = allQ
     #print("  targetQ", targetQ)
-    targetQ[0, a] = r + params.gamma * maxQ1
+    targetQ[0, action] = r + params.gamma * maxQ1
     #print("  targetQ", targetQ)
 
     inputs = Int2Arrray(curr, env.ns)
@@ -162,20 +162,23 @@ def Neural(epoch, curr, params, env, sess, qn):
     #sumhidden = np.sum(hidden)
     #print("sums", sumWhidden, sumhidden)
     #sdssess
-    if epoch % 10000 == 0:
-        print("  Whidden", Whidden)
+    #if epoch % 10000 == 0:
+    #    print("  Whidden", Whidden)
 
-    return next, die
+    return action, next, die
 
 
 def Trajectory(epoch, curr, params, env, sess, qn):
+    path = []
     while (True):
-        next, done = Neural(epoch, curr, params, env, sess, qn)
-        #next, done = Tabular(curr, Q, gamma, lrn_rate, env)
-        curr = next
+        action, next, done = Neural(epoch, curr, params, env, sess, qn)
 
+        tuple = (curr, next, action)
+        path.append(tuple)
+
+        curr = next
         if done: break
-    #print()
+    #print(path)
     return next
 
 def Train(params, env, sess, qn):
