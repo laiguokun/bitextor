@@ -7,7 +7,7 @@ import tensorflow as tf
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.99
+        self.gamma = 0.5
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
@@ -88,6 +88,7 @@ class Qnetwork():
 
             i += 1
 
+        print("targetQ", targetQ)
         print("path\n", path)
         self.my_print1(14, env, sess)
 
