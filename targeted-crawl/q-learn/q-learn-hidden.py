@@ -15,18 +15,18 @@ class LearningParams:
 
 ######################################################################################
 class Qnetwork():
-    def __init__(self, lrn_rate):
+    def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
-        self.inputs = tf.placeholder(shape=[None, 15], dtype=tf.float32)
+        self.inputs = tf.placeholder(shape=[None, env.ns], dtype=tf.float32)
         self.hidden = self.inputs
 
-        self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
+        self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
-        self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
+        self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
         #self.W = tf.nn.softmax(self.W, axis=1)
         #self.W = tf.math.l2_normalize(self.W, axis=1)
 
@@ -48,15 +48,15 @@ class Qnetwork():
         print("curr=", curr, "a=", a, "allQ=", allQ)
 
     def my_print(self, env, sess):
-        for curr in range(15):
+        for curr in range(env.ns):
             self.my_print1(curr, env, sess)
 
     def UpdateQN(self, path, params, env, sess, epoch):
         batchSize = len(path)
         #print("path", batchSize)
 
-        inputs = np.empty([batchSize, 15])
-        outputs = np.empty([batchSize, 15])
+        inputs = np.empty([batchSize, env.ns])
+        outputs = np.empty([batchSize, env.ns])
         targetQ = np.empty([batchSize, 5])
 
         i = 0
@@ -114,7 +114,7 @@ class Env:
         self.goal = 14
         self.ns = 15  # number of states
 
-        self.F = np.zeros(shape=[15, 15], dtype=np.int)  # Feasible
+        self.F = np.zeros(shape=[self.ns, self.ns], dtype=np.int)  # Feasible
         self.F[0, 1] = 1;
         self.F[0, 5] = 1;
         self.F[1, 0] = 1;
@@ -145,7 +145,7 @@ class Env:
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
 
-        for i in range(15):
+        for i in range(self.ns):
             self.F[i, i] = 1
         print("F", self.F)
 
@@ -303,7 +303,7 @@ def Main():
     params = LearningParams()
 
     tf.reset_default_graph()
-    qn = Qnetwork(params.lrn_rate)
+    qn = Qnetwork(params.lrn_rate, env)
     init = tf.initialize_all_variables()
 
     # =============================================================
