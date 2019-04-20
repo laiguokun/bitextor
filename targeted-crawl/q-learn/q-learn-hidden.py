@@ -5,9 +5,13 @@ import pylab as plt
 import tensorflow as tf
 
 ######################################################################################
+def sigmoid(x):
+    return (1 / (1 + np.exp(-x)))
+
+######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.9
+        self.gamma = 0.7
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
@@ -233,7 +237,8 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     #print(path)
     qn.UpdateQN(path, params, env, sess, epoch)
 
-    return next
+    stopState = tuple[2]
+    return stopState
 
 def Train(params, env, sess, qn):
 
@@ -242,11 +247,13 @@ def Train(params, env, sess, qn):
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
         stopState = Trajectory(epoch, curr, params, env, sess, qn)
+        #print("stopState", stopState)
 
         if stopState == env.goal:
             #params.eps = 1. / ((i/50) + 10)
-            params.eps *= 1 #.999
-            #print("eps", params.eps)
+            #params.eps *= .999
+            #params.gamma *= 1.01
+            print("eps", params.eps, params.gamma)
 
     return scores
 
