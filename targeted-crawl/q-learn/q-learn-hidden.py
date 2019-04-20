@@ -89,9 +89,9 @@ class Qnetwork():
 
             i += 1
 
-        print("path\n", path)
-        print("targetQ", targetQ)
-        self.my_print1(0, env, sess)
+        #print("path\n", path)
+        #print("targetQ", targetQ)
+        #self.my_print1(0, env, sess)
 
         # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
 
@@ -104,8 +104,8 @@ class Qnetwork():
         # sdssess
         if epoch % 1000 == 0:
            print("  Whidden\n", Whidden)
-        self.my_print1(0, env, sess)
-        print()
+        #self.my_print1(0, env, sess)
+        #print()
 
 ######################################################################################
 # helpers
@@ -216,7 +216,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, 5)
-    print("action", curr, action, allQ)
+    #print("action", curr, action, allQ)
 
     next, r, die = env.GetNextState(curr, action)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
