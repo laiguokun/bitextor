@@ -91,7 +91,7 @@ class Qnetwork():
 
         print("path\n", path)
         print("targetQ", targetQ)
-        self.my_print1(14, env, sess)
+        self.my_print1(0, env, sess)
 
         # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
 
@@ -104,7 +104,7 @@ class Qnetwork():
         # sdssess
         if epoch % 1000 == 0:
            print("  Whidden\n", Whidden)
-        self.my_print1(14, env, sess)
+        self.my_print1(0, env, sess)
         print()
 
 ######################################################################################
@@ -250,7 +250,7 @@ def Train(params, env, sess, qn):
             #params.eps = 1. / ((i/50) + 10)
             #params.eps *= .999
             params.gamma = min(params.gamma * 1.001, 1)
-            print("eps", params.eps, params.gamma)
+            #print("eps", params.eps, params.gamma)
 
     return scores
 
