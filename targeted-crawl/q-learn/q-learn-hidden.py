@@ -9,7 +9,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99
         self.lrn_rate = 0.1
-        self.max_epochs = 5000
+        self.max_epochs = 5001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -20,16 +20,17 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.contrib.layers.l2_regularizer(self.Whidden)
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
+        self.W = tf.math.l2_normalize(self.W, axis=1)
 
-        #self.Qout = tf.matmul(self.inputs, self.W)
         self.Qout = tf.matmul(self.hidden, self.W)
         #self.Qout = tf.nn.softmax(self.Qout)
+
         self.predict = tf.argmax(self.Qout, 1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
@@ -98,8 +99,8 @@ class Qnetwork():
         # sumhidden = np.sum(hidden)
         # print("sums", sumWhidden, sumhidden)
         # sdssess
-        #if epoch % 10000 == 0:
-        #   print("  Whidden", Whidden)
+        if epoch % 1000 == 0:
+           print("  Whidden\n", Whidden)
         self.my_print1(9, env, sess)
         print()
 
@@ -167,6 +168,7 @@ class Env:
             die = True
         elif next == self.goal:
             reward = 8.5
+            die = True
         else:
             reward = -1
 
