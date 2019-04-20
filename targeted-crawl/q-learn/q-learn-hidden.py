@@ -7,7 +7,7 @@ import tensorflow as tf
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.5
+        self.gamma = 0.7
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
@@ -20,8 +20,8 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
@@ -88,8 +88,8 @@ class Qnetwork():
 
             i += 1
 
-        print("targetQ", targetQ)
         print("path\n", path)
+        print("targetQ", targetQ)
         self.my_print1(14, env, sess)
 
         # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
@@ -164,7 +164,7 @@ class Env:
         if next < 0 or next >= self.ns or self.F[curr, next] == 0:
             # disallowed actions
             next = curr
-            reward = -100
+            reward = -10
             die = True
         elif next == self.goal:
             reward = 8.5
