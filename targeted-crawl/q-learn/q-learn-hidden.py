@@ -9,7 +9,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99
         self.lrn_rate = 0.1
-        self.max_epochs = 500 #0
+        self.max_epochs = 5000
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -86,6 +86,7 @@ class Qnetwork():
 
             i += 1
 
+        print("path\n", path)
         self.my_print1(9, env, sess)
 
         # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
@@ -218,8 +219,9 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     while (True):
         tuple = Neural(epoch, curr, params, env, sess, qn)
         path.append(tuple)
+        #print("tuple", tuple)
 
-        curr = tuple[1]
+        curr = tuple[2]
         if tuple[0]: break
 
     #print(path)
