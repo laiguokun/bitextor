@@ -9,7 +9,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99
         self.lrn_rate = 0.1
-        self.max_epochs = 5001
+        self.max_epochs = 20001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -26,6 +26,7 @@ class Qnetwork():
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
+        #self.W = tf.nn.softmax(self.W, axis=1)
         #self.W = tf.math.l2_normalize(self.W, axis=1)
 
         self.Qout = tf.matmul(self.hidden, self.W)
@@ -159,16 +160,17 @@ class Env:
         #print("next", next)
 
         die = False
-        if next == self.goal:
+        if next < 0 or next >= self.ns or self.F[curr, next] == 0:
+            # disallowed actions
+            next = curr
+            reward = -100
+            die = True
+        elif next == self.goal:
             reward = 8.5
             die = True
         elif action == 0:
             assert(next != self.goal)
             reward = 0
-            die = True
-        elif next < 0 or next >= self.ns or self.F[curr, next] == 0:
-            next = curr
-            reward = -100
             die = True
         else:
             reward = -1
