@@ -5,13 +5,9 @@ import pylab as plt
 import tensorflow as tf
 
 ######################################################################################
-def sigmoid(x):
-    return (1 / (1 + np.exp(-x)))
-
-######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.7
+        self.gamma = 0.1
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
@@ -168,17 +164,17 @@ class Env:
         if next < 0 or next >= self.ns or self.F[curr, next] == 0:
             # disallowed actions
             next = curr
-            reward = -1
+            reward = -10
             die = True
         elif next == self.goal:
-            reward = .85
+            reward = 8.5
             die = True
         elif action == 0:
             assert(next != self.goal)
             reward = 0
             die = True
         else:
-            reward = -.1
+            reward = -1
 
         return next, reward, die
 
