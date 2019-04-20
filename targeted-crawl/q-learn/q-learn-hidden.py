@@ -21,8 +21,8 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
@@ -65,8 +65,8 @@ class Qnetwork():
             curr = tuple[1]
             next = tuple[2]
             action = tuple[3]
-            allQ = tuple[4]
-            r = tuple[5]
+            r = tuple[4]
+            allQ = tuple[5]
             curr1Hot = Int2Arrray(curr, env.ns)
             #print("  curr_1Hot", curr1Hot.shape, inputs.shape)
             inputs[i, :] = curr1Hot
@@ -144,8 +144,10 @@ class Env:
         self.F[12, 11] = 1;
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
-        self.F[14, 14] = 1
-        #print("F", self.F)
+
+        for i in range(15):
+            self.F[i, i] = 1
+        print("F", self.F)
 
     def GetNextState(self, curr, action):
         if action == 1:
@@ -211,15 +213,15 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("curr", curr, curr_1Hot)
 
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
-    #print("a", a, allQ)
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, 5)
+    print("action", curr, action, allQ)
 
     next, r, die = env.GetNextState(curr, action)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
-    return (die, curr, next, action, allQ, r)
+    return (die, curr, next, action, r, allQ)
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
