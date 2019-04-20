@@ -21,8 +21,8 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
@@ -79,8 +79,11 @@ class Qnetwork():
             Q1 = sess.run(self.Qout, feed_dict={self.inputs: next1Hot})
             # print("  Q1", Q1)
 
-            maxQ1 = np.max(Q1)
-            # print("  Q1", Q1, maxQ1)
+            if action == 0:
+                maxQ1 = 0
+            else:
+                maxQ1 = np.max(Q1)
+            #print("  Q1", curr, next, action, Q1, maxQ1)
 
             targetQ[i, :] = allQ
             #print("  targetQ", type(targetQ), targetQ.shape)
@@ -147,7 +150,7 @@ class Env:
 
         for i in range(self.ns):
             self.F[i, i] = 1
-        print("F", self.F)
+        #print("F", self.F)
 
     def GetNextState(self, curr, action):
         if action == 1:
@@ -249,9 +252,10 @@ def Train(params, env, sess, qn):
         #print("stopState", stopState)
 
         if stopState == env.goal:
+            pass
             #params.eps = 1. / ((i/50) + 10)
-            #params.eps *= .999
-            params.gamma = min(params.gamma * 1.001, 1)
+            params.eps = max(.999 * params.eps, .1)
+            params.gamma = min(params.gamma * 1.001, .9)
             #print("eps", params.eps, params.gamma)
 
     return scores
