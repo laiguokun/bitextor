@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import math
 import pylab as plt
 import tensorflow as tf
 
@@ -248,7 +249,7 @@ def Train(params, env, sess, qn):
         if stopState == env.goal:
             #params.eps = 1. / ((i/50) + 10)
             #params.eps *= .999
-            #params.gamma *= 1.01
+            params.gamma = min(params.gamma * 1.001, 1)
             print("eps", params.eps, params.gamma)
 
     return scores
