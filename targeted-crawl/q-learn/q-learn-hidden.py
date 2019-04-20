@@ -7,7 +7,7 @@ import tensorflow as tf
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.7
+        self.gamma = 0.9
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
@@ -164,17 +164,17 @@ class Env:
         if next < 0 or next >= self.ns or self.F[curr, next] == 0:
             # disallowed actions
             next = curr
-            reward = -10
+            reward = -1
             die = True
         elif next == self.goal:
-            reward = 8.5
+            reward = .85
             die = True
         elif action == 0:
             assert(next != self.goal)
             reward = 0
             die = True
         else:
-            reward = -1
+            reward = -.1
 
         return next, reward, die
 
