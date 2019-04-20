@@ -20,13 +20,13 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([15, 15], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
-        self.W = tf.math.l2_normalize(self.W, axis=1)
+        #self.W = tf.math.l2_normalize(self.W, axis=1)
 
         self.Qout = tf.matmul(self.hidden, self.W)
         #self.Qout = tf.nn.softmax(self.Qout)
@@ -88,7 +88,7 @@ class Qnetwork():
             i += 1
 
         print("path\n", path)
-        self.my_print1(9, env, sess)
+        self.my_print1(14, env, sess)
 
         # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
 
@@ -101,7 +101,7 @@ class Qnetwork():
         # sdssess
         if epoch % 1000 == 0:
            print("  Whidden\n", Whidden)
-        self.my_print1(9, env, sess)
+        self.my_print1(14, env, sess)
         print()
 
 ######################################################################################
@@ -159,15 +159,16 @@ class Env:
         #print("next", next)
 
         die = False
-        if action == 0:
+        if next == self.goal:
+            reward = 8.5
+            die = True
+        elif action == 0:
+            assert(next != self.goal)
             reward = 0
             die = True
         elif next < 0 or next >= self.ns or self.F[curr, next] == 0:
             next = curr
             reward = -100
-            die = True
-        elif next == self.goal:
-            reward = 8.5
             die = True
         else:
             reward = -1
