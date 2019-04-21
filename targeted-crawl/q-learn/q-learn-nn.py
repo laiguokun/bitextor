@@ -79,7 +79,7 @@ class Env:
             die = True
         elif next < 0 or next >= self.ns or self.F[curr, next] == 0:
             next = curr
-            reward = -100
+            reward = -10
             die = True
         elif next == self.goal:
             reward = 8.5

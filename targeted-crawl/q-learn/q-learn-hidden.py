@@ -24,7 +24,7 @@ class Qnetwork():
         self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
-        self.hidden = tf.matmul(self.hidden, self.Whidden)
+        #self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
         #self.W = tf.nn.softmax(self.W, axis=1)
@@ -89,7 +89,6 @@ class Qnetwork():
                 targetQ[i, action] = r + params.gamma * maxQ1
             #print("  targetQ", targetQ)
             #print("  Q1", curr, next, action, Q1, maxQ1, targetQ[i, :])
-
 
             i += 1
 
