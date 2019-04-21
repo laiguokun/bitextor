@@ -196,6 +196,35 @@ class Env:
         #print("  actions", actions)
         return actions
 
+    def Walk(self, start, sess, qn):
+        curr = start
+        i = 0
+        totReward = 0
+        print(str(curr) + "->", end="")
+        while True:
+            # print("curr", curr)
+            curr_1Hot = Int2Arrray(curr, self.ns)
+            # print("hh", next, hh)
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
+            action = action[0]
+            next, reward, die = self.GetNextState(curr, action)
+            totReward += reward
+
+            print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+            # print(str(next) + "->", end="")
+            curr = next
+
+            if die: break
+            if curr == self.goal: break
+
+            i += 1
+            if i > 50:
+                print("LOOPING")
+                break
+
+        print("done", totReward)
+
+
 ######################################################################################
 def Int2Arrray(num, size):
     ret = np.identity(size)[num:num + 1]
@@ -263,36 +292,6 @@ def Train(params, env, sess, qn):
 
 ######################################################################################
 
-def Walk(start, env, sess, qn):
-    curr = start
-    i = 0
-    totReward = 0
-    print(str(curr) + "->", end="")
-    while True:
-        # print("curr", curr)
-        curr_1Hot = Int2Arrray(curr, env.ns)
-        # print("hh", next, hh)
-        action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
-        action= action[0]
-        next, reward, die = env.GetNextState(curr, action)
-        totReward += reward
-
-        print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-        # print(str(next) + "->", end="")
-        curr = next
-
-        if die: break
-        if curr == env.goal: break
-
-        i += 1
-        if i > 50:
-            print("LOOPING")
-            break
-
-    print("done", totReward)
-
-######################################################################################
-
 def Main():
     print("Starting")
     np.random.seed()
@@ -321,7 +320,7 @@ def Main():
         qn.my_print(env, sess)
 
         for start in range(env.ns):
-            Walk(start, env, sess, qn)
+            env.Walk(start, sess, qn)
 
         # plt.plot(scores)
         # plt.show()
