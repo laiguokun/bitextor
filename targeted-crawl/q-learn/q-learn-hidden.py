@@ -81,14 +81,15 @@ class Qnetwork():
 
             if action == 0:
                 maxQ1 = 0
+                targetQ[i, :] = np.zeros([1,5])
             else:
                 maxQ1 = np.max(Q1)
-            #print("  Q1", curr, next, action, Q1, maxQ1)
+                targetQ[i, :] = allQ
+                #print("  targetQ", type(targetQ), targetQ.shape)
+                targetQ[i, action] = r + params.gamma * maxQ1
+            #print("  targetQ", targetQ)
+            #print("  Q1", curr, next, action, Q1, maxQ1, targetQ[i, :])
 
-            targetQ[i, :] = allQ
-            #print("  targetQ", type(targetQ), targetQ.shape)
-            targetQ[i, action] = r + params.gamma * maxQ1
-            # print("  targetQ", targetQ)
 
             i += 1
 
@@ -105,8 +106,8 @@ class Qnetwork():
         # sumhidden = np.sum(hidden)
         # print("sums", sumWhidden, sumhidden)
         # sdssess
-        if epoch % 1000 == 0:
-           print("  Whidden\n", Whidden)
+        #if epoch % 1000 == 0:
+        #   print("  Whidden\n", Whidden)
         #self.my_print1(0, env, sess)
         #print()
 
@@ -115,7 +116,7 @@ class Qnetwork():
 class Env:
     def __init__(self):
         self.goal = 14
-        self.ns = 15  # number of states
+        self.ns = 16  # number of states
 
         self.F = np.zeros(shape=[self.ns, self.ns], dtype=np.int)  # Feasible
         self.F[0, 1] = 1;
@@ -149,7 +150,7 @@ class Env:
         self.F[13, 12] = 1;
 
         for i in range(self.ns):
-            self.F[i, i] = 1
+            self.F[i, self.ns - 1] = 1
         #print("F", self.F)
 
     def GetNextState(self, curr, action):
@@ -162,7 +163,7 @@ class Env:
         elif action == 4:
             next = curr - 1
         elif action == 0:
-            next = curr
+            next = self.ns - 1
         #assert(next >= 0)
         #print("next", next)
 
@@ -222,7 +223,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("action", curr, action, allQ)
 
     next, r, die = env.GetNextState(curr, action)
-    #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
+    #print("curr=", curr, next, action, r, allQ)
 
     return (die, curr, next, action, r, allQ)
 
