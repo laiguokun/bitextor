@@ -8,7 +8,7 @@ import tensorflow as tf
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.1
+        self.gamma = 0.9 #0.1
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
@@ -170,7 +170,7 @@ class Env:
         die = False
         if next < 0 or next >= self.ns or self.F[curr, next] == 0:
             # disallowed actions
-            next = curr
+            next = self.ns - 1
             reward = -10
             die = True
         elif next == self.goal:
@@ -277,15 +277,14 @@ def Train(params, env, sess, qn):
     scores = []
 
     for epoch in range(params.max_epochs):
-        curr = np.random.randint(0, env.ns)  # random start state
+        curr = np.random.randint(0, env.ns - 1)  # random start state
         stopState = Trajectory(epoch, curr, params, env, sess, qn)
         #print("stopState", stopState)
 
         if stopState == env.goal:
             pass
-            #params.eps = 1. / ((i/50) + 10)
-            params.eps = max(.999 * params.eps, .1)
-            params.gamma = min(params.gamma * 1.001, .9)
+            #params.eps = max(.999 * params.eps, .1)
+            #params.gamma = min(params.gamma * 1.001, .9)
             #print("eps", params.eps, params.gamma)
 
     return scores
