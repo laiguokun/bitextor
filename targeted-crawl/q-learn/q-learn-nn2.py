@@ -38,7 +38,7 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def my_print1(self, curr, env, sess):
-        curr_1Hot = np.identity(env.ns)[curr:curr + 1]
+        curr_1Hot = Int2Arrray(curr, env.ns)
         # print("hh", next, hh)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.inputs: curr_1Hot})
         print("curr=", curr, "a=", a, "allQ=", allQ)
@@ -139,7 +139,7 @@ class Env:
         print(str(curr) + "->", end="")
         while True:
             # print("curr", curr)
-            curr_1Hot = np.identity(self.ns)[curr:curr + 1]
+            curr_1Hot = Int2Arrray(curr, self.ns)
             # print("hh", next, hh)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
             action = action[0]
@@ -162,9 +162,19 @@ class Env:
 
 
 ######################################################################################
+def Int2Arrray(num, size):
+    ret = np.identity(size)[num:num + 1]
+    return ret
+
+    str = np.binary_repr(num).zfill(size)
+    l = list(str)
+    ret = np.array(l, ndmin=2).astype(np.float)
+    #print("num", num, ret)
+    return ret
+
 def Neural(epoch, curr, params, env, sess, qn):
     # NEURAL
-    curr_1Hot = np.identity(env.ns)[curr:curr + 1]
+    curr_1Hot = Int2Arrray(curr, env.ns)
     # print("hh", next, hh)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
     a = a[0]
@@ -175,7 +185,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
-    next1Hot = np.identity(env.ns)[next:next + 1]
+    next1Hot = Int2Arrray(next, env.ns)
     # print("  hh2", hh2)
     Q1 = sess.run(qn.Qout, feed_dict={qn.inputs: next1Hot})
     # print("  Q1", Q1)
@@ -187,9 +197,8 @@ def Neural(epoch, curr, params, env, sess, qn):
     targetQ[0, a] = r + params.gamma * maxQ1
     #print("  targetQ", targetQ)
 
-    inputs = np.identity(env.ns)[curr: curr + 1]
     #_, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs: inputs, qn.nextQ: targetQ})
-    _, W1, Whidden = sess.run([qn.updateModel, qn.W, qn.Whidden], feed_dict={qn.inputs: inputs, qn.nextQ: targetQ})
+    _, W1, Whidden = sess.run([qn.updateModel, qn.W, qn.Whidden], feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
 
     if epoch % 1000 == 0:
         print("  Whidden\n", Whidden)
