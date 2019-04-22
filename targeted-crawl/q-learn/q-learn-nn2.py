@@ -42,7 +42,7 @@ class Qnetwork():
 class Env:
     def __init__(self):
         self.goal = 14
-        self.ns = 15  # number of states
+        self.ns = 16  # number of states
 
         self.F = np.zeros(shape=[self.ns, self.ns], dtype=np.int)  # Feasible
         self.F[0, 1] = 1;
@@ -74,33 +74,38 @@ class Env:
         self.F[12, 11] = 1;
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
-        self.F[14, 14] = 1
+
+        for i in range(self.ns):
+            self.F[i, self.ns - 1] = 1
         #print("F", self.F)
 
     def GetNextState(self, curr, action):
-        if action == 0:
+        if action == 1:
             next = curr - 5
-        elif action == 1:
-            next = curr + 1
         elif action == 2:
-            next = curr + 5
+            next = curr + 1
         elif action == 3:
-            next = curr - 1
+            next = curr + 5
         elif action == 4:
-            next = curr
+            next = curr - 1
+        elif action == 0:
+            next = self.ns - 1
         #assert(next >= 0)
         #print("next", next)
 
         die = False
-        if action == 4:
-            reward = 0
-            die = True
-        elif next < 0 or next >= self.ns or self.F[curr, next] == 0:
-            next = curr
+        if next < 0 or next >= self.ns or self.F[curr, next] == 0:
+            # disallowed actions
+            next = self.ns - 1
             reward = -10
             die = True
         elif next == self.goal:
             reward = 8.5
+            die = True
+        elif action == 0:
+            assert(next != self.goal)
+            reward = 0
+            die = True
         else:
             reward = -1
 
@@ -195,7 +200,7 @@ def Train(params, env, sess, qn):
     scores = []
 
     for epoch in range(params.max_epochs):
-        curr = np.random.randint(0, env.ns)  # random start state
+        curr = np.random.randint(0, env.ns - 1)  # random start state
         Trajectory(epoch, curr, params, env, sess, qn)
 
         #eps = 1. / ((i/50) + 10)
