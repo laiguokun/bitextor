@@ -204,10 +204,11 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ)
 
     #_, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs: inputs, qn.nextQ: targetQ})
-    _, W1, Whidden = sess.run([qn.updateModel, qn.W, qn.Whidden], feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
+    _, W1, Whidden, BiasHidden = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden], feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
 
     if epoch % 1000 == 0:
         print("  Whidden\n", Whidden)
+        print("  BiasHidden\n", BiasHidden)
 
     #a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
     #print("  new Q", a, allQ)
