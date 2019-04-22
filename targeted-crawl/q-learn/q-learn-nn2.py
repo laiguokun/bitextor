@@ -22,13 +22,11 @@ class Qnetwork():
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
-
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.BiasHidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
         self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
-
         #self.hidden = tf.add(self.hidden, self.BiasHidden)
 
         self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
