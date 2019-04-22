@@ -204,8 +204,9 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ)
 
     if epoch % 10000 == 0:
-        _, W1, Whidden, BiasHidden, Qout = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout],
+        _, W, Whidden, BiasHidden, Qout = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout],
                                               feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
+        print("  W\n", W)
         print("  Whidden\n", Whidden)
         print("  BiasHidden\n", BiasHidden)
         print("  Qout", Qout)
