@@ -17,8 +17,18 @@ class Qnetwork():
     def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
         self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
+        self.hidden = self.inputs
+
+        self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+
+        self.hidden = tf.matmul(self.hidden, self.Whidden)
+
         self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
-        self.Qout = tf.matmul(self.inputs, self.W)
+
+        self.Qout = tf.matmul(self.hidden, self.W)
+
         self.predict = tf.argmax(self.Qout, 1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
