@@ -5,18 +5,26 @@ import pylab as plt
 import tensorflow as tf
 
 ######################################################################################
-class Qnetwork():
+class LearningParams:
     def __init__(self):
+        self.gamma = 0.99 #0.1
+        self.lrn_rate = 0.1
+        self.max_epochs = 20001
+        self.eps = 1  # 0.7
+
+######################################################################################
+class Qnetwork():
+    def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
-        self.inputs = tf.placeholder(shape=[1, 15], dtype=tf.float32)
-        self.W = tf.Variable(tf.random_uniform([15, 5], 0, 0.01))
+        self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
+        self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
         self.Qout = tf.matmul(self.inputs, self.W)
         self.predict = tf.argmax(self.Qout, 1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[1, 5], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
-        self.trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
+        self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.updateModel = self.trainer.minimize(self.loss)
 
     def my_print1(self, curr, env, sess):
@@ -26,7 +34,7 @@ class Qnetwork():
         print("curr=", curr, "a=", a, "allQ=", allQ)
 
     def my_print(self, env, sess):
-        for curr in range(15):
+        for curr in range(env.ns):
             self.my_print1(curr, env, sess)
 
 ######################################################################################
@@ -36,7 +44,7 @@ class Env:
         self.goal = 14
         self.ns = 15  # number of states
 
-        self.F = np.zeros(shape=[15, 15], dtype=np.int)  # Feasible
+        self.F = np.zeros(shape=[self.ns, self.ns], dtype=np.int)  # Feasible
         self.F[0, 1] = 1;
         self.F[0, 5] = 1;
         self.F[1, 0] = 1;
@@ -139,13 +147,13 @@ class Env:
 
 
 ######################################################################################
-def Neural(curr, eps, gamma, lrn_rate, env, sess, qn):
+def Neural(epoch, curr, params, env, sess, qn):
     # NEURAL
     curr_1Hot = np.identity(env.ns)[curr:curr + 1]
     # print("hh", next, hh)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
     a = a[0]
-    if np.random.rand(1) < eps:
+    if np.random.rand(1) < params.eps:
         a = np.random.randint(0, 5)
 
     next, r, die = env.GetNextState(curr, a)
@@ -161,7 +169,7 @@ def Neural(curr, eps, gamma, lrn_rate, env, sess, qn):
 
     targetQ = allQ
     #print("  targetQ", targetQ)
-    targetQ[0, a] = r + gamma * maxQ1
+    targetQ[0, a] = r + params.gamma * maxQ1
     #print("  targetQ", targetQ)
 
     inputs = np.identity(env.ns)[curr: curr + 1]
@@ -173,22 +181,22 @@ def Neural(curr, eps, gamma, lrn_rate, env, sess, qn):
     return next, die
 
 
-def Trajectory(curr, eps, gamma, lrn_rate, env, sess, qn):
+def Trajectory(epoch, curr, params, env, sess, qn):
     while (True):
-        next, done = Neural(curr, eps, gamma, lrn_rate, env, sess, qn)
+        next, done = Neural(epoch, curr, params, env, sess, qn)
         #next, done = Tabular(curr, Q, gamma, lrn_rate, env)
         curr = next
 
         if done: break
     #print()
 
-def Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn):
+def Train(params, env, sess, qn):
 
     scores = []
 
-    for i in range(0, max_epochs):
+    for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
-        Trajectory(curr, eps, gamma, lrn_rate, env, sess, qn)
+        Trajectory(epoch, curr, params, env, sess, qn)
 
         #eps = 1. / ((i/50) + 10)
         #eps *= .99
@@ -208,22 +216,19 @@ def Main():
 
     # =============================================================
     print("Analyzing maze with RL Q-learning")
-    start = 0;
-    gamma = 0.99
-    lrn_rate = 0.5
-    max_epochs = 20000
     env = Env()
-    eps = 1 #0.7
+
+    params = LearningParams()
 
     tf.reset_default_graph()
-    qn = Qnetwork()
+    qn = Qnetwork(params.lrn_rate, env)
     init = tf.initialize_all_variables()
     print("qn.Qout", qn.Qout)
 
     with tf.Session() as sess:
         sess.run(init)
 
-        scores = Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn)
+        scores = Train(params, env, sess, qn)
         print("Trained")
 
         qn.my_print(env, sess)
