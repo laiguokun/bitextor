@@ -20,12 +20,12 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.BiasHidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
-        self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
+        #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
         #self.hidden = tf.add(self.hidden, self.BiasHidden)
 
@@ -34,6 +34,7 @@ class Qnetwork():
         #self.W = tf.math.multiply(self.W, 2)
 
         self.Qout = tf.matmul(self.hidden, self.W)
+        self.Qout = tf.clip_by_value(self.Qout, -10, 10)
 
         self.predict = tf.argmax(self.Qout, 1)
 
@@ -191,7 +192,8 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
-    if next == env.ns - 1:
+    if curr == env.ns - 1:
+        targetQ = np.zeros([1, 5])
         maxQ1 = 0
     else:
         next1Hot = Int2Arrray(next, env.ns)
@@ -199,20 +201,23 @@ def Neural(epoch, curr, params, env, sess, qn):
         Q1 = sess.run(qn.Qout, feed_dict={qn.inputs: next1Hot})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
-        # print("  Q1", Q1, maxQ1)
 
-    #targetQ = allQ
-    targetQ = np.array(allQ, copy=True)
-    #print("  targetQ", targetQ)
-    targetQ[0, a] = r + params.gamma * maxQ1
-    #print("  targetQ", targetQ)
+        #targetQ = allQ
+        targetQ = np.array(allQ, copy=True)
+        #print("  targetQ", targetQ)
+        targetQ[0, a] = r + params.gamma * maxQ1
+        #print("  targetQ", targetQ)
 
-    if epoch % 1 == 0:
+    #print("  targetQ", targetQ, maxQ1)
+
+    if epoch % 10000 == 0:
         _, W, Whidden, BiasHidden, Qout = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout],
                                               feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
+        print("epoch", epoch)
         print("  W\n", W)
         print("  Whidden\n", Whidden)
         print("  BiasHidden\n", BiasHidden)
+        qn.my_print(env, sess)
 
         print("curr", curr, "next", next, "action", a)
         print("allQ", allQ)
@@ -241,7 +246,7 @@ def Train(params, env, sess, qn):
     scores = []
 
     for epoch in range(params.max_epochs):
-        curr = np.random.randint(0, env.ns - 1)  # random start state
+        curr = np.random.randint(0, env.ns)  # random start state
         Trajectory(epoch, curr, params, env, sess, qn)
 
         #eps = 1. / ((i/50) + 10)
