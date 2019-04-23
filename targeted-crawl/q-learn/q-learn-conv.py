@@ -19,14 +19,16 @@ class Qnetwork():
         self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
 
         #self.filter =  tf.constant([4, 2, 1, 3], dtype=tf.float32)
-        self.filter = tf.Variable(tf.random_uniform([10], 0, 0.01))
+        self.filter = tf.Variable(tf.random_uniform([100], 0, 0.01))
         self.filter = tf.nn.sigmoid(self.filter)
 
         self.data = tf.reshape(self.inputs, [1, int(self.inputs.shape[1]), 1], name='data')
-        self.kernel = tf.reshape(self.filter, [int(self.filter.shape[0]), 1, 1], name='kernel')
+        self.kernel = tf.reshape(self.filter, [5, 1, 20], name='kernel')
 
         self.filtered = tf.nn.conv1d(self.data, self.kernel, 1, padding="SAME")
-        self.filtered = tf.reshape(self.filtered, [1, 16])
+        self.filtered = tf.reduce_max(self.filtered, axis=2)
+
+        #self.filtered = tf.reshape(self.filtered, [1, 16])
 
         self.hidden = self.filtered
         #self.hidden = self.inputs
