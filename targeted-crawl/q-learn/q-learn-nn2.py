@@ -191,12 +191,15 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
-    next1Hot = Int2Arrray(next, env.ns)
-    # print("  hh2", hh2)
-    Q1 = sess.run(qn.Qout, feed_dict={qn.inputs: next1Hot})
-    # print("  Q1", Q1)
-    maxQ1 = np.max(Q1)
-    # print("  Q1", Q1, maxQ1)
+    if next == env.ns - 1:
+        maxQ1 = 0
+    else:
+        next1Hot = Int2Arrray(next, env.ns)
+        # print("  hh2", hh2)
+        Q1 = sess.run(qn.Qout, feed_dict={qn.inputs: next1Hot})
+        # print("  Q1", Q1)
+        maxQ1 = np.max(Q1)
+        # print("  Q1", Q1, maxQ1)
 
     targetQ = allQ
     #print("  targetQ", targetQ)
