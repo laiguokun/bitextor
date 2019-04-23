@@ -21,7 +21,7 @@ class Qnetwork():
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.BiasHidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
@@ -201,19 +201,24 @@ def Neural(epoch, curr, params, env, sess, qn):
         maxQ1 = np.max(Q1)
         # print("  Q1", Q1, maxQ1)
 
-    targetQ = allQ
+    #targetQ = allQ
+    targetQ = np.array(allQ, copy=True)
     #print("  targetQ", targetQ)
     targetQ[0, a] = r + params.gamma * maxQ1
     #print("  targetQ", targetQ)
 
-    if epoch % 10000 == 0:
+    if epoch % 1 == 0:
         _, W, Whidden, BiasHidden, Qout = sess.run([qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout],
                                               feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
         print("  W\n", W)
         print("  Whidden\n", Whidden)
         print("  BiasHidden\n", BiasHidden)
-        print("  Qout", Qout)
 
+        print("curr", curr, "next", next, "action", a)
+        print("allQ", allQ)
+        print("targetQ", targetQ)
+        print("Qout", Qout)
+        print()
     else:
         _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
 
