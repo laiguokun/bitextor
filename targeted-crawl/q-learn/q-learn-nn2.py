@@ -19,16 +19,17 @@ class Qnetwork():
         self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden = self.inputs
 
-        self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
+        #self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.nn.sigmoid(self.Whidden)
+        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        #self.hidden = tf.matmul(self.hidden, self.Whidden)
+
+        self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         self.Whidden = tf.nn.sigmoid(self.Whidden)
-        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
-        self.hidden = tf.matmul(self.hidden, self.Whidden)
-
-        #self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         #self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
-        #self.hidden = tf.multiply(self.hidden, self.Whidden)
+        self.hidden = tf.multiply(self.hidden, self.Whidden)
 
         self.BiasHidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
         #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
