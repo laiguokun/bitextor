@@ -20,21 +20,29 @@ class Qnetwork():
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
-        self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        self.Whidden = tf.nn.sigmoid(self.Whidden)
         #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
+        #self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
+        #self.hidden = tf.multiply(self.hidden, self.Whidden)
+
         self.BiasHidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
         #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
+        self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
-        #self.hidden = tf.add(self.hidden, self.BiasHidden)
+        self.hidden = tf.add(self.hidden, self.BiasHidden)
 
         self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
         #self.W = tf.math.l2_normalize(self.W, axis=1)
         #self.W = tf.math.multiply(self.W, 2)
+        #self.W = tf.clip_by_value(self.W, -10, 10)
 
         self.Qout = tf.matmul(self.hidden, self.W)
-        self.Qout = tf.clip_by_value(self.Qout, -10, 10)
+        #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
 
         self.predict = tf.argmax(self.Qout, 1)
 
