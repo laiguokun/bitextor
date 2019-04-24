@@ -47,6 +47,8 @@ class Qnetwork():
 
         self.Qout = tf.matmul(self.hidden, self.W)
         #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
+        #self.Qout = tf.nn.sigmoid(self.Qout)
+        #self.Qout = tf.math.multiply(self.Qout, 2)
 
         self.predict = tf.argmax(self.Qout, 1)
 
@@ -227,10 +229,10 @@ def Neural(epoch, curr, params, env, sess, qn):
         _, W, Whidden, BiasHidden, Qout, inputs = sess.run(outs,
                                               feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
         print("epoch", epoch)
-        print("  W\n", W)
+        #print("  W\n", W)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
-        #qn.my_print(env, sess)
+        qn.my_print(env, sess)
 
         #print("curr", curr, "next", next, "action", a)
         #print("allQ", allQ)
