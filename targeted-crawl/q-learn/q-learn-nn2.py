@@ -184,8 +184,8 @@ class Env:
 
 ######################################################################################
 def Int2Arrray(num, size):
-    #ret = np.identity(size)[num:num + 1]
-    #return ret
+    ret = np.identity(size)[num:num + 1]
+    return ret
 
     str = np.binary_repr(num).zfill(size)
     l = list(str)
