@@ -9,21 +9,21 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 20001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
 
 ######################################################################################
 class Qnetwork():
     def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
-        HIDDEN_DIM = 16
+        HIDDEN_DIM = 128
 
         self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, HIDDEN_DIM], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        self.Whidden = tf.nn.sigmoid(self.Whidden)
+        #self.Whidden = tf.nn.sigmoid(self.Whidden)
         #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
         self.hidden = tf.matmul(self.hidden, self.Whidden)
 
@@ -35,7 +35,7 @@ class Qnetwork():
 
         self.BiasHidden = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
-        self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
+        #self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
         self.hidden = tf.add(self.hidden, self.BiasHidden)
 
@@ -48,7 +48,7 @@ class Qnetwork():
         self.Qout = tf.matmul(self.hidden, self.W)
         #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
         #self.Qout = tf.nn.sigmoid(self.Qout)
-        #self.Qout = tf.math.multiply(self.Qout, 2)
+        self.Qout = tf.math.multiply(self.Qout, 0.1)
 
         self.predict = tf.argmax(self.Qout, 1)
 
@@ -184,8 +184,8 @@ class Env:
 
 ######################################################################################
 def Int2Arrray(num, size):
-    ret = np.identity(size)[num:num + 1]
-    return ret
+    #ret = np.identity(size)[num:num + 1]
+    #return ret
 
     str = np.binary_repr(num).zfill(size)
     l = list(str)
