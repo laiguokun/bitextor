@@ -16,29 +16,32 @@ class LearningParams:
 class Qnetwork():
     def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
+        HIDDEN_DIM = 16
+
         self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden = self.inputs
 
-        #self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.nn.sigmoid(self.Whidden)
-        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
-        #self.hidden = tf.matmul(self.hidden, self.Whidden)
-
-        self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
+        self.Whidden = tf.Variable(tf.random_uniform([env.ns, HIDDEN_DIM], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         self.Whidden = tf.nn.sigmoid(self.Whidden)
-        #self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
-        self.hidden = tf.multiply(self.hidden, self.Whidden)
+        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        self.hidden = tf.matmul(self.hidden, self.Whidden)
 
-        self.BiasHidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
+        #self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
+        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        #self.Whidden = tf.nn.sigmoid(self.Whidden)
+        #self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
+        #self.hidden = tf.multiply(self.hidden, self.Whidden)
+
+        self.BiasHidden = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
         self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
         self.hidden = tf.add(self.hidden, self.BiasHidden)
 
-        self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
+        self.W = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
         #self.W = tf.math.l2_normalize(self.W, axis=1)
+        #self.W = tf.nn.sigmoid(self.W)
         #self.W = tf.math.multiply(self.W, 2)
         #self.W = tf.clip_by_value(self.W, -10, 10)
 
@@ -224,7 +227,7 @@ def Neural(epoch, curr, params, env, sess, qn):
         _, W, Whidden, BiasHidden, Qout, inputs = sess.run(outs,
                                               feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
         print("epoch", epoch)
-        #print("  W\n", W)
+        print("  W\n", W)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
         #qn.my_print(env, sess)
