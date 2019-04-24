@@ -17,17 +17,6 @@ class Qnetwork():
     def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
         self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
-
-        #self.x = self.inputs
-        #self.x = tf.reshape(self.x, [1, 16])
-        #self.x = tf.constant([1, 0, 2, 3, 0, 1, 1], dtype=tf.float32, name='i')
-        self.filter =  tf.constant([2, 1, 3], dtype=tf.float32)
-
-        self.data = tf.reshape(self.inputs, [1, int(self.inputs.shape[1]), 1], name='data')
-        self.kernel = tf.reshape(self.filter, [int(self.filter.shape[0]), 1, 1], name='kernel')
-
-        self.filtered = tf.nn.conv1d(self.data, self.kernel, 1, padding="SAME")
-
         self.hidden = self.inputs
 
         #self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
@@ -231,8 +220,8 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ, maxQ1)
 
     if epoch % 10000 == 0:
-        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.inputs, qn.filter, qn.filtered]
-        _, W, Whidden, BiasHidden, Qout, inputs, filter, filtered = sess.run(outs,
+        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.inputs]
+        _, W, Whidden, BiasHidden, Qout, inputs = sess.run(outs,
                                               feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
         print("epoch", epoch)
         #print("  W\n", W)
@@ -245,9 +234,6 @@ def Neural(epoch, curr, params, env, sess, qn):
         #print("targetQ", targetQ)
         #print("Qout", Qout)
 
-        print("inputs", inputs)
-        print("filter", filter.shape, filter)
-        print("filtered", filtered.shape, filtered)
         print()
     else:
         _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
