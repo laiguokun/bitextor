@@ -19,10 +19,14 @@ class Qnetwork():
         EMBED_DIM = 64
         HIDDEN_DIM = 128
 
+        self.embeddings = tf.Variable(tf.random_uniform([env.ns, EMBED_DIM], 0, 0.01))
+
         self.input = tf.placeholder(shape=[1], dtype=tf.int32)
         self.input1Hot = tf.one_hot(self.input, env.ns)
 
-        self.embeddings = tf.Variable(tf.random_uniform([env.ns, EMBED_DIM], 0, 0.01))
+        self.embedConcat = tf.nn.embedding_lookup(self.embeddings, [3, 12])
+        self.embedConcat = tf.reshape(self.embedConcat, [1, 128])
+
         self.embedding = tf.matmul(self.input1Hot, self.embeddings)
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
         self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
@@ -221,11 +225,13 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ, maxQ1)
 
     if epoch % 10000 == 0:
-        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.embeddings]
-        _, W, Whidden, BiasHidden, Qout, embeddings = sess.run(outs,
+        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.embeddings, qn.embedConcat]
+        _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
                                               feed_dict={qn.input: np.array([curr]), qn.nextQ: targetQ})
         print("epoch", epoch)
         print("embeddings", embeddings)
+        print("embedConcat", embedConcat.shape)
+
         #print("  W\n", W)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
