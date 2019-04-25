@@ -18,13 +18,13 @@ class Qnetwork():
         # These lines establish the feed-forward part of the network used to choose actions
         HIDDEN_DIM = 128
 
-        embeddings = []
-        for i in range(env.ns):
-            embedding = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
-            embeddings.append(embedding)
+        self.embeddings = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
 
         self.num = tf.placeholder(shape=[1], dtype=tf.int32)
-        self.inputs = tf.one_hot(self.num, env.ns)
+        self.input1Hot = tf.one_hot(self.num, env.ns)
+
+        self.inputs = tf.matmul(self.input1Hot, self.embeddings)
+        self.inputs = tf.math.multiply(self.inputs, 0.1)
 
         #self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden = self.inputs
