@@ -16,13 +16,13 @@ class LearningParams:
 class Qnetwork():
     def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
+        EMBED_DIM = 64
         HIDDEN_DIM = 128
-
 
         self.input = tf.placeholder(shape=[1], dtype=tf.int32)
         self.input1Hot = tf.one_hot(self.input, env.ns)
 
-        self.embeddings = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
+        self.embeddings = tf.Variable(tf.random_uniform([env.ns, EMBED_DIM], 0, 0.01))
         self.embedding = tf.matmul(self.input1Hot, self.embeddings)
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
         self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
@@ -30,7 +30,7 @@ class Qnetwork():
         #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden = self.embedding
 
-        self.Whidden = tf.Variable(tf.random_uniform([env.ns, HIDDEN_DIM], 0, 0.01))
+        self.Whidden = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         #self.Whidden = tf.nn.sigmoid(self.Whidden)
         #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
