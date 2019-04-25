@@ -221,11 +221,11 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ, maxQ1)
 
     if epoch % 10000 == 0:
-        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.embedding]
-        _, W, Whidden, BiasHidden, Qout, embedding = sess.run(outs,
+        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.embeddings]
+        _, W, Whidden, BiasHidden, Qout, embeddings = sess.run(outs,
                                               feed_dict={qn.input: np.array([curr]), qn.nextQ: targetQ})
         print("epoch", epoch)
-        print("embedding", embedding)
+        print("embeddings", embeddings)
         #print("  W\n", W)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
