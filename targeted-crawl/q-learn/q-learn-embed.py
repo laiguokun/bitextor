@@ -74,7 +74,7 @@ class Qnetwork():
     def my_print1(self, curr, env, sess):
         # print("hh", next, hh)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: np.array([curr]) })
-        print("curr=", curr, "a=", a, "allQ=", allQ)
+        print("curr=", curr, "a=", a, "allQ=", allQ, env.GetNeighBours(curr))
 
     def my_print(self, env, sess):
         for curr in range(env.ns):
@@ -153,6 +153,18 @@ class Env:
             reward = -1
 
         return next, reward, die
+
+    def GetNeighBours(self, curr):
+        col = self.F[curr, :]
+        ret = []
+        for i in range(len(col)):
+            if col[i] == 1:
+                ret.append(i)
+
+        for i in range(len(ret), 4):
+            ret.append(self.ns - 1)
+
+        return ret
 
     def get_poss_next_actions(self, s):
         actions = []
