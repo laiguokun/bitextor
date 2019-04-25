@@ -18,16 +18,17 @@ class Qnetwork():
         # These lines establish the feed-forward part of the network used to choose actions
         HIDDEN_DIM = 128
 
+
+        self.input = tf.placeholder(shape=[1], dtype=tf.int32)
+        self.input1Hot = tf.one_hot(self.input, env.ns)
+
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
+        self.embedding = tf.matmul(self.input1Hot, self.embeddings)
+        #self.embedding = tf.math.multiply(self.embedding, 0.1)
+        self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
 
-        self.num = tf.placeholder(shape=[1], dtype=tf.int32)
-        self.input1Hot = tf.one_hot(self.num, env.ns)
-
-        self.inputs = tf.matmul(self.input1Hot, self.embeddings)
-        self.inputs = tf.math.multiply(self.inputs, 0.1)
-
-        #self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
-        self.hidden = self.inputs
+        #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
+        self.hidden = self.embedding
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, HIDDEN_DIM], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
@@ -68,7 +69,7 @@ class Qnetwork():
 
     def my_print1(self, curr, env, sess):
         # print("hh", next, hh)
-        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.num: np.array([curr]) })
+        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: np.array([curr]) })
         print("curr=", curr, "a=", a, "allQ=", allQ)
 
     def my_print(self, env, sess):
@@ -168,7 +169,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.num: np.array([curr])})
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: np.array([curr])})
             action = action[0]
             next, reward, die = self.GetNextState(curr, action)
             totReward += reward
@@ -193,7 +194,7 @@ class Env:
 def Neural(epoch, curr, params, env, sess, qn):
     # NEURAL
     # print("hh", next, hh)
-    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.num: np.array([curr])})
+    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: np.array([curr])})
     a = a[0]
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, 5)
@@ -207,7 +208,7 @@ def Neural(epoch, curr, params, env, sess, qn):
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
-        Q1 = sess.run(qn.Qout, feed_dict={qn.num: np.array([next])})
+        Q1 = sess.run(qn.Qout, feed_dict={qn.input: np.array([next])})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
 
@@ -220,11 +221,11 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ, maxQ1)
 
     if epoch % 10000 == 0:
-        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.inputs]
-        _, W, Whidden, BiasHidden, Qout, inputs = sess.run(outs,
-                                              feed_dict={qn.num: np.array([curr]), qn.nextQ: targetQ})
+        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.embedding]
+        _, W, Whidden, BiasHidden, Qout, embedding = sess.run(outs,
+                                              feed_dict={qn.input: np.array([curr]), qn.nextQ: targetQ})
         print("epoch", epoch)
-        print("inputs", inputs)
+        print("embedding", embedding)
         #print("  W\n", W)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
@@ -237,7 +238,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
         print()
     else:
-        _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.num: np.array([curr]), qn.nextQ: targetQ})
+        _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.input: np.array([curr]), qn.nextQ: targetQ})
 
     #print("  new Q", a, allQ)
 
