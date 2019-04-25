@@ -23,7 +23,10 @@ class Qnetwork():
             embedding = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
             embeddings.append(embedding)
 
-        self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
+        self.num = tf.placeholder(shape=[1], dtype=tf.int32)
+        self.inputs = tf.one_hot(self.num, env.ns)
+
+        #self.inputs = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden = self.inputs
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, HIDDEN_DIM], 0, 0.01))
@@ -64,9 +67,8 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def my_print1(self, curr, env, sess):
-        curr_1Hot = Int2Arrray(curr, env.ns)
         # print("hh", next, hh)
-        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.inputs: curr_1Hot})
+        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.num: np.array([curr]) })
         print("curr=", curr, "a=", a, "allQ=", allQ)
 
     def my_print(self, env, sess):
@@ -165,9 +167,8 @@ class Env:
         print(str(curr) + "->", end="")
         while True:
             # print("curr", curr)
-            curr_1Hot = Int2Arrray(curr, self.ns)
             # print("hh", next, hh)
-            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.num: np.array([curr])})
             action = action[0]
             next, reward, die = self.GetNextState(curr, action)
             totReward += reward
@@ -188,21 +189,11 @@ class Env:
 
 
 ######################################################################################
-def Int2Arrray(num, size):
-    ret = np.identity(size)[num:num + 1]
-    return ret
-
-    str = np.binary_repr(num).zfill(size)
-    l = list(str)
-    ret = np.array(l, ndmin=2).astype(np.float)
-    #print("num", num, ret)
-    return ret
 
 def Neural(epoch, curr, params, env, sess, qn):
     # NEURAL
-    curr_1Hot = Int2Arrray(curr, env.ns)
     # print("hh", next, hh)
-    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
+    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.num: np.array([curr])})
     a = a[0]
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, 5)
@@ -215,9 +206,8 @@ def Neural(epoch, curr, params, env, sess, qn):
         targetQ = np.zeros([1, 5])
         maxQ1 = 0
     else:
-        next1Hot = Int2Arrray(next, env.ns)
         # print("  hh2", hh2)
-        Q1 = sess.run(qn.Qout, feed_dict={qn.inputs: next1Hot})
+        Q1 = sess.run(qn.Qout, feed_dict={qn.num: np.array([next])})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
 
@@ -232,8 +222,9 @@ def Neural(epoch, curr, params, env, sess, qn):
     if epoch % 10000 == 0:
         outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.inputs]
         _, W, Whidden, BiasHidden, Qout, inputs = sess.run(outs,
-                                              feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
+                                              feed_dict={qn.num: np.array([curr]), qn.nextQ: targetQ})
         print("epoch", epoch)
+        print("inputs", inputs)
         #print("  W\n", W)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
@@ -246,7 +237,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
         print()
     else:
-        _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs: curr_1Hot, qn.nextQ: targetQ})
+        _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.num: np.array([curr]), qn.nextQ: targetQ})
 
     #print("  new Q", a, allQ)
 
