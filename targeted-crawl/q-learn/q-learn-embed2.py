@@ -50,13 +50,13 @@ class Qnetwork():
 
         # HIDDEN
         #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
-        self.hidden = self.hidden1
+        self.hidden2 = self.hidden1
 
-        self.Whidden = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
+        self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
         #self.Whidden = tf.nn.sigmoid(self.Whidden)
         #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
-        self.hidden = tf.matmul(self.hidden, self.Whidden)
+        self.hidden2 = tf.matmul(self.hidden2, self.Whidden2)
 
         #self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
         #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
@@ -64,20 +64,20 @@ class Qnetwork():
         #self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
         #self.hidden = tf.multiply(self.hidden, self.Whidden)
 
-        self.BiasHidden = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
+        self.BiasHidden2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
         #self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
-        self.hidden = tf.add(self.hidden, self.BiasHidden)
+        self.hidden = tf.add(self.hidden2, self.BiasHidden2)
 
         # OUTPUT
-        self.W = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
+        self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
         #self.W = tf.math.l2_normalize(self.W, axis=1)
         #self.W = tf.nn.sigmoid(self.W)
         #self.W = tf.math.multiply(self.W, 2)
         #self.W = tf.clip_by_value(self.W, -10, 10)
 
-        self.Qout = tf.matmul(self.hidden, self.W)
+        self.Qout = tf.matmul(self.hidden2, self.Wout)
         #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
         #self.Qout = tf.nn.sigmoid(self.Qout)
         self.Qout = tf.math.multiply(self.Qout, 0.1)
@@ -262,7 +262,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     if epoch % 10000 == 0:
         print("neighbours", neighbours)
-        outs = [qn.updateModel, qn.W, qn.Whidden, qn.BiasHidden, qn.Qout, qn.embeddings, qn.embedConcat]
+        outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
                                               feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
         print("epoch", epoch)
@@ -281,7 +281,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
         print()
     else:
-        _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+        sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
     #print("  new Q", a, allQ)
 
