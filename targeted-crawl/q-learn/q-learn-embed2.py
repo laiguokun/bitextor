@@ -19,6 +19,7 @@ class Qnetwork():
         EMBED_DIM = 64
         HIDDEN_DIM = 128
 
+        # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, 16], 0, 0.01))
 
         self.input = tf.placeholder(shape=[4], dtype=tf.int32)
@@ -32,6 +33,7 @@ class Qnetwork():
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
         self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
 
+        # HIDDEN 3
         #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden = self.embedding
 
@@ -53,6 +55,7 @@ class Qnetwork():
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
         self.hidden = tf.add(self.hidden, self.BiasHidden)
 
+        # OUTPUT
         self.W = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
         #self.W = tf.math.l2_normalize(self.W, axis=1)
         #self.W = tf.nn.sigmoid(self.W)
