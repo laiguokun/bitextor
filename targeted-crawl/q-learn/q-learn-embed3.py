@@ -3,13 +3,14 @@
 import numpy as np
 import pylab as plt
 import tensorflow as tf
+import random
 
 ######################################################################################
 class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 20001
+        self.max_epochs = 200001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -188,6 +189,7 @@ class Env:
         for i in range(len(ret), 4):
             ret.append(self.ns - 1)
 
+        random.shuffle(ret)
         #print("GetNeighBours", curr, ret)
         return ret
 
@@ -270,8 +272,8 @@ def Neural(epoch, curr, params, env, sess, qn):
         _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
                                               feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
         print("epoch", epoch)
-        print("embeddings", embeddings)
-        print("embedConcat", embedConcat.shape)
+        #print("embeddings", embeddings)
+        #print("embedConcat", embedConcat.shape)
 
         #print("  W\n", W)
         #print("  Whidden\n", Whidden)
