@@ -267,7 +267,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ, maxQ1)
 
     if epoch % 10000 == 0:
-        print("neighbours", neighbours)
+        print("neighbours", curr, neighbours)
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
                                               feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
