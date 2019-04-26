@@ -45,6 +45,10 @@ class Qnetwork():
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
         #self.hidden1 = tf.nn.softmax(self.hidden1, axis=1)
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
+
+        #self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
+        #self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
+
         self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
         #self.hidden1 = tf.nn.relu(self.hidden1)
 
@@ -68,7 +72,7 @@ class Qnetwork():
         #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
         #self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
         #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
-        self.hidden = tf.add(self.hidden2, self.BiasHidden2)
+        self.hidden2 = tf.add(self.hidden2, self.BiasHidden2)
 
         # OUTPUT
         self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
