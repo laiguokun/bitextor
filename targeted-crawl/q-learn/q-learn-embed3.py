@@ -193,17 +193,6 @@ class Env:
         #print("GetNeighBours", curr, ret)
         return ret
 
-    def get_poss_next_actions(self, s):
-        actions = []
-        actions.append(0)
-        actions.append(1)
-        actions.append(2)
-        actions.append(3)
-        actions.append(4)
-
-        #print("  actions", actions)
-        return actions
-
     def Walk(self, start, sess, qn):
         curr = start
         i = 0
