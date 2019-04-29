@@ -148,30 +148,17 @@ class Env:
         #print("F", self.F)
 
     def GetNextState(self, curr, action, neighbours):
-        if action == 1:
-            next = curr - 5
-        elif action == 2:
-            next = curr + 1
-        elif action == 3:
-            next = curr + 5
-        elif action == 4:
-            next = curr - 1
-        elif action == 0:
-            next = self.ns - 1
-        #assert(next >= 0)
+        #print("curr", curr, action, neighbours)
+        assert(action < len(neighbours))
+        next = neighbours[action]
+        assert(next >= 0)
         #print("next", next)
 
         die = False
-        if next < 0 or next >= self.ns or self.F[curr, next] == 0:
-            # disallowed actions
-            next = self.ns - 1
-            reward = -10
-            die = True
-        elif next == self.goal:
+        if next == self.goal:
             reward = 8.5
             die = True
-        elif action == 0:
-            assert(next != self.goal)
+        elif next == self.ns - 1:
             reward = 0
             die = True
         else:
