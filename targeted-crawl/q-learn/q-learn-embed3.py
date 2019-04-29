@@ -147,7 +147,7 @@ class Env:
             self.F[i, self.ns - 1] = 1
         #print("F", self.F)
 
-    def GetNextState(self, curr, action):
+    def GetNextState(self, curr, action, neighbours):
         if action == 1:
             next = curr - 5
         elif action == 2:
@@ -204,7 +204,7 @@ class Env:
             neighbours = self.GetNeighBours(curr)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
-            next, reward, die = self.GetNextState(curr, action)
+            next, reward, die = self.GetNextState(curr, action, neighbours)
             totReward += reward
 
             print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
@@ -233,7 +233,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, 5)
 
-    next, r, die = env.GetNextState(curr, a)
+    next, r, die = env.GetNextState(curr, a, neighbours)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
