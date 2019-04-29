@@ -249,6 +249,12 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     #print("  targetQ", targetQ, maxQ1)
 
+    UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ)
+    #print("  new Q", a, allQ)
+
+    return next, done
+
+def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
     if epoch % 10000 == 0:
         #print("neighbours", curr, neighbours)
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
@@ -272,15 +278,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
         print()
     else:
-        #sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
-        UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ)
-
-    #print("  new Q", a, allQ)
-
-    return next, done
-
-def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
-    sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+        sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
 
 def Trajectory(epoch, curr, params, env, sess, qn):
