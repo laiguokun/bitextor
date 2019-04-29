@@ -282,6 +282,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 
         if done: break
     #print()
+    return next
 
 def Train(params, env, sess, qn):
 
@@ -289,11 +290,13 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
-        Trajectory(epoch, curr, params, env, sess, qn)
+        stopState = Trajectory(epoch, curr, params, env, sess, qn)
+        #print("stopState", stopState)
 
-        #eps = 1. / ((i/50) + 10)
-        #eps *= .99
-        #print("eps", eps)
+        if stopState == env.goal:
+            #eps = 1. / ((i/50) + 10)
+            params.eps *= .99
+            #print("eps", params.eps)
 
     return scores
 
