@@ -158,17 +158,17 @@ class Env:
         assert(next >= 0)
         #print("next", next)
 
-        die = False
+        done = False
         if next == self.goal:
             reward = 8.5
-            die = True
+            done = True
         elif next == self.ns - 1:
             reward = 0
-            die = True
+            done = True
         else:
             reward = -1
 
-        return next, reward, die
+        return next, reward, done
 
     def GetNeighBours(self, curr):
         col = self.F[curr, :]
@@ -195,14 +195,14 @@ class Env:
             neighbours = self.GetNeighBours(curr)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
-            next, reward, die = self.GetNextState(curr, action, neighbours)
+            next, reward, done = self.GetNextState(curr, action, neighbours)
             totReward += reward
 
             print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
             # print(str(next) + "->", end="")
             curr = next
 
-            if die: break
+            if done: break
             if curr == self.goal: break
 
             i += 1
@@ -224,7 +224,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, 5)
 
-    next, r, die = env.GetNextState(curr, a, neighbours)
+    next, r, done = env.GetNextState(curr, a, neighbours)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
@@ -271,7 +271,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     #print("  new Q", a, allQ)
 
-    return next, die
+    return next, done
 
 
 def Trajectory(epoch, curr, params, env, sess, qn):
