@@ -248,11 +248,9 @@ def Neural(epoch, curr, params, env, sess, qn):
         #print("  targetQ", targetQ)
 
     #print("  targetQ", targetQ, maxQ1)
-
-    UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ)
     #print("  new Q", a, allQ)
 
-    return next, done
+    return next, done, neighbours, targetQ
 
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
     if epoch % 10000 == 0:
@@ -283,8 +281,10 @@ def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     while (True):
-        next, done = Neural(epoch, curr, params, env, sess, qn)
-        #next, done = Tabular(curr, Q, gamma, lrn_rate, env)
+        next, done, neighbours, targetQ = Neural(epoch, curr, params, env, sess, qn)
+
+        UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ)
+
         curr = next
 
         if done: break
