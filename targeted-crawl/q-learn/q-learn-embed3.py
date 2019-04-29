@@ -10,7 +10,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 100001
+        self.max_epochs = 200001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -184,7 +184,7 @@ class Env:
         #print("GetNeighBours", curr, ret)
         return ret
 
-    def Walk(self, start, sess, qn):
+    def Walk1(self, start, sess, qn):
         curr = start
         i = 0
         totReward = 0
@@ -212,6 +212,9 @@ class Env:
 
         print("done", totReward)
 
+    def Walk(self, sess, qn):
+        for start in range(self.ns):
+            self.Walk1(start, sess, qn)
 
 ######################################################################################
 
@@ -247,7 +250,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ, maxQ1)
 
     if epoch % 10000 == 0:
-        print("neighbours", curr, neighbours)
+        #print("neighbours", curr, neighbours)
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
                                               feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
@@ -259,11 +262,13 @@ def Neural(epoch, curr, params, env, sess, qn):
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
         qn.my_print(env, sess)
+        env.Walk(sess, qn)
 
         #print("curr", curr, "next", next, "action", a)
         #print("allQ", allQ)
         #print("targetQ", targetQ)
         #print("Qout", Qout)
+        print("eps", params.eps)
 
         print()
     else:
@@ -295,7 +300,8 @@ def Train(params, env, sess, qn):
 
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
-            params.eps *= .99
+            params.eps *= .999
+            params.eps = max(0.1, params.eps)
             #print("eps", params.eps)
 
     return scores
@@ -329,8 +335,7 @@ def Main():
 
         qn.my_print(env, sess)
 
-        for start in range(0,env.ns):
-            env.Walk(start, sess, qn)
+        env.Walk(sess, qn)
 
         # plt.plot(scores)
         # plt.show()
