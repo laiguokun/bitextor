@@ -10,20 +10,20 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 200001
+        self.max_epochs = 20001
         self.eps = 1  # 0.7
 
 ######################################################################################
 class Qnetwork():
     def __init__(self, lrn_rate, env):
         # These lines establish the feed-forward part of the network used to choose actions
-        EMBED_DIM = 64
+        EMBED_DIM = 80
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, 16], 0, 0.01))
 
-        self.input = tf.placeholder(shape=[4], dtype=tf.int32)
+        self.input = tf.placeholder(shape=[5], dtype=tf.int32)
         #self.input1Hot = tf.one_hot(self.input, env.ns)
 
         self.embedConcat = tf.nn.embedding_lookup(self.embeddings, self.input)
@@ -186,7 +186,7 @@ class Env:
             if col[i] == 1:
                 ret.append(i)
 
-        for i in range(len(ret), 4):
+        for i in range(len(ret), 5):
             ret.append(self.ns - 1)
 
         random.shuffle(ret)
