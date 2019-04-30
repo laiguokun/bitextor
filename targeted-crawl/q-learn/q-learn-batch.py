@@ -28,7 +28,7 @@ class Qnetwork():
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
 
-        self.input = tf.placeholder(shape=[NUM_ACTIONS], dtype=tf.int32)
+        self.input = tf.placeholder(shape=[1, NUM_ACTIONS], dtype=tf.int32)
         #self.input1Hot = tf.one_hot(self.input, env.ns)
 
         self.embedConcat = tf.nn.embedding_lookup(self.embeddings, self.input)
@@ -154,8 +154,7 @@ class Env:
 
     def GetNextState(self, curr, action, neighbours):
         #print("curr", curr, action, neighbours)
-        assert(action < len(neighbours))
-        next = neighbours[action]
+        next = neighbours[0, action]
         assert(next >= 0)
         #print("next", next)
 
@@ -185,6 +184,7 @@ class Env:
 
         #ret = np.empty([5,1])
         ret = np.array(ret)
+        ret = ret.reshape([1, 5])
         #print("GetNeighBours", ret.shape, ret)
 
         return ret
