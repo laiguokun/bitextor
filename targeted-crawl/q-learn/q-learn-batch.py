@@ -182,7 +182,11 @@ class Env:
             ret.append(self.ns - 1)
 
         random.shuffle(ret)
-        #print("GetNeighBours", curr, ret)
+
+        #ret = np.empty([5,1])
+        ret = np.array(ret)
+        #print("GetNeighBours", ret.shape, ret)
+
         return ret
 
     def Walk1(self, start, sess, qn):
