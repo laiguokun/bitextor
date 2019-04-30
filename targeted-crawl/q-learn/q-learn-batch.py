@@ -256,12 +256,12 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     return transition
 
-def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
+def UpdateQN(params, env, sess, epoch, qn, transition):
     if epoch % 10000 == 0:
         #print("neighbours", curr, neighbours)
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
-                                              feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+                                              feed_dict={qn.input: transition.neighbours, qn.nextQ: transition.targetQ})
         print("epoch", epoch)
         #print("embeddings", embeddings)
         #print("embedConcat", embedConcat.shape)
@@ -280,15 +280,16 @@ def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
 
         print()
     else:
-        sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+        sess.run([qn.updateModel], feed_dict={qn.input: transition.neighbours, qn.nextQ: transition.targetQ})
 
 
 def Trajectory(epoch, curr, params, env, sess, qn):
+    path = []
     while (True):
         transition = Neural(epoch, curr, params, env, sess, qn)
-        #next, done, neighbours, targetQ
+        path.append(transition)
 
-        UpdateQN(params, env, sess, epoch, qn, transition.neighbours, transition.targetQ)
+        UpdateQN(params, env, sess, epoch, qn, transition)
 
         curr = transition.next
 
