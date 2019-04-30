@@ -28,7 +28,7 @@ class Qnetwork():
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
 
-        self.input = tf.placeholder(shape=[1, NUM_ACTIONS], dtype=tf.int32)
+        self.input = tf.placeholder(shape=[None, NUM_ACTIONS], dtype=tf.int32)
         #self.input1Hot = tf.one_hot(self.input, env.ns)
 
         self.embedConcat = tf.nn.embedding_lookup(self.embeddings, self.input)
@@ -297,9 +297,19 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         if transition.done: break
     #print()
 
+    batchSize = len(path)
+    batchNeighbours = np.empty([batchSize, 5])
+    batchTargetQ = np.empty([batchSize, 5])
+
+    i = 0
     for transition in path:
+        #print("transition", transition.neighbours.shape, transition.targetQ.shape)
+        batchNeighbours[i, :] = transition.neighbours
+        batchTargetQ[i, :] = transition.targetQ
+
         UpdateQN(params, env, sess, epoch, qn, transition)
 
+        i += 1
 
     return curr
 
