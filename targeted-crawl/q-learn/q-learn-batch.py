@@ -4,6 +4,7 @@ import numpy as np
 import pylab as plt
 import tensorflow as tf
 import random
+from collections import namedtuple
 
 ######################################################################################
 class LearningParams:
@@ -250,7 +251,10 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  targetQ", targetQ, maxQ1)
     #print("  new Q", a, allQ)
 
-    return (next, done, neighbours, targetQ)
+    Transition = namedtuple("Transition", "curr next done neighbours targetQ")
+    transition = Transition(curr, next, done, neighbours, targetQ)
+
+    return transition
 
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
     if epoch % 10000 == 0:
@@ -281,14 +285,14 @@ def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     while (True):
-        tuple = Neural(epoch, curr, params, env, sess, qn)
+        transition = Neural(epoch, curr, params, env, sess, qn)
         #next, done, neighbours, targetQ
 
-        UpdateQN(params, env, sess, epoch, qn, tuple[2], tuple[3])
+        UpdateQN(params, env, sess, epoch, qn, transition.neighbours, transition.targetQ)
 
-        curr = tuple[0]
+        curr = transition.next
 
-        if tuple[1]: break
+        if transition.done: break
     #print()
     return next
 
