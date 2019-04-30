@@ -100,15 +100,15 @@ class Qnetwork():
         self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def my_print1(self, curr, env, sess):
+    def PrintQ(self, curr, env, sess):
         # print("hh", next, hh)
         neighbours = env.GetNeighBours(curr)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
         print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
 
-    def my_print(self, env, sess):
+    def PrintAllQ(self, env, sess):
         for curr in range(env.ns):
-            self.my_print1(curr, env, sess)
+            self.PrintQ(curr, env, sess)
 
 ######################################################################################
 # helpers
@@ -189,7 +189,7 @@ class Env:
 
         return ret
 
-    def Walk1(self, start, sess, qn):
+    def Walk(self, start, sess, qn, printQ):
         curr = start
         i = 0
         totReward = 0
@@ -202,6 +202,9 @@ class Env:
             action = action[0]
             next, reward, done = self.GetNextState(curr, action, neighbours)
             totReward += reward
+
+            if printQ:
+                print("printQ", action, allQ, neighbours)
 
             print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
             # print(str(next) + "->", end="")
@@ -217,9 +220,9 @@ class Env:
 
         print("done", totReward)
 
-    def Walk(self, sess, qn):
+    def WalkAll(self, sess, qn):
         for start in range(self.ns):
-            self.Walk1(start, sess, qn)
+            self.Walk(start, sess, qn, False)
 
 ######################################################################################
 
@@ -260,32 +263,6 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     return transition
 
-def UpdateQN1(params, env, sess, epoch, qn, transition):
-    if epoch % 10000 == 0:
-        #print("neighbours", curr, neighbours)
-        outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
-        _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
-                                              feed_dict={qn.input: transition.neighbours, qn.nextQ: transition.targetQ})
-        print("epoch", epoch)
-        #print("embeddings", embeddings)
-        #print("embedConcat", embedConcat.shape)
-
-        #print("  W\n", W)
-        #print("  Whidden\n", Whidden)
-        #print("  BiasHidden\n", BiasHidden)
-        qn.my_print(env, sess)
-        env.Walk(sess, qn)
-
-        #print("curr", curr, "next", next, "action", a)
-        #print("allQ", allQ)
-        #print("targetQ", targetQ)
-        #print("Qout", Qout)
-        print("eps", params.eps)
-
-        print()
-    else:
-        sess.run([qn.updateModel], feed_dict={qn.input: transition.neighbours, qn.nextQ: transition.targetQ})
-
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
     if epoch % 10000 == 0:
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
@@ -299,8 +276,9 @@ def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
         #print("  W\n", W)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
-        qn.my_print(env, sess)
-        env.Walk(sess, qn)
+        qn.PrintAllQ(env, sess)
+        env.WalkAll(sess, qn)
+        env.Walk(9, sess, qn, True)
 
         #print("curr", curr, "next", next, "action", a)
         #print("allQ", allQ)
@@ -387,9 +365,8 @@ def Main():
         scores = Train(params, env, sess, qn)
         print("Trained")
 
-        qn.my_print(env, sess)
-
-        env.Walk(sess, qn)
+        qn.PrintAllQ(env, sess)
+        env.WalkAll(sess, qn)
 
         # plt.plot(scores)
         # plt.show()
