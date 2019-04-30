@@ -316,10 +316,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     #print("path", len(path), path)
     #print("   batchNeighbours", batchNeighbours)
     #print("   batchTargetQ", batchTargetQ)
-
-    UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
-
-    return curr
+    return curr, batchNeighbours, batchTargetQ
 
 def Train(params, env, sess, qn):
 
@@ -327,8 +324,10 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
-        stopState = Trajectory(epoch, curr, params, env, sess, qn)
+        stopState, batchNeighbours, batchTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
         #print("stopState", stopState)
+
+        UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
