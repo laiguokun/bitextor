@@ -288,14 +288,16 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     while (True):
         transition = Neural(epoch, curr, params, env, sess, qn)
         path.append(transition)
-
-        UpdateQN(params, env, sess, epoch, qn, transition)
-
         curr = transition.next
 
         if transition.done: break
     #print()
-    return next
+
+    for transition in path:
+        UpdateQN(params, env, sess, epoch, qn, transition)
+
+
+    return curr
 
 def Train(params, env, sess, qn):
 
