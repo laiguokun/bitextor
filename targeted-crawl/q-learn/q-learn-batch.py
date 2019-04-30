@@ -32,7 +32,7 @@ class Qnetwork():
         #self.input1Hot = tf.one_hot(self.input, env.ns)
 
         self.embedConcat = tf.nn.embedding_lookup(self.embeddings, self.input)
-        self.embedConcat = tf.reshape(self.embedConcat, [1, EMBED_DIM])
+        self.embedConcat = tf.reshape(self.embedConcat, [tf.shape(self.input)[0], EMBED_DIM])
         self.embedding = self.embedConcat
 
         #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
@@ -95,7 +95,7 @@ class Qnetwork():
         self.predict = tf.argmax(self.Qout, 1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[1, 5], dtype=tf.float32)
+        self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.updateModel = self.trainer.minimize(self.loss)
@@ -260,7 +260,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     return transition
 
-def UpdateQN(params, env, sess, epoch, qn, transition):
+def UpdateQN1(params, env, sess, epoch, qn, transition):
     if epoch % 10000 == 0:
         #print("neighbours", curr, neighbours)
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
@@ -286,6 +286,32 @@ def UpdateQN(params, env, sess, epoch, qn, transition):
     else:
         sess.run([qn.updateModel], feed_dict={qn.input: transition.neighbours, qn.nextQ: transition.targetQ})
 
+def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
+    if epoch % 10000 == 0:
+        outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
+        _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
+                                                                            feed_dict={qn.input: neighbours,
+                                                                                       qn.nextQ: targetQ})
+        print("epoch", epoch)
+        #print("embeddings", embeddings)
+        #print("embedConcat", embedConcat.shape)
+
+        #print("  W\n", W)
+        #print("  Whidden\n", Whidden)
+        #print("  BiasHidden\n", BiasHidden)
+        qn.my_print(env, sess)
+        env.Walk(sess, qn)
+
+        #print("curr", curr, "next", next, "action", a)
+        #print("allQ", allQ)
+        #print("targetQ", targetQ)
+        #print("Qout", Qout)
+        print("eps", params.eps)
+
+        print()
+    else:
+        sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
@@ -306,10 +332,14 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         #print("transition", transition.neighbours.shape, transition.targetQ.shape)
         batchNeighbours[i, :] = transition.neighbours
         batchTargetQ[i, :] = transition.targetQ
-
-        UpdateQN(params, env, sess, epoch, qn, transition)
+        #UpdateQN1(params, env, sess, epoch, qn, transition)
 
         i += 1
+    #print("path", len(path), path)
+    #print("   batchNeighbours", batchNeighbours)
+    #print("   batchTargetQ", batchTargetQ)
+
+    UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
     return curr
 
