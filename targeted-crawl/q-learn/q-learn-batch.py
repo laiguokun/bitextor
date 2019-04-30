@@ -104,7 +104,7 @@ class Qnetwork():
         # print("hh", next, hh)
         neighbours = env.GetNeighBours(curr)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
-        print("curr=", curr, "a=", a, "allQ=", allQ, env.GetNeighBours(curr))
+        print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
 
     def my_print(self, env, sess):
         for curr in range(env.ns):
