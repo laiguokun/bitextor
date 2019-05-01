@@ -11,7 +11,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 50001
+        self.max_epochs = 200001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -321,7 +321,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 def Train(params, env, sess, qn):
     scores = []
 
-    maxBatchSize = 16
+    maxBatchSize = 32
     batchSize = 0
 
     trajectories = []
