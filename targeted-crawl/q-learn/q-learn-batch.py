@@ -11,7 +11,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 20001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -321,7 +321,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 def Train(params, env, sess, qn):
     scores = []
 
-    maxBatchSize = 64
+    maxBatchSize = 16
     batchSize = 0
 
     trajectories = []
@@ -333,12 +333,7 @@ def Train(params, env, sess, qn):
         assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
 
-        if batchSize + trajSize <= maxBatchSize:
-            ele = (trajNeighbours, trajTargetQ)
-            trajectories.append(ele)
-
-            batchSize += trajSize
-        else:
+        if batchSize + trajSize > maxBatchSize:
             #print("trajectories", len(trajectories))
             #print("batchSize", batchSize)
             batchNeighbours = np.empty([batchSize, 5])
@@ -346,18 +341,23 @@ def Train(params, env, sess, qn):
 
             row = 0
             for trajectory in trajectories:
-                trajNeighbours, trajTargetQ = trajectory
-                trajSize = trajNeighbours.shape[0]
-                batchNeighbours[row:row+trajSize, :] = trajNeighbours
-                batchTargetQ[row:row+trajSize, :] = trajTargetQ
+                trajNeighbours2, trajTargetQ2 = trajectory
+                trajSize2 = trajNeighbours2.shape[0]
+                batchNeighbours[row:row+trajSize2, :] = trajNeighbours2
+                batchTargetQ[row:row+trajSize2, :] = trajTargetQ2
 
-                row += trajSize
+                row += trajSize2
 
             UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
             trajectories = []
             batchSize = 0
 
+        # add to batch
+        ele = (trajNeighbours, trajTargetQ)
+        trajectories.append(ele)
+
+        batchSize += trajSize
 
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
