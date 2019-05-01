@@ -11,7 +11,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 200001
+        self.max_epochs = 20001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -319,15 +319,45 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     return curr, trajNeighbours, trajTargetQ
 
 def Train(params, env, sess, qn):
-
     scores = []
 
+    maxBatchSize = 64
+    batchSize = 0
+
+    trajectories = []
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
         stopState, trajNeighbours, trajTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
-        #print("stopState", stopState)
+        #print("stopState", stopState, trajNeighbours.shape, trajTargetQ.shape)
+        assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
+        assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
+        trajSize = trajNeighbours.shape[0]
 
-        UpdateQN(params, env, sess, epoch, qn, trajNeighbours, trajTargetQ)
+        if batchSize + trajSize <= maxBatchSize:
+            ele = (trajNeighbours, trajTargetQ)
+            trajectories.append(ele)
+
+            batchSize += trajSize
+        else:
+            #print("trajectories", len(trajectories))
+            #print("batchSize", batchSize)
+            batchNeighbours = np.empty([batchSize, 5])
+            batchTargetQ = np.empty([batchSize, 5])
+
+            row = 0
+            for trajectory in trajectories:
+                trajNeighbours, trajTargetQ = trajectory
+                trajSize = trajNeighbours.shape[0]
+                batchNeighbours[row:row+trajSize, :] = trajNeighbours
+                batchTargetQ[row:row+trajSize, :] = trajTargetQ
+
+                row += trajSize
+
+            UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
+
+            trajectories = []
+            batchSize = 0
+
 
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
@@ -345,10 +375,8 @@ def Main():
     print("Starting")
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.5f}".format(x)})
-    print("Setting up maze in memory")
 
     # =============================================================
-    print("Analyzing maze with RL Q-learning")
     env = Env()
 
     params = LearningParams()
