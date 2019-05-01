@@ -301,22 +301,22 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         if transition.done: break
     #print()
 
-    batchSize = len(path)
-    batchNeighbours = np.empty([batchSize, 5])
-    batchTargetQ = np.empty([batchSize, 5])
+    trajSize = len(path)
+    trajNeighbours = np.empty([trajSize, 5])
+    trajTargetQ = np.empty([trajSize, 5])
 
     i = 0
     for transition in path:
         #print("transition", transition.neighbours.shape, transition.targetQ.shape)
-        batchNeighbours[i, :] = transition.neighbours
-        batchTargetQ[i, :] = transition.targetQ
+        trajNeighbours[i, :] = transition.neighbours
+        trajTargetQ[i, :] = transition.targetQ
         #UpdateQN1(params, env, sess, epoch, qn, transition)
 
         i += 1
     #print("path", len(path), path)
     #print("   batchNeighbours", batchNeighbours)
     #print("   batchTargetQ", batchTargetQ)
-    return curr, batchNeighbours, batchTargetQ
+    return curr, trajNeighbours, trajTargetQ
 
 def Train(params, env, sess, qn):
 
@@ -324,10 +324,10 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
-        stopState, batchNeighbours, batchTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
+        stopState, trajNeighbours, trajTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
         #print("stopState", stopState)
 
-        UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
+        UpdateQN(params, env, sess, epoch, qn, trajNeighbours, trajTargetQ)
 
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
@@ -370,7 +370,7 @@ def Main():
         # plt.plot(scores)
         # plt.show()
 
-        print("Finished")
+    print("Finished")
 
 
 if __name__ == "__main__":
