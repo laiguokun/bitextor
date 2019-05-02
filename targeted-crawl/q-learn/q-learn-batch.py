@@ -11,7 +11,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 200001
+        self.max_epochs = 3 #0001
         self.eps = 1  # 0.7
 
 ######################################################################################
@@ -316,45 +316,49 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     #print("path", len(path), path)
     #print("   batchNeighbours", batchNeighbours)
     #print("   batchTargetQ", batchTargetQ)
-    return curr, trajNeighbours, trajTargetQ
+    return curr, path, trajNeighbours, trajTargetQ
 
 def Train(params, env, sess, qn):
     scores = []
 
-    maxBatchSize = 32
+    maxBatchSize = 2
     batchSize = 0
 
     trajectories = []
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
-        stopState, trajNeighbours, trajTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
+        stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
         #print("stopState", stopState, trajNeighbours.shape, trajTargetQ.shape)
         assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
         assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
 
         if batchSize + trajSize > maxBatchSize:
-            #print("trajectories", len(trajectories))
-            #print("batchSize", batchSize)
+            print("trajectories", len(trajectories), trajectories)
+            print("batchSize", batchSize)
             batchNeighbours = np.empty([batchSize, 5])
             batchTargetQ = np.empty([batchSize, 5])
 
             row = 0
             for trajectory in trajectories:
-                trajNeighbours2, trajTargetQ2 = trajectory
+                path2, trajNeighbours2, trajTargetQ2 = trajectory
+                print("path2", path2)
+                
                 trajSize2 = trajNeighbours2.shape[0]
                 batchNeighbours[row:row+trajSize2, :] = trajNeighbours2
                 batchTargetQ[row:row+trajSize2, :] = trajTargetQ2
 
                 row += trajSize2
 
+            print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
+            print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
             UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
             trajectories = []
             batchSize = 0
 
         # add to batch
-        ele = (trajNeighbours, trajTargetQ)
+        ele = (path, trajNeighbours, trajTargetQ)
         trajectories.append(ele)
 
         batchSize += trajSize
