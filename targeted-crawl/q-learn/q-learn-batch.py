@@ -11,9 +11,9 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 3 # 50001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 2
+        self.maxBatchSize = 1
 
 ######################################################################################
 class Qnetwork():
@@ -147,6 +147,7 @@ class Env:
         self.F[12, 11] = 1;
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
+        self.F[14, 9] = 1;
 
         for i in range(self.ns):
             self.F[i, self.ns - 1] = 1
@@ -264,7 +265,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     return transition
 
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
-    if epoch % 1 == 0:
+    if epoch % 1000 == 0:
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
@@ -342,7 +343,7 @@ def Train(params, env, sess, qn):
             row = 0
             for trajectory in trajectories:
                 path2, trajNeighbours2, trajTargetQ2 = trajectory
-                print("path2", path2)
+                #print("path2", path2)
                 #print("trajNeighbours2", trajNeighbours2)
 
                 trajSize2 = trajNeighbours2.shape[0]
@@ -351,8 +352,8 @@ def Train(params, env, sess, qn):
 
                 row += trajSize2
 
-            print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
-            print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
+            #print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
+            #print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
             UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
             trajectories = []
