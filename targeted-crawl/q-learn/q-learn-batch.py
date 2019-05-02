@@ -37,7 +37,7 @@ class Qnetwork():
 
         #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
-        self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
+        #self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
 
         # HIDDEN 1
         #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
