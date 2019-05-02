@@ -302,7 +302,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     #print()
 
     trajSize = len(path)
-    trajNeighbours = np.empty([trajSize, 5])
+    trajNeighbours = np.empty([trajSize, 5], dtype=np.int)
     trajTargetQ = np.empty([trajSize, 5])
 
     i = 0
@@ -336,14 +336,15 @@ def Train(params, env, sess, qn):
         if batchSize + trajSize > maxBatchSize:
             print("trajectories", len(trajectories), trajectories)
             print("batchSize", batchSize)
-            batchNeighbours = np.empty([batchSize, 5])
+            batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
             batchTargetQ = np.empty([batchSize, 5])
 
             row = 0
             for trajectory in trajectories:
                 path2, trajNeighbours2, trajTargetQ2 = trajectory
                 print("path2", path2)
-                
+                #print("trajNeighbours2", trajNeighbours2)
+
                 trajSize2 = trajNeighbours2.shape[0]
                 batchNeighbours[row:row+trajSize2, :] = trajNeighbours2
                 batchTargetQ[row:row+trajSize2, :] = trajTargetQ2
