@@ -31,9 +31,8 @@ class Qnetwork():
         self.input = tf.placeholder(shape=[None, NUM_ACTIONS], dtype=tf.int32)
         #self.input1Hot = tf.one_hot(self.input, env.ns)
 
-        self.embedConcat = tf.nn.embedding_lookup(self.embeddings, self.input)
-        self.embedConcat = tf.reshape(self.embedConcat, [tf.shape(self.input)[0], EMBED_DIM])
-        self.embedding = self.embedConcat
+        self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
+        self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
 
         #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
@@ -264,13 +263,14 @@ def Neural(epoch, curr, params, env, sess, qn):
     return transition
 
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
-    if epoch % 10000 == 0:
-        outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
-        _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
+    if epoch % 1 == 0:
+        outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
+        _, W, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
                                                                                        qn.nextQ: targetQ})
         print("epoch", epoch)
-        #print("embeddings", embeddings)
+        print("embeddings", embeddings)
+        print("embedding", embedding)
         #print("embedConcat", embedConcat.shape)
 
         #print("  W\n", W)
