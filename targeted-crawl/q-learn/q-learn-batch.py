@@ -11,8 +11,9 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 3 #0001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
+        self.maxBatchSize = 1
 
 ######################################################################################
 class Qnetwork():
@@ -263,7 +264,7 @@ def Neural(epoch, curr, params, env, sess, qn):
     return transition
 
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
-    if epoch % 1 == 0:
+    if epoch % 10000 == 0:
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
@@ -321,7 +322,6 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 def Train(params, env, sess, qn):
     scores = []
 
-    maxBatchSize = 2
     batchSize = 0
 
     trajectories = []
@@ -333,16 +333,16 @@ def Train(params, env, sess, qn):
         assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
 
-        if batchSize + trajSize > maxBatchSize:
-            print("trajectories", len(trajectories), trajectories)
-            print("batchSize", batchSize)
+        if batchSize + trajSize > params.maxBatchSize:
+            #print("trajectories", len(trajectories), trajectories)
+            #print("batchSize", batchSize)
             batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
             batchTargetQ = np.empty([batchSize, 5])
 
             row = 0
             for trajectory in trajectories:
                 path2, trajNeighbours2, trajTargetQ2 = trajectory
-                print("path2", path2)
+                #print("path2", path2)
                 #print("trajNeighbours2", trajNeighbours2)
 
                 trajSize2 = trajNeighbours2.shape[0]
@@ -351,8 +351,8 @@ def Train(params, env, sess, qn):
 
                 row += trajSize2
 
-            print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
-            print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
+            #print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
+            #print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
             UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
             trajectories = []
