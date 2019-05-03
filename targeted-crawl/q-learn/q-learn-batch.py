@@ -14,8 +14,8 @@ class LearningParams:
         self.q_lrn_rate = 1
         self.max_epochs = 50001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 2
-        self.debug = True
+        self.maxBatchSize = 1
+        self.debug = False
         self.walk = 1000
 
 ######################################################################################
@@ -277,15 +277,15 @@ def UpdateQN(params, env, sess, qn, neighbours, targetQ):
         print()
 
     if params.debug:
-        outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
-        _, W, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
+        outs = [qn.updateModel, qn.loss, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
+        _, loss, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
                                                                                        qn.nextQ: targetQ})
         #print("embeddings", embeddings.shape, embeddings)
         #print("embedding", embedding.shape, embedding)
         #print("embedConcat", embedConcat.shape)
 
-        #print("  W\n", W)
+        #print("  Wout\n", Wout)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
 
@@ -296,7 +296,10 @@ def UpdateQN(params, env, sess, qn, neighbours, targetQ):
         #print("eps", params.eps)
 
     else:
-        sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+        _, loss = sess.run([qn.updateModel, qn.loss], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+
+    #print("loss", loss)
+    return loss
 
 def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
     batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
@@ -311,8 +314,10 @@ def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
 
         row += trajSize
 
-    print("trajectories", trajectories)
-    UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
+    #print("trajectories", trajectories)
+    loss = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
+
+    return loss
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
@@ -332,13 +337,12 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         #print("transition", transition.neighbours.shape, transition.targetQ.shape)
         trajNeighbours[i, :] = transition.neighbours
         trajTargetQ[i, :] = transition.targetQ
-        #UpdateQN1(params, env, sess, epoch, qn, transition)
-
+    
         i += 1
     return curr, path, trajNeighbours, trajTargetQ
 
 def Train(params, env, sess, qn):
-    scores = []
+    losses = []
 
     batchSize = 0
 
@@ -356,12 +360,14 @@ def Train(params, env, sess, qn):
         #print("trajSize", trajSize)
 
         if batchSize + trajSize > params.maxBatchSize:
-            UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
+            loss = UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
+            losses.append(loss)
 
             trajectories = []
             batchSize = 0
 
         if epoch % params.walk == 0:
+            print("\nepoch", epoch)
             qn.PrintAllQ(env, sess)
             env.WalkAll(sess, qn)
             env.Walk(9, sess, qn, True)
@@ -387,9 +393,7 @@ def Train(params, env, sess, qn):
     if batchSize > 0:
         UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
             
-
-
-    return scores
+    return losses
 
 ######################################################################################
 
@@ -413,14 +417,14 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
-        scores = Train(params, env, sess, qn)
+        losses = Train(params, env, sess, qn)
         print("Trained")
 
         qn.PrintAllQ(env, sess)
         env.WalkAll(sess, qn)
 
-        # plt.plot(scores)
-        # plt.show()
+        plt.plot(losses)
+        plt.show()
 
     print("Finished")
 
