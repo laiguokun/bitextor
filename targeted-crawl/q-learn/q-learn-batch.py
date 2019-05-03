@@ -11,10 +11,10 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 200 #50001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 2
-        self.debug = True
+        self.maxBatchSize = 32
+        self.debug = False
 
 ######################################################################################
 class Qnetwork():
@@ -261,20 +261,24 @@ def Neural(epoch, curr, params, env, sess, qn):
     #print("  new Q", a, allQ)
 
     Transition = namedtuple("Transition", "curr next done neighbours targetQ")
-    transition = Transition(curr, next, done, neighbours, targetQ)
+    transition = Transition(curr, next, done, np.array(neighbours, copy=True), np.array(targetQ, copy=True))
 
     return transition
 
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
     outLoop = 1000
-    if params.debug: outLoop = 1
+    if params.debug: 
+        outLoop = 1
+        print("neighbours", neighbours)
+        print("targetQ", targetQ)
+        print()
 
     if epoch % outLoop == 0:
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
                                                                                        qn.nextQ: targetQ})
-        print("epoch", epoch)
+        #print("epoch", epoch)
         #print("embeddings", embeddings.shape, embeddings)
         #print("embedding", embedding.shape, embedding)
         #print("embedConcat", embedConcat.shape)
@@ -284,44 +288,31 @@ def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
         #print("  BiasHidden\n", BiasHidden)
         qn.PrintAllQ(env, sess)
         env.WalkAll(sess, qn)
-        env.Walk(9, sess, qn, True)
+        #env.Walk(9, sess, qn, True)
 
         #print("curr", curr, "next", next, "action", a)
         #print("allQ", allQ)
         #print("targetQ", targetQ)
         #print("Qout", Qout)
-        print("eps", params.eps)
+        #print("eps", params.eps)
 
-        print()
     else:
         sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
 def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
-    if params.debug:
-        print("trajectories", len(trajectories), trajectories)
-        print("batchSize", batchSize)
-
     batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
     batchTargetQ = np.empty([batchSize, 5])
 
     row = 0
     for trajectory in trajectories:
         path, trajNeighbours, trajTargetQ = trajectory
-        if params.debug:
-            print("path", path)
-            print("trajNeighbours", trajNeighbours)
-
         trajSize = trajNeighbours.shape[0]
         batchNeighbours[row:row+trajSize, :] = trajNeighbours
         batchTargetQ[row:row+trajSize, :] = trajTargetQ
 
         row += trajSize
 
-    if params.debug:
-        print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
-        print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
-        print()
-        
+
     UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
 def Trajectory(epoch, curr, params, env, sess, qn):
@@ -330,10 +321,8 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         transition = Neural(epoch, curr, params, env, sess, qn)
         path.append(transition)
         curr = transition.next
-        print("transition", transition)
 
         if transition.done: break
-    print("DONE\n")
 
     trajSize = len(path)
     trajNeighbours = np.empty([trajSize, 5], dtype=np.int)
@@ -347,9 +336,6 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         #UpdateQN1(params, env, sess, epoch, qn, transition)
 
         i += 1
-    #print("path", len(path), path)
-    #print("   batchNeighbours", batchNeighbours)
-    #print("   batchTargetQ", batchTargetQ)
     return curr, path, trajNeighbours, trajTargetQ
 
 def Train(params, env, sess, qn):
@@ -361,7 +347,10 @@ def Train(params, env, sess, qn):
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
         stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
-        #print("stopState", stopState, trajNeighbours.shape, trajTargetQ.shape)
+        
+        if params.debug:
+            print("path", stopState, path)
+    
         assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
         assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
@@ -418,8 +407,8 @@ def Main():
         scores = Train(params, env, sess, qn)
         print("Trained")
 
-        #qn.PrintAllQ(env, sess)
-        #env.WalkAll(sess, qn)
+        qn.PrintAllQ(env, sess)
+        env.WalkAll(sess, qn)
 
         # plt.plot(scores)
         # plt.show()
