@@ -274,26 +274,25 @@ def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
         _, W, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
                                                                                        qn.nextQ: targetQ})
-        if params.debug:
-            print("epoch", epoch)
-            print("embeddings", embeddings.shape, embeddings)
-            print("embedding", embedding.shape, embedding)
-            #print("embedConcat", embedConcat.shape)
+        print("epoch", epoch)
+        print("embeddings", embeddings.shape, embeddings)
+        print("embedding", embedding.shape, embedding)
+        #print("embedConcat", embedConcat.shape)
 
-            #print("  W\n", W)
-            #print("  Whidden\n", Whidden)
-            #print("  BiasHidden\n", BiasHidden)
-            qn.PrintAllQ(env, sess)
-            env.WalkAll(sess, qn)
-            env.Walk(9, sess, qn, True)
+        #print("  W\n", W)
+        #print("  Whidden\n", Whidden)
+        #print("  BiasHidden\n", BiasHidden)
+        qn.PrintAllQ(env, sess)
+        env.WalkAll(sess, qn)
+        env.Walk(9, sess, qn, True)
 
-            #print("curr", curr, "next", next, "action", a)
-            #print("allQ", allQ)
-            #print("targetQ", targetQ)
-            #print("Qout", Qout)
-            print("eps", params.eps)
+        #print("curr", curr, "next", next, "action", a)
+        #print("allQ", allQ)
+        #print("targetQ", targetQ)
+        #print("Qout", Qout)
+        print("eps", params.eps)
 
-            print()
+        print()
     else:
         sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
@@ -301,7 +300,7 @@ def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
     if params.debug:
         print("trajectories", len(trajectories), trajectories)
         print("batchSize", batchSize)
-        
+
     batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
     batchTargetQ = np.empty([batchSize, 5])
 
