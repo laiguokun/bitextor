@@ -11,10 +11,10 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 50001
+        self.max_epochs = 200 #50001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 1
-        self.debug = False
+        self.maxBatchSize = 2
+        self.debug = True
 
 ######################################################################################
 class Qnetwork():
@@ -38,7 +38,7 @@ class Qnetwork():
 
         #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
-        #self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
+        self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
 
         # HIDDEN 1
         #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
@@ -275,8 +275,8 @@ def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
                                                                             feed_dict={qn.input: neighbours,
                                                                                        qn.nextQ: targetQ})
         print("epoch", epoch)
-        print("embeddings", embeddings.shape, embeddings)
-        print("embedding", embedding.shape, embedding)
+        #print("embeddings", embeddings.shape, embeddings)
+        #print("embedding", embedding.shape, embedding)
         #print("embedConcat", embedConcat.shape)
 
         #print("  W\n", W)
@@ -320,6 +320,8 @@ def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
     if params.debug:
         print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
         print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
+        print()
+        
     UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
 def Trajectory(epoch, curr, params, env, sess, qn):
@@ -328,9 +330,10 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         transition = Neural(epoch, curr, params, env, sess, qn)
         path.append(transition)
         curr = transition.next
+        print("transition", transition)
 
         if transition.done: break
-    #print()
+    print("DONE\n")
 
     trajSize = len(path)
     trajNeighbours = np.empty([trajSize, 5], dtype=np.int)
@@ -415,8 +418,8 @@ def Main():
         scores = Train(params, env, sess, qn)
         print("Trained")
 
-        qn.PrintAllQ(env, sess)
-        env.WalkAll(sess, qn)
+        #qn.PrintAllQ(env, sess)
+        #env.WalkAll(sess, qn)
 
         # plt.plot(scores)
         # plt.show()
