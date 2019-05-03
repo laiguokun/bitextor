@@ -14,6 +14,7 @@ class LearningParams:
         self.max_epochs = 50001
         self.eps = 1  # 0.7
         self.maxBatchSize = 1
+        self.debug = False
 
 ######################################################################################
 class Qnetwork():
@@ -265,44 +266,51 @@ def Neural(epoch, curr, params, env, sess, qn):
     return transition
 
 def UpdateQN(params, env, sess, epoch, qn, neighbours, targetQ):
-    if epoch % 1000 == 0:
+    outLoop = 1000
+    if params.debug: outLoop = 1
+
+    if epoch % outLoop == 0:
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
                                                                                        qn.nextQ: targetQ})
-        print("epoch", epoch)
-        print("embeddings", embeddings)
-        print("embedding", embedding)
-        #print("embedConcat", embedConcat.shape)
+        if params.debug:
+            print("epoch", epoch)
+            print("embeddings", embeddings.shape, embeddings)
+            print("embedding", embedding.shape, embedding)
+            #print("embedConcat", embedConcat.shape)
 
-        #print("  W\n", W)
-        #print("  Whidden\n", Whidden)
-        #print("  BiasHidden\n", BiasHidden)
-        qn.PrintAllQ(env, sess)
-        env.WalkAll(sess, qn)
-        env.Walk(9, sess, qn, True)
+            #print("  W\n", W)
+            #print("  Whidden\n", Whidden)
+            #print("  BiasHidden\n", BiasHidden)
+            qn.PrintAllQ(env, sess)
+            env.WalkAll(sess, qn)
+            env.Walk(9, sess, qn, True)
 
-        #print("curr", curr, "next", next, "action", a)
-        #print("allQ", allQ)
-        #print("targetQ", targetQ)
-        #print("Qout", Qout)
-        print("eps", params.eps)
+            #print("curr", curr, "next", next, "action", a)
+            #print("allQ", allQ)
+            #print("targetQ", targetQ)
+            #print("Qout", Qout)
+            print("eps", params.eps)
 
-        print()
+            print()
     else:
         sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
 def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
-    #print("trajectories", len(trajectories), trajectories)
-    #print("batchSize", batchSize)
+    if params.debug:
+        print("trajectories", len(trajectories), trajectories)
+        print("batchSize", batchSize)
+        
     batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
     batchTargetQ = np.empty([batchSize, 5])
 
     row = 0
     for trajectory in trajectories:
         path, trajNeighbours, trajTargetQ = trajectory
-        #print("path", path)
-        #print("trajNeighbours2", trajNeighbours)
+        if params.debug:
+            print("path", path)
+            print("trajNeighbours", trajNeighbours)
 
         trajSize = trajNeighbours.shape[0]
         batchNeighbours[row:row+trajSize, :] = trajNeighbours
@@ -310,8 +318,9 @@ def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
 
         row += trajSize
 
-    #print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
-    #print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
+    if params.debug:
+        print("batchNeighbours", batchNeighbours.shape, batchNeighbours)
+        print("batchTargetQ", batchTargetQ.shape, batchTargetQ)
     UpdateQN(params, env, sess, epoch, qn, batchNeighbours, batchTargetQ)
 
 def Trajectory(epoch, curr, params, env, sess, qn):
