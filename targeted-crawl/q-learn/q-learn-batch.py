@@ -11,6 +11,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
+        self.q_lrn_rate = 1
         self.max_epochs = 50001
         self.eps = 1  # 0.7
         self.maxBatchSize = 2
@@ -255,7 +256,8 @@ def Neural(epoch, curr, params, env, sess, qn):
         #targetQ = allQ
         targetQ = np.array(allQ, copy=True)
         #print("  targetQ", targetQ)
-        targetQ[0, a] = r + params.gamma * maxQ1
+        newVal = r + params.gamma * maxQ1
+        targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
         #print("  targetQ", targetQ)
 
     #print("  targetQ", targetQ, maxQ1)
@@ -375,6 +377,11 @@ def Train(params, env, sess, qn):
             params.eps *= .999
             params.eps = max(0.1, params.eps)
             #print("eps", params.eps)
+            
+            params.q_lrn_rate * 0.999
+            params.q_lrn_rate = max(0.1, params.q_lrn_rate)
+            #print("q_lrn_rate", params.q_lrn_rate)
+            
 
     # LAST BATCH
     if batchSize > 0:
