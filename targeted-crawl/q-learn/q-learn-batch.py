@@ -12,7 +12,7 @@ class LearningParams:
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 50001
+        self.max_epochs = 20001
         self.eps = 1  # 0.7
         self.maxBatchSize = 1
         self.debug = False
@@ -94,8 +94,12 @@ class Qnetwork():
         #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
         #self.Qout = tf.nn.sigmoid(self.Qout)
         self.Qout = tf.math.multiply(self.Qout, 0.1)
-
         self.predict = tf.argmax(self.Qout, 1)
+
+        self.sumWeight = tf.reduce_sum(self.Wout) \
+                        + tf.reduce_sum(self.BiasHidden2) \
+                        + tf.reduce_sum(self.Whidden2) \
+                        + tf.reduce_sum(self.Whidden1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
@@ -277,8 +281,8 @@ def UpdateQN(params, env, sess, qn, neighbours, targetQ):
         print()
 
     if params.debug:
-        outs = [qn.updateModel, qn.loss, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
-        _, loss, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
+        outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
+        _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                             feed_dict={qn.input: neighbours,
                                                                                        qn.nextQ: targetQ})
         #print("embeddings", embeddings.shape, embeddings)
@@ -296,10 +300,10 @@ def UpdateQN(params, env, sess, qn, neighbours, targetQ):
         #print("eps", params.eps)
 
     else:
-        _, loss = sess.run([qn.updateModel, qn.loss], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+        _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
     #print("loss", loss)
-    return loss
+    return loss, sumWeight
 
 def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
     batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
@@ -315,9 +319,9 @@ def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
         row += trajSize
 
     #print("trajectories", trajectories)
-    loss = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
+    loss, sumWeight = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
 
-    return loss
+    return loss, sumWeight
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
@@ -343,6 +347,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 
 def Train(params, env, sess, qn):
     losses = []
+    sumWeights = []
 
     batchSize = 0
 
@@ -360,8 +365,9 @@ def Train(params, env, sess, qn):
         #print("trajSize", trajSize)
 
         if batchSize + trajSize > params.maxBatchSize:
-            loss = UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
+            loss, sumWeight = UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
             losses.append(loss)
+            sumWeights.append(sumWeight)
 
             trajectories = []
             batchSize = 0
@@ -393,7 +399,7 @@ def Train(params, env, sess, qn):
     if batchSize > 0:
         UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
             
-    return losses
+    return losses, sumWeights
 
 ######################################################################################
 
@@ -417,13 +423,16 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
-        losses = Train(params, env, sess, qn)
+        losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
 
         qn.PrintAllQ(env, sess)
         env.WalkAll(sess, qn)
 
         plt.plot(losses)
+        plt.show()
+
+        plt.plot(sumWeights)
         plt.show()
 
     print("Finished")
