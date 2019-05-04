@@ -12,7 +12,7 @@ class LearningParams:
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 20001
+        self.max_epochs = 100001
         self.eps = 1  # 0.7
         self.maxBatchSize = 1
         self.debug = False
@@ -263,7 +263,8 @@ def Neural(epoch, curr, params, env, sess, qn):
         targetQ = np.array(allQ, copy=True)
         #print("  targetQ", targetQ)
         newVal = r + params.gamma * maxQ1
-        targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
+        #targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
+        targetQ[0, a] = newVal
         #print("  targetQ", targetQ)
 
     #print("  targetQ", targetQ, maxQ1)
@@ -310,6 +311,9 @@ def UpdateQN(params, env, sess, qn, neighbours, targetQ):
 def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
     batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
     batchTargetQ = np.empty([batchSize, 5])
+    #print("batchSize", batchSize)
+    #print("batchNeighbours", batchNeighbours.shape)
+    #print("batchTargetQ", batchTargetQ.shape)
 
     row = 0
     for trajectory in trajectories:
@@ -322,6 +326,14 @@ def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
 
     #print("trajectories", trajectories)
     loss, sumWeight = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
+
+    #loss = 0
+    #sumWeight = 0
+    #for i in range(batchSize):
+    #    n = batchNeighbours[i:i+1,:]
+    #    t = batchTargetQ[i:i+1,:]
+    #    #print("n", n.shape, t.shape)
+    #    loss, sumWeight = UpdateQN(params, env, sess, qn, n, t)
 
     return loss, sumWeight
 
@@ -367,6 +379,7 @@ def Train(params, env, sess, qn):
         #print("trajSize", trajSize)
 
         if batchSize + trajSize > params.maxBatchSize:
+            #print("batchSize", batchSize)
             loss, sumWeight = UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
             losses.append(loss)
             sumWeights.append(sumWeight)
