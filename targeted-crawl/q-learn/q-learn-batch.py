@@ -40,7 +40,7 @@ class Qnetwork():
 
         #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
-        self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
+        #self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
 
         # HIDDEN 1
         #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
@@ -104,7 +104,9 @@ class Qnetwork():
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
-        self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
+        
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PrintQ(self, curr, env, sess):
@@ -211,22 +213,22 @@ class Env:
             next, reward, done = self.GetNextState(curr, action, neighbours)
             totReward += reward
 
-            if printQ:
-                print("printQ", action, allQ, neighbours)
+            #if printQ:
+            #    print("printQ", action, allQ, neighbours)
 
-            print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            # print(str(next) + "->", end="")
+            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+            print(str(next) + "->", end="")
             curr = next
 
             if done: break
             if curr == self.goal: break
 
             i += 1
-            if i > 50:
-                print("LOOPING")
+            if i > 20:
+                print("LOOPING", end="")
                 break
 
-        print("done", totReward)
+        print(" ", totReward)
 
     def WalkAll(self, sess, qn):
         for start in range(self.ns):
@@ -353,8 +355,8 @@ def Train(params, env, sess, qn):
 
     trajectories = []
     for epoch in range(params.max_epochs):
-        curr = np.random.randint(0, env.ns)  # random start state
-        stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, curr, params, env, sess, qn)
+        startState = np.random.randint(0, env.ns)  # random start state
+        stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, startState, params, env, sess, qn)
         
         #if params.debug:
         #    print("path", stopState, path)
@@ -376,7 +378,7 @@ def Train(params, env, sess, qn):
             print("\nepoch", epoch)
             qn.PrintAllQ(env, sess)
             env.WalkAll(sess, qn)
-            env.Walk(9, sess, qn, True)
+            #env.Walk(9, sess, qn, True)
 
         # add to batch
         ele = (path, trajNeighbours, trajTargetQ)
@@ -390,8 +392,8 @@ def Train(params, env, sess, qn):
             params.eps = max(0.1, params.eps)
             #print("eps", params.eps)
             
-            params.q_lrn_rate * 0.999
-            params.q_lrn_rate = max(0.1, params.q_lrn_rate)
+            #params.q_lrn_rate * 0.999
+            #params.q_lrn_rate = max(0.1, params.q_lrn_rate)
             #print("q_lrn_rate", params.q_lrn_rate)
             
 
