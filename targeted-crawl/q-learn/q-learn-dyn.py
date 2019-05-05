@@ -426,17 +426,26 @@ class Node:
 
     def AddNeighbours(self, env, nodes):
         neighboursId = env.GetNeighBours(self.id)
-        print("neighboursId", neighboursId)
+        #print("neighboursId", neighboursId)
 
         self.neighbours = []
         for neighbourId in neighboursId[0]:
             if neighbourId in nodes:
                 node = nodes[neighbourId]
             else:
-                print("neighbourId", neighbourId)
+                #print("neighbourId", neighbourId)
                 node = Node(neighbourId, nodes)
                 node.AddNeighbours(env, nodes)
             self.neighbours.append(node)
+
+    def CalcQ(self, env, visited):
+        visited.add(self.id)
+
+        for neighbour in self.neighbours:
+            if neighbour.id not in visited:
+                print("neighbourId", neighbour.id, visited)
+                neighbour.CalcQ(env, visited)
+
 
 ######################################################################################
 ######################################################################################
@@ -452,6 +461,9 @@ def Main():
     nodes = {}
     node = Node(1, nodes)
     node.AddNeighbours(env, nodes)
+
+    visited = set()
+    node.CalcQ(env, visited)
     print("node", node)
 
     dsfsdf
