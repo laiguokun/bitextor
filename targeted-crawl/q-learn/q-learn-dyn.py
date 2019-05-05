@@ -4,14 +4,19 @@ import numpy as np
 import pylab as plt
 import tensorflow as tf
 import random
+from collections import namedtuple
 
 ######################################################################################
 class LearningParams:
     def __init__(self):
         self.gamma = 0.99 #0.1
         self.lrn_rate = 0.1
-        self.max_epochs = 200001
+        self.q_lrn_rate = 1
+        self.max_epochs = 100001
         self.eps = 1  # 0.7
+        self.maxBatchSize = 1
+        self.debug = False
+        self.walk = 1000
 
 ######################################################################################
 class Qnetwork():
@@ -27,16 +32,15 @@ class Qnetwork():
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
 
-        self.input = tf.placeholder(shape=[NUM_ACTIONS], dtype=tf.int32)
+        self.input = tf.placeholder(shape=[None, NUM_ACTIONS], dtype=tf.int32)
         #self.input1Hot = tf.one_hot(self.input, env.ns)
 
-        self.embedConcat = tf.nn.embedding_lookup(self.embeddings, self.input)
-        self.embedConcat = tf.reshape(self.embedConcat, [1, EMBED_DIM])
-        self.embedding = self.embedConcat
+        self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
+        self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
 
         #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
         #self.embedding = tf.math.multiply(self.embedding, 0.1)
-        self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
+        #self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
 
         # HIDDEN 1
         #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
@@ -45,7 +49,7 @@ class Qnetwork():
         self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM, EMBED_DIM], 0, 0.01))
         #self.Whidden1 = tf.nn.softmax(self.Whidden1, axis=1)
         #self.Whidden1 = tf.nn.sigmoid(self.Whidden1)
-        #self.Whidden1 = tf.math.l2_normalize(self.Whidden1, axis=1)
+        self.Whidden1 = tf.math.l2_normalize(self.Whidden1, axis=1)
 
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
         #self.hidden1 = tf.nn.softmax(self.hidden1, axis=1)
@@ -90,26 +94,30 @@ class Qnetwork():
         #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
         #self.Qout = tf.nn.sigmoid(self.Qout)
         self.Qout = tf.math.multiply(self.Qout, 0.1)
-
         self.predict = tf.argmax(self.Qout, 1)
 
+        self.sumWeight = tf.reduce_sum(self.Wout) \
+                        + tf.reduce_sum(self.BiasHidden2) \
+                        + tf.reduce_sum(self.Whidden2) \
+                        + tf.reduce_sum(self.Whidden1)
+
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[1, 5], dtype=tf.float32)
+        self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
-
+        
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def my_print1(self, curr, env, sess):
+    def PrintQ(self, curr, env, sess):
         # print("hh", next, hh)
         neighbours = env.GetNeighBours(curr)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
-        print("curr=", curr, "a=", a, "allQ=", allQ, env.GetNeighBours(curr))
+        print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
 
-    def my_print(self, env, sess):
+    def PrintAllQ(self, env, sess):
         for curr in range(env.ns):
-            self.my_print1(curr, env, sess)
+            self.PrintQ(curr, env, sess)
 
 ######################################################################################
 # helpers
@@ -148,6 +156,7 @@ class Env:
         self.F[12, 11] = 1;
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
+        self.F[14, 9] = 1;
 
         for i in range(self.ns):
             self.F[i, self.ns - 1] = 1
@@ -155,8 +164,7 @@ class Env:
 
     def GetNextState(self, curr, action, neighbours):
         #print("curr", curr, action, neighbours)
-        assert(action < len(neighbours))
-        next = neighbours[action]
+        next = neighbours[0, action]
         assert(next >= 0)
         #print("next", next)
 
@@ -183,10 +191,15 @@ class Env:
             ret.append(self.ns - 1)
 
         random.shuffle(ret)
-        #print("GetNeighBours", curr, ret)
+
+        #ret = np.empty([5,1])
+        ret = np.array(ret)
+        ret = ret.reshape([1, 5])
+        #print("GetNeighBours", ret.shape, ret)
+
         return ret
 
-    def Walk1(self, start, sess, qn):
+    def Walk(self, start, sess, qn, printQ):
         curr = start
         i = 0
         totReward = 0
@@ -200,23 +213,26 @@ class Env:
             next, reward, done = self.GetNextState(curr, action, neighbours)
             totReward += reward
 
-            print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            # print(str(next) + "->", end="")
+            #if printQ:
+            #    print("printQ", action, allQ, neighbours)
+
+            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+            print(str(next) + "->", end="")
             curr = next
 
             if done: break
             if curr == self.goal: break
 
             i += 1
-            if i > 50:
-                print("LOOPING")
+            if i > 20:
+                print("LOOPING", end="")
                 break
 
-        print("done", totReward)
+        print(" ", totReward)
 
-    def Walk(self, sess, qn):
+    def WalkAll(self, sess, qn):
         for start in range(self.ns):
-            self.Walk1(start, sess, qn)
+            self.Walk(start, sess, qn, False)
 
 ######################################################################################
 
@@ -246,103 +262,224 @@ def Neural(epoch, curr, params, env, sess, qn):
         #targetQ = allQ
         targetQ = np.array(allQ, copy=True)
         #print("  targetQ", targetQ)
-        targetQ[0, a] = r + params.gamma * maxQ1
+        newVal = r + params.gamma * maxQ1
+        #targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
+        targetQ[0, a] = newVal
         #print("  targetQ", targetQ)
 
     #print("  targetQ", targetQ, maxQ1)
+    #print("  new Q", a, allQ)
 
-    if epoch % 10000 == 0:
-        #print("neighbours", curr, neighbours)
-        outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
-        _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
-                                              feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
-        print("epoch", epoch)
-        #print("embeddings", embeddings)
+    Transition = namedtuple("Transition", "curr next done neighbours targetQ")
+    transition = Transition(curr, next, done, np.array(neighbours, copy=True), np.array(targetQ, copy=True))
+
+    return transition
+
+def UpdateQN(params, env, sess, qn, neighbours, targetQ):
+    outLoop = 1000
+    if params.debug: 
+        outLoop = 1
+        print("neighbours", neighbours)
+        print("targetQ", targetQ)
+        print()
+
+    if params.debug:
+        outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
+        _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
+                                                                            feed_dict={qn.input: neighbours,
+                                                                                       qn.nextQ: targetQ})
+        #print("embeddings", embeddings.shape, embeddings)
+        #print("embedding", embedding.shape, embedding)
         #print("embedConcat", embedConcat.shape)
 
-        #print("  W\n", W)
+        #print("  Wout\n", Wout)
         #print("  Whidden\n", Whidden)
         #print("  BiasHidden\n", BiasHidden)
-        qn.my_print(env, sess)
-        env.Walk(sess, qn)
 
         #print("curr", curr, "next", next, "action", a)
         #print("allQ", allQ)
         #print("targetQ", targetQ)
         #print("Qout", Qout)
-        print("eps", params.eps)
+        #print("eps", params.eps)
 
-        print()
     else:
-        sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+        _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
-    #print("  new Q", a, allQ)
+    #print("loss", loss)
+    return loss, sumWeight
 
-    return next, done
+def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
+    batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
+    batchTargetQ = np.empty([batchSize, 5])
+    #print("batchSize", batchSize)
+    #print("batchNeighbours", batchNeighbours.shape)
+    #print("batchTargetQ", batchTargetQ.shape)
 
+    row = 0
+    for trajectory in trajectories:
+        path, trajNeighbours, trajTargetQ = trajectory
+        trajSize = trajNeighbours.shape[0]
+        batchNeighbours[row:row+trajSize, :] = trajNeighbours
+        batchTargetQ[row:row+trajSize, :] = trajTargetQ
+
+        row += trajSize
+
+    #print("trajectories", trajectories)
+    loss, sumWeight = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
+
+    #loss = 0
+    #sumWeight = 0
+    #for i in range(batchSize):
+    #    n = batchNeighbours[i:i+1,:]
+    #    t = batchTargetQ[i:i+1,:]
+    #    #print("n", n.shape, t.shape)
+    #    loss, sumWeight = UpdateQN(params, env, sess, qn, n, t)
+
+    return loss, sumWeight
 
 def Trajectory(epoch, curr, params, env, sess, qn):
+    path = []
     while (True):
-        next, done = Neural(epoch, curr, params, env, sess, qn)
-        #next, done = Tabular(curr, Q, gamma, lrn_rate, env)
-        curr = next
+        transition = Neural(epoch, curr, params, env, sess, qn)
+        path.append(transition)
+        curr = transition.next
 
-        if done: break
-    #print()
-    return next
+        if transition.done: break
+
+    trajSize = len(path)
+    trajNeighbours = np.empty([trajSize, 5], dtype=np.int)
+    trajTargetQ = np.empty([trajSize, 5])
+
+    i = 0
+    for transition in path:
+        #print("transition", transition.neighbours.shape, transition.targetQ.shape)
+        trajNeighbours[i, :] = transition.neighbours
+        trajTargetQ[i, :] = transition.targetQ
+    
+        i += 1
+    return curr, path, trajNeighbours, trajTargetQ
 
 def Train(params, env, sess, qn):
+    losses = []
+    sumWeights = []
 
-    scores = []
+    batchSize = 0
 
+    trajectories = []
     for epoch in range(params.max_epochs):
-        curr = np.random.randint(0, env.ns)  # random start state
-        stopState = Trajectory(epoch, curr, params, env, sess, qn)
-        #print("stopState", stopState)
+        startState = np.random.randint(0, env.ns)  # random start state
+        stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, startState, params, env, sess, qn)
+        
+        #if params.debug:
+        #    print("path", stopState, path)
+    
+        assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
+        assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
+        trajSize = trajNeighbours.shape[0]
+        #print("trajSize", trajSize)
+
+        if batchSize + trajSize > params.maxBatchSize:
+            #print("batchSize", batchSize)
+            loss, sumWeight = UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
+            losses.append(loss)
+            sumWeights.append(sumWeight)
+
+            trajectories = []
+            batchSize = 0
+
+        if epoch % params.walk == 0:
+            print("\nepoch", epoch)
+            qn.PrintAllQ(env, sess)
+            env.WalkAll(sess, qn)
+            #env.Walk(9, sess, qn, True)
+
+        # add to batch
+        ele = (path, trajNeighbours, trajTargetQ)
+        trajectories.append(ele)
+
+        batchSize += trajSize
 
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
             params.eps *= .999
             params.eps = max(0.1, params.eps)
             #print("eps", params.eps)
+            
+            #params.q_lrn_rate * 0.999
+            #params.q_lrn_rate = max(0.1, params.q_lrn_rate)
+            #print("q_lrn_rate", params.q_lrn_rate)
+            
 
-    return scores
+    # LAST BATCH
+    if batchSize > 0:
+        UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories)
+            
+    return losses, sumWeights
 
 ######################################################################################
+class Node:
+    def __init__(self, id, nodes):
+        self.id = id
+        self.Q = np.zeros([1,5])
+        assert(id not in nodes)
+        nodes[id] = self
 
+    def AddNeighbours(self, env, nodes):
+        neighboursId = env.GetNeighBours(self.id)
+        print("neighboursId", neighboursId)
+
+        self.neighbours = []
+        for neighbourId in neighboursId[0]:
+            if neighbourId in nodes:
+                node = nodes[neighbourId]
+            else:
+                print("neighbourId", neighbourId)
+                node = Node(neighbourId, nodes)
+                node.AddNeighbours(env, nodes)
+            self.neighbours.append(node)
+
+######################################################################################
 ######################################################################################
 
 def Main():
     print("Starting")
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.5f}".format(x)})
-    print("Setting up maze in memory")
 
     # =============================================================
-    print("Analyzing maze with RL Q-learning")
     env = Env()
+    
+    nodes = {}
+    node = Node(1, nodes)
+    node.AddNeighbours(env, nodes)
+    print("node", node)
+
+    dsfsdf
+    # =============================================================
 
     params = LearningParams()
 
     tf.reset_default_graph()
     qn = Qnetwork(params.lrn_rate, env)
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     print("qn.Qout", qn.Qout)
 
     with tf.Session() as sess:
         sess.run(init)
 
-        scores = Train(params, env, sess, qn)
+        losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
 
-        qn.my_print(env, sess)
+        qn.PrintAllQ(env, sess)
+        env.WalkAll(sess, qn)
 
-        env.Walk(sess, qn)
+        plt.plot(losses)
+        plt.show()
 
-        # plt.plot(scores)
-        # plt.show()
+        plt.plot(sumWeights)
+        plt.show()
 
-        print("Finished")
+    print("Finished")
 
 
 if __name__ == "__main__":
