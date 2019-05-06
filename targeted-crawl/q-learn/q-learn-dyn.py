@@ -446,6 +446,11 @@ class Node:
             #print("neighbourId", neighbour.id, visited, i)
             if neighbour.id == env.goal:
                 self.allQ[0, i] = 8.5
+            elif neighbour.id == env.ns - 1:
+                self.allQ[0, i] = 0
+            else:
+                self.allQ[0, i] = 0 #-1
+            
 
             if neighbour.id not in visited:
                 neighbour.CalcQ(env, visited)
