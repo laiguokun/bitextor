@@ -439,9 +439,6 @@ class Node:
             self.neighbours.append(node)
 
     def CalcQ(self, env, visited):
-        if self.id in visited:
-            return
-
         visited.add(self.id)
 
         i = 0
@@ -482,7 +479,7 @@ def Main():
     env = Env()
     
     nodes = {}
-    node = Node(1, nodes)
+    node = Node(0, nodes)
     node.AddNeighbours(env, nodes)
 
     visited = set()
