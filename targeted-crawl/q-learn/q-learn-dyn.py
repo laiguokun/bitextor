@@ -156,7 +156,7 @@ class Env:
         self.F[12, 11] = 1;
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
-        self.F[14, 9] = 1;
+        #self.F[14, 9] = 1;
 
         for i in range(self.ns):
             self.F[i, self.ns - 1] = 1
@@ -420,7 +420,7 @@ def Train(params, env, sess, qn):
 class Node:
     def __init__(self, id, nodes):
         self.id = id
-        self.Q = np.zeros([1,5])
+        self.allQ = np.zeros([1,5])
         assert(id not in nodes)
         nodes[id] = self
 
@@ -439,13 +439,36 @@ class Node:
             self.neighbours.append(node)
 
     def CalcQ(self, env, visited):
+        if self.id in visited:
+            return
+
         visited.add(self.id)
 
+        i = 0
         for neighbour in self.neighbours:
+            #print("neighbourId", neighbour.id, visited, i)
+            if neighbour.id == env.goal:
+                self.allQ[0, i] = 8.5
+
             if neighbour.id not in visited:
-                print("neighbourId", neighbour.id, visited)
                 neighbour.CalcQ(env, visited)
 
+            maxQ = neighbour.GetMaxQ()
+            #print("maxQ", maxQ)
+
+            self.allQ[0, i] += maxQ #* .9
+                
+            i += 1
+
+        print("node", self.id, self.allQ, end=" ")
+        for neighbour in self.neighbours:
+            print(neighbour.id, end=" ")
+        print()
+
+    def GetMaxQ(self):
+        #print("self.allQ", self.id, self.allQ)
+        ret = np.max(self.allQ)
+        return ret
 
 ######################################################################################
 ######################################################################################
