@@ -12,7 +12,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 200001
+        self.max_epochs = 100001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -49,7 +49,7 @@ class Qnetwork():
         self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM, EMBED_DIM], 0, 0.01))
         #self.Whidden1 = tf.nn.softmax(self.Whidden1, axis=1)
         #self.Whidden1 = tf.nn.sigmoid(self.Whidden1)
-        self.Whidden1 = tf.math.l2_normalize(self.Whidden1, axis=1)
+        #self.Whidden1 = tf.math.l2_normalize(self.Whidden1, axis=1)
 
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
         #self.hidden1 = tf.nn.softmax(self.hidden1, axis=1)
