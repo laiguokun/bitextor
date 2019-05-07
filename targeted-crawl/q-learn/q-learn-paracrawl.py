@@ -392,12 +392,16 @@ class Sitemap:
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
-        self.nodes = {}
+        self.nodes = {} # indexed by URL id
         for rec in res:
             #print("rec", rec[0], rec[1])
             node = Node(rec[0], rec[1])
             self.nodes[node.urlId] = node
         print("nodes", len(self.nodes))
+
+        # links between nodes, possibly to nodes without doc
+        for node in self.nodes.values():
+            node.CreateLinks(sqlconn)
 
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)
@@ -406,6 +410,20 @@ class Node:
     def __init__(self, urlId, docId):
         self.urlId = urlId
         self.docId = docId
+
+    def CreateLinks(self, sqlconn):
+        sql = "select id, text, url_id from link where document_id = %s"
+        val = (self.docId,)
+        print("sql", sql)
+        sqlconn.mycursor.execute(sql, val)
+        res = sqlconn.mycursor.fetchall()
+        assert (res is not None)
+
+        self.nodes = {} # indexed by URL id
+        for rec in res:
+            text = rec[1]
+            urlId = rec[2]
+            print("urlid", self.docId, text, urlId)
 
 """     def __init__(self, sqlconn, url, find1stDoc):
         self.url = url
