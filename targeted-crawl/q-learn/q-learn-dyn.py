@@ -449,7 +449,7 @@ class Node:
             elif neighbour.id == env.ns - 1:
                 self.allQ[0, i] = 0
             else:
-                self.allQ[0, i] = 0 #-1
+                self.allQ[0, i] = -1
             
 
             if neighbour.id not in visited:
