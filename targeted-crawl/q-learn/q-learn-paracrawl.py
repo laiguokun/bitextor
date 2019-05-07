@@ -386,11 +386,28 @@ class MySQL:
 
 class Sitemap:
     def __init__(self, sqlconn, url):
-        node = Node(sqlconn, url, True)
-        print("node", node.docId, node.urlId)
+        # all nodes with docs
+        sql = "select id, document_id from url where document_id is not null"
+        sqlconn.mycursor.execute(sql)
+        res = sqlconn.mycursor.fetchall()
+        assert (res is not None)
+
+        self.nodes = {}
+        for rec in res:
+            #print("rec", rec[0], rec[1])
+            node = Node(rec[0], rec[1])
+            self.nodes[node.urlId] = node
+        print("nodes", len(self.nodes))
+
+        #node = Node(sqlconn, url, True)
+        #print("node", node.docId, node.urlId)
 
 class Node:
-    def __init__(self, sqlconn, url, find1stDoc):
+    def __init__(self, urlId, docId):
+        self.urlId = urlId
+        self.docId = docId
+
+"""     def __init__(self, sqlconn, url, find1stDoc):
         self.url = url
 
         if find1stDoc:
@@ -406,7 +423,7 @@ class Node:
 
         self.urlId = res[0]
         self.docId = res[1]
-
+ """
 
 ######################################################################################
 
