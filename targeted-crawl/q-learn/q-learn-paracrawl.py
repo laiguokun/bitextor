@@ -401,7 +401,7 @@ class Sitemap:
 
         # links between nodes, possibly to nodes without doc
         for node in self.nodes.values():
-            node.CreateLinks(sqlconn)
+            node.CreateLinks(sqlconn, self.nodes)
 
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)
@@ -411,37 +411,29 @@ class Node:
         self.urlId = urlId
         self.docId = docId
 
-    def CreateLinks(self, sqlconn):
+    def Debug(self):
+        return " ".join([str(self.urlId), str(self.docId)])
+
+    def CreateLinks(self, sqlconn, nodes):
         sql = "select id, text, url_id from link where document_id = %s"
         val = (self.docId,)
-        print("sql", sql)
+        #print("sql", sql)
         sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
-        self.nodes = {} # indexed by URL id
+        self.links = []
         for rec in res:
             text = rec[1]
             urlId = rec[2]
-            print("urlid", self.docId, text, urlId)
+            #print("urlid", self.docId, text, urlId)
 
-"""     def __init__(self, sqlconn, url, find1stDoc):
-        self.url = url
+            if urlId in nodes:
+                childNode = nodes[urlId]
+                #print("child", self.docId, childNode.Debug())
 
-        if find1stDoc:
-            sql = "select id, document_id from url where val like %s and document_id is not null"
-        else:
-            sql = "select id, document_id from url where val = %s"
-
-        val = (url + '%',)
-        print("sql", sql)
-        sqlconn.mycursor.execute(sql, val)
-        res = sqlconn.mycursor.fetchone()
-        assert (res is not None)
-
-        self.urlId = res[0]
-        self.docId = res[1]
- """
+                link = (text, childNode)
+                self.links.append(link)
 
 ######################################################################################
 
