@@ -33,27 +33,15 @@ class Qnetwork():
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
 
         self.input = tf.placeholder(shape=[None, NUM_ACTIONS], dtype=tf.int32)
-        #self.input1Hot = tf.one_hot(self.input, env.ns)
 
         self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
         self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
 
-        #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
-        #self.embedding = tf.math.multiply(self.embedding, 0.1)
-        #self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
-
         # HIDDEN 1
-        #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden1 = self.embedding
 
         self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM, EMBED_DIM], 0, 0.01))
-        #self.Whidden1 = tf.nn.softmax(self.Whidden1, axis=1)
-        #self.Whidden1 = tf.nn.sigmoid(self.Whidden1)
-        #self.Whidden1 = tf.math.l2_normalize(self.Whidden1, axis=1)
-
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
-        #self.hidden1 = tf.nn.softmax(self.hidden1, axis=1)
-        #self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
         #self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
         #self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
@@ -61,39 +49,22 @@ class Qnetwork():
         self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
         #self.hidden1 = tf.nn.relu(self.hidden1)
 
-        # HIDDEN
-        #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
+        # HIDDEN 2
         self.hidden2 = self.hidden1
 
         self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.nn.sigmoid(self.Whidden)
-        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+
         self.hidden2 = tf.matmul(self.hidden2, self.Whidden2)
 
-        #self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.nn.sigmoid(self.Whidden)
-        #self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
-        #self.hidden = tf.multiply(self.hidden, self.Whidden)
-
         self.BiasHidden2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
-        #self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
-        #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
+
         self.hidden2 = tf.add(self.hidden2, self.BiasHidden2)
 
         # OUTPUT
         self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
-        #self.W = tf.math.l2_normalize(self.W, axis=1)
-        #self.W = tf.nn.sigmoid(self.W)
-        #self.W = tf.math.multiply(self.W, 2)
-        #self.W = tf.clip_by_value(self.W, -10, 10)
 
         self.Qout = tf.matmul(self.hidden2, self.Wout)
-        #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
-        #self.Qout = tf.nn.sigmoid(self.Qout)
-        self.Qout = tf.math.multiply(self.Qout, 0.1)
+
         self.predict = tf.argmax(self.Qout, 1)
 
         self.sumWeight = tf.reduce_sum(self.Wout) \
