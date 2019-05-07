@@ -386,18 +386,24 @@ class MySQL:
 
 class Sitemap:
     def __init__(self, sqlconn, url):
-        node = Node(sqlconn, url)
-        print("node", node)
+        node = Node(sqlconn, url, True)
+        print("node", node.docId, node.urlId)
 
 class Node:
-    def __init__(self, sqlconn, url):
-        sql = "select id, document_id from url where val = %s"
-        val = (url,)
+    def __init__(self, sqlconn, url, find1stDoc):
+        self.url = url
+
+        if find1stDoc:
+            sql = "select id, document_id from url where val like %s and document_id is not null"
+        else:
+            sql = "select id, document_id from url where val = %s"
+
+        val = (url + '%',)
+        print("sql", sql)
         sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchone()
         assert (res is not None)
 
-        self.url = url
         self.urlId = res[0]
         self.docId = res[1]
 
@@ -411,7 +417,7 @@ def Main():
 
     # =============================================================
     sqlconn = MySQL()
-    siteMap = Sitemap(sqlconn, "www.visitbritain.com/")
+    siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     exit()
 
     # =============================================================
