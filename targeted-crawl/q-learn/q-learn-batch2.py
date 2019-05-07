@@ -14,7 +14,7 @@ class LearningParams:
         self.q_lrn_rate = 1
         self.max_epochs = 100001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 1
+        self.maxBatchSize = 32
         self.debug = False
         self.walk = 1000
 
@@ -308,35 +308,6 @@ def UpdateQN(params, env, sess, qn, neighbours, targetQ):
     #print("loss", loss)
     return loss, sumWeight
 
-def UpdateQNTrajectories(params, env, sess, epoch, qn, batchSize, trajectories):
-    batchNeighbours = np.empty([batchSize, 5], dtype=np.int)
-    batchTargetQ = np.empty([batchSize, 5])
-    #print("batchSize", batchSize)
-    #print("batchNeighbours", batchNeighbours.shape)
-    #print("batchTargetQ", batchTargetQ.shape)
-
-    row = 0
-    for trajectory in trajectories:
-        path, trajNeighbours, trajTargetQ = trajectory
-        trajSize = trajNeighbours.shape[0]
-        batchNeighbours[row:row+trajSize, :] = trajNeighbours
-        batchTargetQ[row:row+trajSize, :] = trajTargetQ
-
-        row += trajSize
-
-    #print("trajectories", trajectories)
-    loss, sumWeight = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
-
-    #loss = 0
-    #sumWeight = 0
-    #for i in range(batchSize):
-    #    n = batchNeighbours[i:i+1,:]
-    #    t = batchTargetQ[i:i+1,:]
-    #    #print("n", n.shape, t.shape)
-    #    loss, sumWeight = UpdateQN(params, env, sess, qn, n, t)
-
-    return loss, sumWeight
-
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     while (True):
@@ -360,19 +331,25 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     return curr, path, trajNeighbours, trajTargetQ
 
 def ExpandCorpus(corpusNeighbours, corpusTargetQ, trajNeighbours, trajTargetQ):
-    retNeighbours = np.append(corpusNeighbours, trajNeighbours, axis=0)
-    retTargetQ = np.append(corpusTargetQ, trajTargetQ, axis=0)
-    return retNeighbours, retTargetQ
+    corpusNeighbours = np.append(corpusNeighbours, trajNeighbours, axis=0)
+    corpusTargetQ = np.append(corpusTargetQ, trajTargetQ, axis=0)
+    return corpusNeighbours, corpusTargetQ
+
+def CreateBatch(corpusNeighbours, corpusTargetQ, batchSize):
+    batchNeighbours = corpusNeighbours[0:batchSize, :]
+    batchTargetQ = corpusTargetQ[0:batchSize, :]
+    corpusNeighbours = corpusNeighbours[batchSize:, :]
+    corpusTargetQ = corpusTargetQ[batchSize:, :]
+    
+    return batchNeighbours, batchTargetQ, corpusNeighbours, corpusTargetQ
 
 def Train(params, env, sess, qn):
     losses = []
     sumWeights = []
 
-    corpusSize = 0
     corpusNeighbours = np.empty([0, 5], dtype=np.int)
     corpusTargetQ = np.empty([0, 5])
 
-    trajectories = []
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
         stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, startState, params, env, sess, qn)
@@ -380,27 +357,21 @@ def Train(params, env, sess, qn):
         assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
         assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
-        #print("trajSize", trajSize)
-
-        print("corpusNeighbours", corpusNeighbours.shape)
-        print("corpusTargetQ", corpusTargetQ.shape)
-        print("trajNeighbours", trajNeighbours.shape)
-        print("trajTargetQ", trajTargetQ.shape)
 
         corpusNeighbours, corpusTargetQ = ExpandCorpus(corpusNeighbours, corpusTargetQ, trajNeighbours, trajTargetQ)
+        corpusSize = corpusNeighbours.shape[0]
 
-        print("corpusNeighbours", corpusNeighbours.shape)
-        print("corpusTargetQ", corpusTargetQ.shape)
-        print()
-
-        if corpusSize + trajSize > params.maxBatchSize:
+        if corpusSize >= params.maxBatchSize:
             #print("corpusSize", corpusSize)
-            loss, sumWeight = UpdateQNTrajectories(params, env, sess, epoch, qn, corpusSize, trajectories)
+            
+            batchNeighbours, batchTargetQ, corpusNeighbours, corpusTargetQ = CreateBatch(corpusNeighbours, corpusTargetQ, params.maxBatchSize)
+            #print("batchSize", batchNeighbours.shape)
+            #print("corpusNeighbours", corpusNeighbours.shape)
+            #print("corpusTargetQ", corpusTargetQ.shape)
+
+            loss, sumWeight = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
             losses.append(loss)
             sumWeights.append(sumWeight)
-
-            trajectories = []
-            corpusSize = 0
 
         if epoch % params.walk == 0:
             print("\nepoch", epoch)
@@ -409,11 +380,6 @@ def Train(params, env, sess, qn):
             #env.Walk(9, sess, qn, True)
 
         # add to batch
-        ele = (path, trajNeighbours, trajTargetQ)
-        trajectories.append(ele)
-
-        corpusSize += trajSize
-
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
             params.eps *= .999
@@ -426,8 +392,8 @@ def Train(params, env, sess, qn):
             
 
     # LAST BATCH
-    if corpusSize > 0:
-        UpdateQNTrajectories(params, env, sess, epoch, qn, corpusSize, trajectories)
+    #if corpusSize > 0:
+    #    UpdateQN(params, env, sess, epoch, qn, corpusSize, trajectories)
             
     return losses, sumWeights
 
@@ -438,7 +404,7 @@ def Train(params, env, sess, qn):
 def Main():
     print("Starting")
     np.random.seed()
-    np.set_printoptions(formatter={'float': lambda x: "{0:0.5f}".format(x)})
+    np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)})
 
     # =============================================================
     env = Env()
