@@ -9,10 +9,10 @@ from collections import namedtuple
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.99 #0.1
+        self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 100001
+        self.max_epochs = 200001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -156,7 +156,7 @@ class Env:
         self.F[12, 11] = 1;
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
-        self.F[14, 9] = 1;
+        #self.F[14, 9] = 1;
 
         for i in range(self.ns):
             self.F[i, self.ns - 1] = 1
@@ -392,8 +392,9 @@ def Train(params, env, sess, qn):
             
 
     # LAST BATCH
+    #corpusSize = corpusNeighbours.shape[0]
     #if corpusSize > 0:
-    #    UpdateQN(params, env, sess, epoch, qn, corpusSize, trajectories)
+    #    UpdateQN(params, env, sess, qn, corpusNeighbours, corpusTargetQ)
             
     return losses, sumWeights
 
