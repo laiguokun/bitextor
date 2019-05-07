@@ -387,7 +387,7 @@ class MySQL:
 class Sitemap:
     def __init__(self, sqlconn, url):
         # all nodes with docs
-        sql = "select id, document_id from url where document_id is not null"
+        sql = "select url.id, url.document_id, document.lang from url, document where url.document_id = document.id"
         sqlconn.mycursor.execute(sql)
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
@@ -395,7 +395,7 @@ class Sitemap:
         self.nodes = {} # indexed by URL id
         for rec in res:
             #print("rec", rec[0], rec[1])
-            node = Node(rec[0], rec[1])
+            node = Node(rec[0], rec[1], rec[2])
             self.nodes[node.urlId] = node
         print("nodes", len(self.nodes))
 
@@ -409,12 +409,13 @@ class Sitemap:
         #print("node", node.docId, node.urlId)
 
 class Node:
-    def __init__(self, urlId, docId):
+    def __init__(self, urlId, docId, lang):
         self.urlId = urlId
         self.docId = docId
+        self.lang = lang
 
     def Debug(self):
-        return " ".join([str(self.urlId), str(self.docId), str(len(self.links))])
+        return " ".join([str(self.urlId), str(self.docId), self.lang, str(len(self.links))])
 
     def CreateLinks(self, sqlconn, nodes):
         sql = "select id, text, url_id from link where document_id = %s"
@@ -434,7 +435,7 @@ class Node:
                 childNode = nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
-                childNode = Node(urlId, None)
+                childNode = Node(urlId, None, None)
 
             link = (text, childNode)
             self.links.append(link)
