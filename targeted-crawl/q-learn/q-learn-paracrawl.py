@@ -402,6 +402,8 @@ class Sitemap:
         # links between nodes, possibly to nodes without doc
         for node in self.nodes.values():
             node.CreateLinks(sqlconn, self.nodes)
+            print("node", node.Debug())
+
 
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)
@@ -412,7 +414,7 @@ class Node:
         self.docId = docId
 
     def Debug(self):
-        return " ".join([str(self.urlId), str(self.docId)])
+        return " ".join([str(self.urlId), str(self.docId), str(len(self.links))])
 
     def CreateLinks(self, sqlconn, nodes):
         sql = "select id, text, url_id from link where document_id = %s"
@@ -431,9 +433,11 @@ class Node:
             if urlId in nodes:
                 childNode = nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
+            else:
+                childNode = Node(urlId, None)
 
-                link = (text, childNode)
-                self.links.append(link)
+            link = (text, childNode)
+            self.links.append(link)
 
 ######################################################################################
 
