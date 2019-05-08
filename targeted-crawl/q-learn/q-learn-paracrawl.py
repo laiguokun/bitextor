@@ -407,12 +407,14 @@ class Sitemap:
             self.nodes[node.urlId] = node
         #print("nodes", len(self.nodes))
 
-        # links between nodes, possibly to nodes without doc
         self.nodesWithDoc = self.nodes.copy()
+        print("nodesWithDoc", len(self.nodesWithDoc))
+
+        # links between nodes, possibly to nodes without doc
         for node in self.nodesWithDoc.values():
             node.CreateLinks(sqlconn, self.nodes)
             #print("node", node.Debug())
-        print("nodes", len(self.nodes))
+        print("all nodes", len(self.nodes))
 
         # print out
         #for node in self.nodes.values():
@@ -435,6 +437,7 @@ class Sitemap:
 
         visited = {}
         startNode.Visit(visited)
+        print("visited", len(visited))
 
 class Node:
     def __init__(self, sqlconn, urlId, docId, lang, url):
