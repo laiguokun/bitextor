@@ -8,6 +8,13 @@ import tensorflow as tf
 from collections import namedtuple
 
 ######################################################################################
+def StrNone(arg):
+    if arg is None:
+        return "None"
+    else:
+        return str(arg)
+
+######################################################################################
 class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
@@ -401,10 +408,14 @@ class Sitemap:
         print("nodes", len(self.nodes))
 
         # links between nodes, possibly to nodes without doc
-        for node in self.nodes.values():
+        listNodes = list(self.nodes.values())
+        for node in listNodes:
             node.CreateLinks(sqlconn, self.nodes)
             print("node", node.Debug())
+        print("nodes", len(self.nodes))
 
+        for node in self.nodes.values():
+            print("node", node.Debug())
 
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)
@@ -415,9 +426,10 @@ class Node:
         self.docId = docId
         self.lang = lang
         self.url = url
+        self.links = []
 
     def Debug(self):
-        return " ".join([str(self.urlId), str(self.docId), self.lang, str(len(self.links)), self.url])
+        return " ".join([StrNone(self.urlId), StrNone(self.docId), StrNone(self.lang), StrNone(len(self.links)), self.url])
 
     def CreateLinks(self, sqlconn, nodes):
         #sql = "select id, text, url_id from link where document_id = %s"
@@ -428,7 +440,6 @@ class Node:
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
-        self.links = []
         for rec in res:
             text = rec[1]
             urlId = rec[2]
@@ -440,6 +451,7 @@ class Node:
                 #print("child", self.docId, childNode.Debug())
             else:
                 childNode = Node(urlId, None, None, url)
+                nodes[childNode.urlId] = childNode
 
             link = (text, childNode)
             self.links.append(link)
