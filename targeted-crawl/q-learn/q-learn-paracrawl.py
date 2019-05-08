@@ -387,7 +387,7 @@ class MySQL:
 class Sitemap:
     def __init__(self, sqlconn, url):
         # all nodes with docs
-        sql = "select url.id, url.document_id, document.lang from url, document where url.document_id = document.id and val like %s"
+        sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
         val = (url + "%",)
         sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchall()
@@ -396,7 +396,7 @@ class Sitemap:
         self.nodes = {} # indexed by URL id
         for rec in res:
             #print("rec", rec[0], rec[1])
-            node = Node(rec[0], rec[1], rec[2])
+            node = Node(rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
         print("nodes", len(self.nodes))
 
@@ -410,16 +410,18 @@ class Sitemap:
         #print("node", node.docId, node.urlId)
 
 class Node:
-    def __init__(self, urlId, docId, lang):
+    def __init__(self, urlId, docId, lang, url):
         self.urlId = urlId
         self.docId = docId
         self.lang = lang
+        self.url = url
 
     def Debug(self):
-        return " ".join([str(self.urlId), str(self.docId), self.lang, str(len(self.links))])
+        return " ".join([str(self.urlId), str(self.docId), self.lang, str(len(self.links)), self.url])
 
     def CreateLinks(self, sqlconn, nodes):
-        sql = "select id, text, url_id from link where document_id = %s"
+        #sql = "select id, text, url_id from link where document_id = %s"
+        sql = "select link.id, link.text, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
         #print("sql", sql)
         sqlconn.mycursor.execute(sql, val)
@@ -430,13 +432,14 @@ class Node:
         for rec in res:
             text = rec[1]
             urlId = rec[2]
+            url = rec[3]
             #print("urlid", self.docId, text, urlId)
 
             if urlId in nodes:
                 childNode = nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
-                childNode = Node(urlId, None, None)
+                childNode = Node(urlId, None, None, url)
 
             link = (text, childNode)
             self.links.append(link)
