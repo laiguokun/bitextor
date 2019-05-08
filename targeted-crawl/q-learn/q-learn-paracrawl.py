@@ -387,8 +387,9 @@ class MySQL:
 class Sitemap:
     def __init__(self, sqlconn, url):
         # all nodes with docs
-        sql = "select url.id, url.document_id, document.lang from url, document where url.document_id = document.id"
-        sqlconn.mycursor.execute(sql)
+        sql = "select url.id, url.document_id, document.lang from url, document where url.document_id = document.id and val like %s"
+        val = (url + "%",)
+        sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
@@ -449,7 +450,8 @@ def Main():
 
     # =============================================================
     sqlconn = MySQL()
-    siteMap = Sitemap(sqlconn, "www.visitbritain.com")
+    #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
+    siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
     exit()
 
     # =============================================================
