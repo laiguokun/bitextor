@@ -436,7 +436,11 @@ class Sitemap:
             exit()
 
         visited = {}
+
+        print(startNode.Debug())
+        visited[startNode.urlId] = startNode
         startNode.Visit(visited)
+
         print("visited", len(visited))
 
 class Node:
@@ -488,13 +492,26 @@ class Node:
             self.links.append(link)
 
     def Visit(self, visited):
-        print(self.Debug())
-        visited[self.urlId] = self
+        children = self.GetUnvisitedChildren(visited)
+        print("children", len(children))
 
+        # direct descendants
+        for childNode in children:
+            print(childNode.Debug())
+            visited[childNode.urlId] = childNode
+
+        # grandchildren
+        for childNode in children:
+            childNode.Visit(visited)
+
+
+    def GetUnvisitedChildren(self, visited):
+        children = []
         for link in self.links:
             childNode = link[1]
             if childNode.docId is not None and childNode.urlId not in visited:
-                childNode.Visit(visited)
+                children.append(childNode)
+        return children
 
 ######################################################################################
 
