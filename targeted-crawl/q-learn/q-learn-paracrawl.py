@@ -408,8 +408,8 @@ class Sitemap:
         #print("nodes", len(self.nodes))
 
         # links between nodes, possibly to nodes without doc
-        listNodes = list(self.nodes.values())
-        for node in listNodes:
+        self.nodesWithDoc = self.nodes.copy()
+        for node in self.nodesWithDoc.values():
             node.CreateLinks(sqlconn, self.nodes)
             #print("node", node.Debug())
         print("nodes", len(self.nodes))
@@ -420,6 +420,16 @@ class Sitemap:
 
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)       
+
+    def Visit(self):
+        assert(len(self.nodesWithDoc) > 0)
+        visited = {}
+
+        startNode = next(iter(self.nodesWithDoc.values()))
+        self.VisitFromNode(visited, startNode)
+
+    def VisitFromNode(self, visited, node):
+        print(node.Debug())
 
 class Node:
     def __init__(self, sqlconn, urlId, docId, lang, url):
@@ -480,6 +490,7 @@ def Main():
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
+    siteMap.Visit()
     exit()
 
     # =============================================================
