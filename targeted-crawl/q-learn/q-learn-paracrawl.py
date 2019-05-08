@@ -403,33 +403,46 @@ class Sitemap:
         self.nodes = {} # indexed by URL id
         for rec in res:
             #print("rec", rec[0], rec[1])
-            node = Node(rec[0], rec[1], rec[2], rec[3])
+            node = Node(sqlconn, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
-        print("nodes", len(self.nodes))
+        #print("nodes", len(self.nodes))
 
         # links between nodes, possibly to nodes without doc
         listNodes = list(self.nodes.values())
         for node in listNodes:
             node.CreateLinks(sqlconn, self.nodes)
-            print("node", node.Debug())
+            #print("node", node.Debug())
         print("nodes", len(self.nodes))
 
+        # print out
         for node in self.nodes.values():
             print("node", node.Debug())
 
         #node = Node(sqlconn, url, True)
-        #print("node", node.docId, node.urlId)
+        #print("node", node.docId, node.urlId)       
 
 class Node:
-    def __init__(self, urlId, docId, lang, url):
+    def __init__(self, sqlconn, urlId, docId, lang, url):
         self.urlId = urlId
         self.docId = docId
         self.lang = lang
         self.url = url
         self.links = []
+        self.aligned = False
+
+        if self.docId is not None:
+            sql = "select * from document_align where document1 = %s or document2 = %s"
+            val = (self.docId,self.docId)
+            #print("sql", sql)
+            sqlconn.mycursor.execute(sql, val)
+            res = sqlconn.mycursor.fetchall()
+            #print("aligned",  self.url, self.docId, res)
+
+            if len(res) > 0:
+                self.aligned = True
 
     def Debug(self):
-        return " ".join([StrNone(self.urlId), StrNone(self.docId), StrNone(self.lang), StrNone(len(self.links)), self.url])
+        return " ".join([StrNone(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
 
     def CreateLinks(self, sqlconn, nodes):
         #sql = "select id, text, url_id from link where document_id = %s"
@@ -450,7 +463,7 @@ class Node:
                 childNode = nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
-                childNode = Node(urlId, None, None, url)
+                childNode = Node(sqlconn, urlId, None, None, url)
                 nodes[childNode.urlId] = childNode
 
             link = (text, childNode)
