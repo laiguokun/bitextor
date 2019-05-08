@@ -421,11 +421,19 @@ class Sitemap:
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)       
 
-    def Visit(self):
+    def Visit(self, start):
         assert(len(self.nodesWithDoc) > 0)
-        visited = {}
 
-        startNode = next(iter(self.nodesWithDoc.values()))
+        if start == "1st":
+            startNode = next(iter(self.nodesWithDoc.values()))
+        elif start == "random":
+            l = list(self.nodesWithDoc.values())
+            startNode = random.choice(l)
+        else:
+            print("1st or random?")
+            exit()
+
+        visited = {}
         startNode.Visit(visited)
 
 class Node:
@@ -496,7 +504,7 @@ def Main():
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
-    siteMap.Visit()
+    siteMap.Visit("random")
     exit()
 
     # =============================================================
