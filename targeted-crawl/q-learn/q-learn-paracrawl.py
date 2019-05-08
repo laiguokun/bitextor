@@ -426,16 +426,7 @@ class Sitemap:
         visited = {}
 
         startNode = next(iter(self.nodesWithDoc.values()))
-        self.VisitFromNode(visited, startNode)
-
-    def VisitFromNode(self, visited, node):
-        print(node.Debug())
-        visited[node.urlId] = node
-
-        for link in node.links:
-            childNode = link[1]
-            if childNode.docId is not None and childNode.urlId not in visited:
-                self.VisitFromNode(visited, childNode)
+        startNode.Visit(visited)
 
 class Node:
     def __init__(self, sqlconn, urlId, docId, lang, url):
@@ -484,6 +475,15 @@ class Node:
 
             link = (text, childNode)
             self.links.append(link)
+
+    def Visit(self, visited):
+        print(self.Debug())
+        visited[self.urlId] = self
+
+        for link in self.links:
+            childNode = link[1]
+            if childNode.docId is not None and childNode.urlId not in visited:
+                childNode.Visit(visited)
 
 ######################################################################################
 
