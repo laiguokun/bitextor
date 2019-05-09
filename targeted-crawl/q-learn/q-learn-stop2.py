@@ -98,7 +98,7 @@ def get_rnd_next_state(s, env):
 def my_print(Q):
     rows = len(Q);
     cols = len(Q[0])
-    print("       0      1      2      3      4")
+    print("       up    right  down   left   stop")
     for i in range(rows):
         print("%d " % i, end="")
         if i < 10: print(" ", end="")
@@ -118,8 +118,8 @@ def Walk(start, Q, env):
         next, reward, die = env.GetNextState(curr, action)
         totReward += reward
 
-        print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-        #print(str(next) + "->", end="")
+        #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+        print(str(next) + "->", end="")
         curr = next
 
         if die: break
@@ -130,7 +130,7 @@ def Walk(start, Q, env):
             print("LOOPING")
             break
 
-    print("done", totReward)
+    print("REWARD", totReward)
 
 
 ######################################################################################
@@ -219,7 +219,7 @@ def Main():
     scores = Train(Q, gamma, lrn_rate, max_epochs, env)
     print("Trained")
 
-    print("The Q matrix is: \n ")
+    print("The Q matrix is:")
     my_print(Q)
 
     #

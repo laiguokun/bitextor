@@ -84,9 +84,11 @@ class Qnetwork():
         # print("hh", next, hh)
         neighbours = env.GetNeighBours(curr)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
-        print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
+        #print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
+        print("curr=", curr, allQ, neighbours)
 
     def PrintAllQ(self, env, sess):
+        print("         Q-values                          Next state")
         for curr in range(env.ns):
             self.PrintQ(curr, env, sess)
 

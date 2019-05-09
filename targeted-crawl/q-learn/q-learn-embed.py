@@ -74,9 +74,13 @@ class Qnetwork():
     def my_print1(self, curr, env, sess):
         # print("hh", next, hh)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: np.array([curr]) })
-        print("curr=", curr, "a=", a, "allQ=", allQ, env.GetNeighBours(curr))
+        #print("curr=", curr, "a=", a, "allQ=", allQ, env.GetNeighBours(curr))
+        print(curr, allQ)
 
     def my_print(self, env, sess):
+        np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)})
+        np.linspace(2.0, 3.0, num=5)
+        print("     stop   up  right  down left")
         for curr in range(env.ns):
             self.my_print1(curr, env, sess)
 
