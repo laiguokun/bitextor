@@ -8,6 +8,13 @@ import tensorflow as tf
 from collections import namedtuple
 
 ######################################################################################
+def StrNone(arg):
+    if arg is None:
+        return "None"
+    else:
+        return str(arg)
+
+######################################################################################
 class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
@@ -387,58 +394,124 @@ class MySQL:
 class Sitemap:
     def __init__(self, sqlconn, url):
         # all nodes with docs
-        sql = "select url.id, url.document_id, document.lang from url, document where url.document_id = document.id"
-        sqlconn.mycursor.execute(sql)
+        sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
+        val = (url + "%",)
+        sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
         self.nodes = {} # indexed by URL id
         for rec in res:
             #print("rec", rec[0], rec[1])
-            node = Node(rec[0], rec[1], rec[2])
+            node = Node(sqlconn, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
-        print("nodes", len(self.nodes))
+        #print("nodes", len(self.nodes))
+
+        self.nodesWithDoc = self.nodes.copy()
+        print("nodesWithDoc", len(self.nodesWithDoc))
 
         # links between nodes, possibly to nodes without doc
-        for node in self.nodes.values():
+        for node in self.nodesWithDoc.values():
             node.CreateLinks(sqlconn, self.nodes)
-            print("node", node.Debug())
+            #print("node", node.Debug())
+        print("all nodes", len(self.nodes))
 
+        # print out
+        #for node in self.nodes.values():
+        #    print("node", node.Debug())
 
         #node = Node(sqlconn, url, True)
-        #print("node", node.docId, node.urlId)
+        #print("node", node.docId, node.urlId)       
+
+    def Visit(self, start):
+        assert(len(self.nodesWithDoc) > 0)
+
+        if start == "1st":
+            startNode = next(iter(self.nodesWithDoc.values()))
+        elif start == "random":
+            l = list(self.nodesWithDoc.values())
+            startNode = random.choice(l)
+        else:
+            print("1st or random?")
+            exit()
+
+        visited = {}
+
+        print(startNode.Debug())
+        visited[startNode.urlId] = startNode
+        startNode.Visit(visited)
+
+        print("visited", len(visited))
 
 class Node:
-    def __init__(self, urlId, docId, lang):
+    def __init__(self, sqlconn, urlId, docId, lang, url):
         self.urlId = urlId
         self.docId = docId
         self.lang = lang
+        self.url = url
+        self.links = []
+        self.aligned = False
+
+        if self.docId is not None:
+            sql = "select * from document_align where document1 = %s or document2 = %s"
+            val = (self.docId,self.docId)
+            #print("sql", sql)
+            sqlconn.mycursor.execute(sql, val)
+            res = sqlconn.mycursor.fetchall()
+            #print("aligned",  self.url, self.docId, res)
+
+            if len(res) > 0:
+                self.aligned = True
 
     def Debug(self):
-        return " ".join([str(self.urlId), str(self.docId), self.lang, str(len(self.links))])
+        return " ".join([StrNone(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
 
     def CreateLinks(self, sqlconn, nodes):
-        sql = "select id, text, url_id from link where document_id = %s"
+        #sql = "select id, text, url_id from link where document_id = %s"
+        sql = "select link.id, link.text, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
         #print("sql", sql)
         sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
-        self.links = []
         for rec in res:
             text = rec[1]
             urlId = rec[2]
+            url = rec[3]
             #print("urlid", self.docId, text, urlId)
 
             if urlId in nodes:
                 childNode = nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
-                childNode = Node(urlId, None, None)
+                childNode = Node(sqlconn, urlId, None, None, url)
+                nodes[childNode.urlId] = childNode
 
             link = (text, childNode)
             self.links.append(link)
+
+    def Visit(self, visited):
+        children = self.GetUnvisitedChildren(visited)
+        print("children", len(children))
+
+        # direct descendants
+        for childNode in children:
+            print(childNode.Debug())
+            visited[childNode.urlId] = childNode
+
+        # grandchildren
+        for childNode in children:
+            childNode.Visit(visited)
+
+
+    def GetUnvisitedChildren(self, visited):
+        children = []
+        for link in self.links:
+            childNode = link[1]
+            if childNode.docId is not None and childNode.urlId not in visited:
+                children.append(childNode)
+        return children
 
 ######################################################################################
 
@@ -449,7 +522,9 @@ def Main():
 
     # =============================================================
     sqlconn = MySQL()
-    siteMap = Sitemap(sqlconn, "www.visitbritain.com")
+    #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
+    siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
+    siteMap.Visit("random")
     exit()
 
     # =============================================================
