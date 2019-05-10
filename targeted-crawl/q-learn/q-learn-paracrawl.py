@@ -493,7 +493,7 @@ class Node:
 
     def Visit(self, visited):
         children = self.GetUnvisitedChildren(visited)
-        print("children", len(children))
+        #print("children", len(children))
 
         # direct descendants
         for childNode in children:
