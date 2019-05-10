@@ -516,7 +516,7 @@ class Node:
         for link in self.links:
             childNode = link.childNode
             if childNode.docId is not None and childNode.urlId not in visited:
-                children.append(childNode)
+                children.append(link)
         return children
 
 def TrainSitemap(params, sitemap, sess, qn):
@@ -536,7 +536,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     
     while True:
         print("curr", curr.Debug())
-        path.append(curr)
+        #path.append(curr)
         visited.add(curr.urlId)
 
         children = curr.GetUnvisitedChildren(visited)
@@ -545,7 +545,10 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         if len(children) ==0:
             break
 
-        curr = random.choice(children)
+        currLink = random.choice(children)
+        path.append(currLink)
+
+        curr = currLink.childNode
     
     print("path", curr.Debug(), len(path))
     return curr, path
