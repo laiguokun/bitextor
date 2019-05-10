@@ -502,12 +502,14 @@ class Node:
         #print("children", len(children))
 
         # direct descendants
-        for childNode in children:
+        for child in children:
+            childNode = child.childNode
             print(childNode.Debug())
             visited.add(childNode.urlId)
 
         # grandchildren
-        for childNode in children:
+        for child in children:
+            childNode = child.childNode
             childNode.Visit(visited)
 
 
@@ -574,7 +576,7 @@ def Main():
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
-    #siteMap.Visit("random")
+    siteMap.Visit("random")
 
     # =============================================================
     env = Env()
