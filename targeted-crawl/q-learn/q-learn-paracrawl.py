@@ -493,8 +493,8 @@ class Node:
                 childNode = Node(sqlconn, urlId, None, None, url)
                 nodes[childNode.urlId] = childNode
 
-            Link = namedtuple("Link", "text textLang childNode")
-            link = Link(text, textLang, childNode)
+            Link = namedtuple("Link", "text textLang parentNode childNode")
+            link = Link(text, textLang, self, childNode)
             self.links.append(link)
 
     def Visit(self, visited):
@@ -519,16 +519,25 @@ class Node:
                 children.append(link)
         return children
 
+class Corpus:
+    def __init__(self):
+        self.links = []
+
+    def AddPath(self, path):
+        for link in path:
+            self.links.append(link)
+
+
 def TrainSitemap(params, sitemap, sess, qn):
     losses = []
     sumWeights = []
 
-    corpusNeighbours = np.empty([0, 5], dtype=np.int)
-    corpusTargetQ = np.empty([0, 5])
+    corpus = Corpus()
 
     for epoch in range(params.max_epochs):
         startState = sitemap.GetRandomNode() # random start state
-        stopState, path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
+        path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
+        corpus.AddPath(path)
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     path = []
@@ -551,8 +560,9 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         curr = currLink.childNode
     
     print("path", curr.Debug(), len(path))
-    return curr, path
+    return path
 
+    
 ######################################################################################
 
 def Main():
