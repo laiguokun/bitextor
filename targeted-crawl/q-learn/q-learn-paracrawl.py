@@ -523,15 +523,15 @@ class Node:
 
 class Corpus:
     def __init__(self):
-        self.links = []
+        self.transitions = []
 
     def AddPath(self, path):
         for transition in path:
-            self.links.append(transition)
+            self.transitions.append(transition)
 
     def GetBatch(self, maxBatchSize):
-        ret = self.links[0:maxBatchSize]
-        self.links = self.links[maxBatchSize:]
+        ret = self.transitions[0:maxBatchSize]
+        self.transitions = self.transitions[maxBatchSize:]
         return ret
 
 
@@ -546,14 +546,26 @@ def TrainSitemap(params, sitemap, sess, qn):
         path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
-        while len(corpus.links) >= params.maxBatchSize:
-            print("before", len(corpus.links))
+        while len(corpus.transitions) >= params.maxBatchSize:
             batch = corpus.GetBatch(params.maxBatchSize)
-            print("after", len(corpus.links), len(batch), "\n")
             UpdateQNSitemap(params, sitemap, sess, qn, batch)
 
 def UpdateQNSitemap(params, sitemap, sess, qn, batch):
-    pass
+    batchSize = len(batch)
+    print("batchSize", batchSize)
+
+    neighbours = np.zeros([batchSize, 5])
+    targetQ = np.zeros([batchSize, 5])
+
+    for transition in batch:
+        print("transition", transition.targetQ)
+
+
+    outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
+    _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
+                                                                    feed_dict={qn.input: neighbours,
+                                                                                qn.nextQ: targetQ})
+
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     Transition = namedtuple("Transition", "link targetQ")
@@ -576,7 +588,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         targetQ = targetQ = np.zeros([1, 5])
 
         transition = Transition(currLink, targetQ)
-        path.append(currLink)
+        path.append(transition)
 
         curr = currLink.childNode
     
