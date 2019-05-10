@@ -529,7 +529,6 @@ def TrainSitemap(params, sitemap, sess, qn):
         TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
-    print("start", curr.Debug())
     path = []
     visited = {}
     
