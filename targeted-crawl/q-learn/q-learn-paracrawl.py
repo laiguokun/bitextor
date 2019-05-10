@@ -544,7 +544,8 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
             break
 
         curr = random.choice(children)
-
+    print("path", len(path))
+    
 ######################################################################################
 
 def Main():
