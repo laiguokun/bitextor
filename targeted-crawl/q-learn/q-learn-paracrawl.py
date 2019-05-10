@@ -493,7 +493,8 @@ class Node:
                 childNode = Node(sqlconn, urlId, None, None, url)
                 nodes[childNode.urlId] = childNode
 
-            link = (text, textLang, childNode)
+            Link = namedtuple("Link", "text textLang childNode")
+            link = Link(text, textLang, childNode)
             self.links.append(link)
 
     def Visit(self, visited):
@@ -513,7 +514,7 @@ class Node:
     def GetUnvisitedChildren(self, visited):
         children = []
         for link in self.links:
-            childNode = link[2]
+            childNode = link.childNode
             if childNode.docId is not None and childNode.urlId not in visited:
                 children.append(childNode)
         return children
