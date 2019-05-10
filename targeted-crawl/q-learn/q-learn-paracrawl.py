@@ -20,9 +20,9 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 1 #00001
+        self.max_epochs = 2 #00001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 32
+        self.maxBatchSize = 3
         self.debug = False
         self.walk = 1000
 
@@ -529,6 +529,11 @@ class Corpus:
         for transition in path:
             self.links.append(transition)
 
+    def GetBatch(self, maxBatchSize):
+        ret = self.links[0:maxBatchSize]
+        self.links = self.links[maxBatchSize:]
+        return ret
+
 
 def TrainSitemap(params, sitemap, sess, qn):
     losses = []
@@ -541,13 +546,22 @@ def TrainSitemap(params, sitemap, sess, qn):
         path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
+        while len(corpus.links) >= params.maxBatchSize:
+            print("before", len(corpus.links))
+            batch = corpus.GetBatch(params.maxBatchSize)
+            print("after", len(corpus.links), len(batch), "\n")
+            UpdateQNSitemap(params, sitemap, sess, qn, batch)
+
+def UpdateQNSitemap(params, sitemap, sess, qn, batch):
+    pass
+
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     Transition = namedtuple("Transition", "link targetQ")
     path = []
     visited = set()
     
     while True:
-        print("curr", curr.Debug())
+        #print("curr", curr.Debug())
         #path.append(curr)
         visited.add(curr.urlId)
 
