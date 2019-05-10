@@ -531,23 +531,20 @@ def TrainSitemap(params, sitemap, sess, qn):
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     print("start", curr.Debug())
     path = []
-    path.append(curr)
-
     visited = {}
-    visited[curr.urlId] = curr
-
-    children = curr.GetUnvisitedChildren(visited)
-    print("  children", len(children))
     
-    while (len(children) > 0):
-        curr = random.choice(children)
+    while True:
         print("curr", curr.Debug())
         path.append(curr)
-
         visited[curr.urlId] = curr
 
         children = curr.GetUnvisitedChildren(visited)
         print("  children", len(children))
+        
+        if len(children) ==0:
+            break
+
+        curr = random.choice(children)
 
 ######################################################################################
 
