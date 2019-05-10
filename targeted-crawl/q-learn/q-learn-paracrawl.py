@@ -527,7 +527,7 @@ def TrainSitemap(params, sitemap, sess, qn):
 
     for epoch in range(params.max_epochs):
         startState = sitemap.GetRandomNode() # random start state
-        TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
+        stopState, path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     path = []
@@ -539,13 +539,15 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         visited.add(curr.urlId)
 
         children = curr.GetUnvisitedChildren(visited)
-        print("  children", len(children))
+        #print("  children", len(children))
         
         if len(children) ==0:
             break
 
         curr = random.choice(children)
-    print("path", len(path))
+    
+    print("path", curr.Debug(), len(path))
+    return curr, path
 
 ######################################################################################
 
@@ -558,7 +560,7 @@ def Main():
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
-    siteMap.Visit("random")
+    #siteMap.Visit("random")
 
     # =============================================================
     env = Env()
