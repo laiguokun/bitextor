@@ -472,7 +472,7 @@ class Node:
 
     def CreateLinks(self, sqlconn, nodes):
         #sql = "select id, text, url_id from link where document_id = %s"
-        sql = "select link.id, link.text, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
+        sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
         #print("sql", sql)
         sqlconn.mycursor.execute(sql, val)
@@ -481,8 +481,9 @@ class Node:
 
         for rec in res:
             text = rec[1]
-            urlId = rec[2]
-            url = rec[3]
+            textLang = rec[2]
+            urlId = rec[3]
+            url = rec[4]
             #print("urlid", self.docId, text, urlId)
 
             if urlId in nodes:
@@ -492,7 +493,7 @@ class Node:
                 childNode = Node(sqlconn, urlId, None, None, url)
                 nodes[childNode.urlId] = childNode
 
-            link = (text, childNode)
+            link = (text, textLang, childNode)
             self.links.append(link)
 
     def Visit(self, visited):
@@ -512,7 +513,7 @@ class Node:
     def GetUnvisitedChildren(self, visited):
         children = []
         for link in self.links:
-            childNode = link[1]
+            childNode = link[2]
             if childNode.docId is not None and childNode.urlId not in visited:
                 children.append(childNode)
         return children
