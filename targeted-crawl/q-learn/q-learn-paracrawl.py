@@ -526,8 +526,8 @@ class Corpus:
         self.links = []
 
     def AddPath(self, path):
-        for link in path:
-            self.links.append(link)
+        for transition in path:
+            self.links.append(transition)
 
 
 def TrainSitemap(params, sitemap, sess, qn):
@@ -542,6 +542,7 @@ def TrainSitemap(params, sitemap, sess, qn):
         corpus.AddPath(path)
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
+    Transition = namedtuple("Transition", "link targetQ")
     path = []
     visited = set()
     
@@ -556,7 +557,11 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         if len(children) ==0:
             break
 
+        # Neural network here
         currLink = random.choice(children)
+        targetQ = targetQ = np.zeros([1, 5])
+
+        transition = Transition(currLink, targetQ)
         path.append(currLink)
 
         curr = currLink.childNode
