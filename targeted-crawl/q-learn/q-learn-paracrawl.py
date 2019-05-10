@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 100001
+        self.max_epochs = 1 #00001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -529,11 +529,25 @@ def TrainSitemap(params, sitemap, sess, qn):
         TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
+    print("start", curr.Debug())
     path = []
-    return
+    path.append(curr)
 
-    while (True):
-        pass
+    visited = {}
+    visited[curr.urlId] = curr
+
+    children = curr.GetUnvisitedChildren(visited)
+    print("  children", len(children))
+    
+    while (len(children) > 0):
+        curr = random.choice(children)
+        print("curr", curr.Debug())
+        path.append(curr)
+
+        visited[curr.urlId] = curr
+
+        children = curr.GetUnvisitedChildren(visited)
+        print("  children", len(children))
 
 ######################################################################################
 
