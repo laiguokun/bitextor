@@ -429,8 +429,7 @@ class Sitemap:
         if start == "1st":
             startNode = next(iter(self.nodesWithDoc.values()))
         elif start == "random":
-            l = list(self.nodesWithDoc.values())
-            startNode = random.choice(l)
+            startNode = self.GetRandomNode()
         else:
             print("1st or random?")
             exit()
@@ -442,6 +441,11 @@ class Sitemap:
         startNode.Visit(visited)
 
         print("visited", len(visited))
+
+    def GetRandomNode(self):
+        l = list(self.nodesWithDoc.values())
+        node = random.choice(l)
+        return node 
 
 class Node:
     def __init__(self, sqlconn, urlId, docId, lang, url):
@@ -513,6 +517,24 @@ class Node:
                 children.append(childNode)
         return children
 
+def TrainSitemap(params, sitemap, sess, qn):
+    losses = []
+    sumWeights = []
+
+    corpusNeighbours = np.empty([0, 5], dtype=np.int)
+    corpusTargetQ = np.empty([0, 5])
+
+    for epoch in range(params.max_epochs):
+        startState = sitemap.GetRandomNode() # random start state
+        TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
+
+def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
+    path = []
+    return
+
+    while (True):
+        pass
+
 ######################################################################################
 
 def Main():
@@ -525,7 +547,6 @@ def Main():
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
     siteMap.Visit("random")
-    exit()
 
     # =============================================================
     env = Env()
@@ -539,6 +560,9 @@ def Main():
 
     with tf.Session() as sess:
         sess.run(init)
+
+        TrainSitemap(params, siteMap, sess, qn)
+        exit()
 
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
