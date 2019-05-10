@@ -416,12 +416,23 @@ class Sitemap:
             #print("node", node.Debug())
         print("all nodes", len(self.nodes))
 
+        # lang id
+        self.langIds = {}
+
         # print out
         #for node in self.nodes.values():
         #    print("node", node.Debug())
 
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)       
+
+    def GetLangId(self, langStr):
+        if langStr in self.langIds:
+            langId = self.langIds[langStr]
+        else:
+            langId = len(self.langIds)
+            self.langIds[langStr] = langId
+        return langId
 
     def Visit(self, start):
         assert(len(self.nodesWithDoc) > 0)
@@ -552,14 +563,19 @@ def TrainSitemap(params, sitemap, sess, qn):
 
 def UpdateQNSitemap(params, sitemap, sess, qn, batch):
     batchSize = len(batch)
-    print("batchSize", batchSize)
+    #print("batchSize", batchSize)
 
     neighbours = np.zeros([batchSize, 5])
     targetQ = np.zeros([batchSize, 5])
 
+    row = 0
     for transition in batch:
         print("transition", transition.targetQ)
+        
+        neighbours[row, 4] = 5
+        targetQ[row, :] = transition.targetQ
 
+        row += 1
 
     outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
     _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
