@@ -434,10 +434,10 @@ class Sitemap:
             print("1st or random?")
             exit()
 
-        visited = {}
+        visited = set()
 
         print(startNode.Debug())
-        visited[startNode.urlId] = startNode
+        visited.add(startNode.urlId)
         startNode.Visit(visited)
 
         print("visited", len(visited))
@@ -502,7 +502,7 @@ class Node:
         # direct descendants
         for childNode in children:
             print(childNode.Debug())
-            visited[childNode.urlId] = childNode
+            visited.add(childNode.urlId)
 
         # grandchildren
         for childNode in children:
@@ -530,12 +530,12 @@ def TrainSitemap(params, sitemap, sess, qn):
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     path = []
-    visited = {}
+    visited = set()
     
     while True:
         print("curr", curr.Debug())
         path.append(curr)
-        visited[curr.urlId] = curr
+        visited.add(curr.urlId)
 
         children = curr.GetUnvisitedChildren(visited)
         print("  children", len(children))
@@ -545,7 +545,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
 
         curr = random.choice(children)
     print("path", len(path))
-    
+
 ######################################################################################
 
 def Main():
