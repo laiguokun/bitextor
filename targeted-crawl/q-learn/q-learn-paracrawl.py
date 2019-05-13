@@ -26,21 +26,22 @@ class LearningParams:
         self.debug = False
         self.walk = 1000
 
+        self.NUM_ACTIONS = 5
+
 ######################################################################################
 class Qnetwork():
-    def __init__(self, lrn_rate, env):
+    def __init__(self, params, env):
         # These lines establish the feed-forward part of the network used to choose actions
         EMBED_DIM = 80
 
-        NUM_ACTIONS = 5
-        INPUT_DIM = EMBED_DIM // NUM_ACTIONS
+        INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
 
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
 
-        self.input = tf.placeholder(shape=[None, NUM_ACTIONS], dtype=tf.int32)
+        self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
 
         self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
         self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
@@ -83,8 +84,8 @@ class Qnetwork():
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
-        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
-        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
+        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=params.lrn_rate)
+        self.trainer = tf.train.AdamOptimizer() #learning_rate=params.lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
@@ -624,7 +625,7 @@ def Main():
     params = LearningParams()
 
     tf.reset_default_graph()
-    qn = Qnetwork(params.lrn_rate, env)
+    qn = Qnetwork(params, env)
     init = tf.global_variables_initializer()
     print("qn.Qout", qn.Qout)
 
