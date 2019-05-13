@@ -401,10 +401,12 @@ class Sitemap:
         assert (res is not None)
 
         self.nodes = {} # indexed by URL id
+        self.nodesbyURL = {} # indexed by URL
         for rec in res:
             #print("rec", rec[0], rec[1])
             node = Node(sqlconn, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
+            self.nodesbyURL[node.url] = node
         #print("nodes", len(self.nodes))
 
         self.nodesWithDoc = self.nodes.copy()
@@ -412,7 +414,7 @@ class Sitemap:
 
         # links between nodes, possibly to nodes without doc
         for node in self.nodesWithDoc.values():
-            node.CreateLinks(sqlconn, self.nodes)
+            node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL)
             #print("node", node.Debug())
         print("all nodes", len(self.nodes))
 
@@ -437,6 +439,10 @@ class Sitemap:
     def GetRandomNode(self):
         l = list(self.nodesWithDoc.values())
         node = random.choice(l)
+        return node 
+
+    def GetNode(self, url):
+        node = self.nodesbyURL[url]
         return node 
 
 
@@ -465,7 +471,7 @@ class Node:
     def Debug(self):
         return " ".join([StrNone(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
 
-    def CreateLinks(self, sqlconn, nodes):
+    def CreateLinks(self, sqlconn, nodes, nodesbyURL):
         #sql = "select id, text, url_id from link where document_id = %s"
         sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
@@ -487,6 +493,7 @@ class Node:
             else:
                 childNode = Node(sqlconn, urlId, None, None, url)
                 nodes[childNode.urlId] = childNode
+                nodesbyURL[childNode.url] = childNode
 
             Link = namedtuple("Link", "text textLang parentNode childNode")
             link = Link(text, textLang, self, childNode)
@@ -521,8 +528,9 @@ def TrainSitemap(params, sitemap, sess, qn):
     corpus = Corpus()
 
     for epoch in range(params.max_epochs):
-        startState = sitemap.GetRandomNode() # random start state
-        #startState = sitemap.GetFirstNode()
+        #startState = sitemap.GetRandomNode() # random start state
+        startState = sitemap.GetNode("www.vade-retro.fr/")
+        print("HH", startState.Debug())
         path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
@@ -595,8 +603,7 @@ def Main():
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
-    #siteMap.Visit("random")
-
+    
     # =============================================================
     env = Env()
 
