@@ -346,14 +346,30 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
             maxQ1 = 0
             break
         else:
-            currLink = children[action]
-            childNode = currLink.childNode
+            link = children[action]
+            nextNode = link.childNode
+
+            nextVisited = visited.copy()
+            nextVisited.add(nextNode.urlId)
+
+            nextChildren = curr.GetUnvisitedChildren(nextVisited)
+            assert(len(children) <= params.NUM_ACTIONS)
 
             # calc Q-value of next node
-            maxQ1 = 3.1
+            nextInput = np.zeros([1, params.NUM_ACTIONS])
+
+            col = 0
+            for child in nextChildren:
+                nextInput[0, col] = qn.GetLangId(child.textLang)
+
+                col += 1
+
+            print("input", input)
+            action, nextAllQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: nextInput})
+            maxQ1 = np.max(nextAllQ)
 
 
-        if childNode.aligned:
+        if nextNode.aligned:
             reward = 8.5
         else:
             reward = -1.0
@@ -361,10 +377,10 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         targetQ = np.array(allQ, copy=True)
         targetQ[0, action] = reward + params.gamma * maxQ1
 
-        transition = Transition(currLink, targetQ)
+        transition = Transition(link, targetQ)
         path.append(transition)
 
-        curr = currLink.childNode
+        curr = nextNode
 
     print("path", curr.Debug(), len(path))
     return path
