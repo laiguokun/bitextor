@@ -331,7 +331,6 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     
     while True:
         print("curr", curr.Debug())
-        #path.append(curr)
         visited.add(curr.urlId)
 
         children = curr.GetUnvisitedChildren(visited)
@@ -344,12 +343,12 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
 
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, 5)
-        print("action", action, len(children))
+        print("   action", action, len(children))
 
         if action >= len(children):
             # STOP
             maxQ1 = 0
-            break
+            print("STOP")
         else:
             link = children[action]
             nextNode = link.childNode
@@ -361,6 +360,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
             nextAction, nextAllQ = CalcQ(nextChildren, params, sess, qn)
 
             maxQ1 = np.max(nextAllQ)
+            print("   maxQ", nextNode.urlId, maxQ1)
 
 
         if nextNode.aligned:
@@ -373,6 +373,9 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
 
         transition = Transition(link, targetQ)
         path.append(transition)
+
+        if action >= len(children):
+            break
 
         curr = nextNode
 
