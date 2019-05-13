@@ -434,25 +434,6 @@ class Sitemap:
             self.langIds[langStr] = langId
         return langId
 
-    def Visit(self, start):
-        assert(len(self.nodesWithDoc) > 0)
-
-        if start == "1st":
-            startNode = next(iter(self.nodesWithDoc.values()))
-        elif start == "random":
-            startNode = self.GetRandomNode()
-        else:
-            print("1st or random?")
-            exit()
-
-        visited = set()
-
-        print(startNode.Debug())
-        visited.add(startNode.urlId)
-        startNode.Visit(visited)
-
-        print("visited", len(visited))
-
     def GetRandomNode(self):
         l = list(self.nodesWithDoc.values())
         node = random.choice(l)
@@ -510,22 +491,6 @@ class Node:
             Link = namedtuple("Link", "text textLang parentNode childNode")
             link = Link(text, textLang, self, childNode)
             self.links.append(link)
-
-    def Visit(self, visited):
-        children = self.GetUnvisitedChildren(visited)
-        #print("children", len(children))
-
-        # direct descendants
-        for child in children:
-            childNode = child.childNode
-            print(childNode.Debug())
-            visited.add(childNode.urlId)
-
-        # grandchildren
-        for child in children:
-            childNode = child.childNode
-            childNode.Visit(visited)
-
 
     def GetUnvisitedChildren(self, visited):
         children = []
