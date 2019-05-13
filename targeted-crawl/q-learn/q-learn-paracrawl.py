@@ -326,9 +326,29 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         # Neural network here
         assert(len(children) <= params.NUM_ACTIONS)
 
-        childInd = random.randint(0, len(children) - 1)
-        print("childInd", childInd, len(children))
-        currLink = children[childInd]
+        input = np.zeros([1, params.NUM_ACTIONS])
+
+        col = 0
+        for child in children:
+            input[0, col] = qn.GetLangId(child.textLang)
+
+            col += 1
+
+        print("input", input)
+        action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
+        action = action[0]
+        if np.random.rand(1) < params.eps:
+            action = np.random.randint(0, 5)
+        print("action", action, len(children))
+
+        if action >= len(children):
+            # STOP
+            maxQ = 0
+            break
+        else:
+            pass
+            
+        currLink = children[action]
         childNode = currLink.childNode
 
         if childNode.aligned:
@@ -339,7 +359,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         maxQ1 = 3.4
 
         targetQ = np.zeros([1, params.NUM_ACTIONS])
-        targetQ[0, childInd] = reward + params.gamma * maxQ1
+        targetQ[0, action] = reward + params.gamma * maxQ1
 
 
         transition = Transition(currLink, targetQ)
