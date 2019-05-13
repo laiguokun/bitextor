@@ -331,9 +331,10 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         currLink = children[childInd]
         childNode = currLink.childNode
 
-        reward = 0
         if childNode.aligned:
             reward = 8.5
+        else:
+            reward = -1.0
 
         maxQ1 = 3.4
 
