@@ -88,6 +88,18 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
+        # server-side lookups
+        self.lang2Id = {}
+
+    def GetLangId(self, langStr):
+        if langStr in self.lang2Id:
+            ret = self.lang2Id[langStr]
+        else:
+            ret = len(self.lang2Id) + 1
+            self.lang2Id[langStr] = ret
+
+        return ret
+
     def PrintQ(self, curr, env, sess):
         # print("hh", next, hh)
         neighbours = env.GetNeighBours(curr)
@@ -551,10 +563,13 @@ def UpdateQNSitemap(params, sitemap, sess, qn, batch):
         childNode = link.childNode
         print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, "->", childNode.urlId, childNode.url)
         
-        neighbours[row, 4] = 5
+        neighbours[row, 4] = qn.GetLangId(link.textLang)
         targetQ[row, :] = transition.targetQ
 
         row += 1
+
+    print("   neighbours", neighbours)
+    print("   targetQ", targetQ)
 
     outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
     _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
