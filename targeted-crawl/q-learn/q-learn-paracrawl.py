@@ -343,24 +343,23 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
 
         if action >= len(children):
             # STOP
-            maxQ = 0
+            maxQ1 = 0
             break
         else:
-            pass
-            
-        currLink = children[action]
-        childNode = currLink.childNode
+            currLink = children[action]
+            childNode = currLink.childNode
+
+            # calc Q-value of next node
+            maxQ1 = 3.1
+
 
         if childNode.aligned:
             reward = 8.5
         else:
             reward = -1.0
 
-        maxQ1 = 3.4
-
-        targetQ = np.zeros([1, params.NUM_ACTIONS])
+        targetQ = np.array(allQ, copy=True)
         targetQ[0, action] = reward + params.gamma * maxQ1
-
 
         transition = Transition(currLink, targetQ)
         path.append(transition)
