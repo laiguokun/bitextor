@@ -26,7 +26,7 @@ class LearningParams:
         self.debug = False
         self.walk = 1000
 
-        self.NUM_ACTIONS = 5
+        self.NUM_ACTIONS = 20
 
 ######################################################################################
 class Qnetwork():
@@ -594,8 +594,22 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
             break
 
         # Neural network here
-        currLink = random.choice(children)
-        targetQ = targetQ = np.zeros([1, params.NUM_ACTIONS])
+        assert(len(children) <= params.NUM_ACTIONS)
+
+        childInd = random.randint(0, len(children) - 1)
+        print("childInd", childInd, len(children))
+        currLink = children[childInd]
+        childNode = currLink.childNode
+
+        reward = 0
+        if childNode.aligned:
+            reward = 8.5
+
+        maxQ1 = 3.4
+
+        targetQ = np.zeros([1, params.NUM_ACTIONS])
+        targetQ[0, childInd] = reward + params.gamma * maxQ1
+
 
         transition = Transition(currLink, targetQ)
         path.append(transition)
