@@ -458,6 +458,7 @@ class Sitemap:
         node = random.choice(l)
         return node 
 
+
 class Node:
     def __init__(self, sqlconn, urlId, docId, lang, url):
         self.urlId = urlId
@@ -477,6 +478,8 @@ class Node:
 
             if len(res) > 0:
                 self.aligned = True
+
+        print(self.Debug())
 
     def Debug(self):
         return " ".join([StrNone(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
@@ -554,6 +557,7 @@ def TrainSitemap(params, sitemap, sess, qn):
 
     for epoch in range(params.max_epochs):
         startState = sitemap.GetRandomNode() # random start state
+        #startState = sitemap.GetFirstNode()
         path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
@@ -570,7 +574,10 @@ def UpdateQNSitemap(params, sitemap, sess, qn, batch):
 
     row = 0
     for transition in batch:
-        print("transition", transition.targetQ)
+        link = transition.link
+        parentNode = link.parentNode
+        childNode = link.childNode
+        print("transition", transition.targetQ, link.textLang, parentNode.urlId, "->", childNode.urlId, childNode.url)
         
         neighbours[row, 4] = 5
         targetQ[row, :] = transition.targetQ
@@ -623,7 +630,7 @@ def Main():
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
-    siteMap.Visit("random")
+    #siteMap.Visit("random")
 
     # =============================================================
     env = Env()
