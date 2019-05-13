@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 2 #00001
+        self.max_epochs = 1 #00001
         self.eps = 1  # 0.7
         self.maxBatchSize = 3
         self.debug = False
@@ -530,7 +530,6 @@ def TrainSitemap(params, sitemap, sess, qn):
     for epoch in range(params.max_epochs):
         #startState = sitemap.GetRandomNode() # random start state
         startState = sitemap.GetNode("www.vade-retro.fr/")
-        print("HH", startState.Debug())
         path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
@@ -550,7 +549,7 @@ def UpdateQNSitemap(params, sitemap, sess, qn, batch):
         link = transition.link
         parentNode = link.parentNode
         childNode = link.childNode
-        print("transition", transition.targetQ, link.textLang, parentNode.urlId, "->", childNode.urlId, childNode.url)
+        print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, "->", childNode.urlId, childNode.url)
         
         neighbours[row, 4] = 5
         targetQ[row, :] = transition.targetQ
@@ -569,7 +568,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     visited = set()
     
     while True:
-        #print("curr", curr.Debug())
+        print("curr", curr.Debug())
         #path.append(curr)
         visited.add(curr.urlId)
 
@@ -587,7 +586,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         path.append(transition)
 
         curr = currLink.childNode
-    
+
     print("path", curr.Debug(), len(path))
     return path
 
