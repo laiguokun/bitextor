@@ -306,6 +306,23 @@ def UpdateQNSitemap(params, sitemap, sess, qn, batch):
                                                                     feed_dict={qn.input: neighbours,
                                                                                 qn.nextQ: targetQ})
 
+def CalcQ(children, params, sess, qn):
+    # calc Q-value of next node
+    assert(len(children) <= params.NUM_ACTIONS)
+
+    input = np.zeros([1, params.NUM_ACTIONS])
+
+    col = 0
+    for child in children:
+        input[0, col] = qn.GetLangId(child.textLang)
+
+        col += 1
+
+    #print("input", input)
+    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
+    action = action[0]
+
+    return action, allQ
 
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     Transition = namedtuple("Transition", "link targetQ")
@@ -323,20 +340,8 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         if len(children) ==0:
             break
 
-        # Neural network here
-        assert(len(children) <= params.NUM_ACTIONS)
+        action, allQ = CalcQ(children, params, sess, qn)
 
-        input = np.zeros([1, params.NUM_ACTIONS])
-
-        col = 0
-        for child in children:
-            input[0, col] = qn.GetLangId(child.textLang)
-
-            col += 1
-
-        print("input", input)
-        action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
-        action = action[0]
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, 5)
         print("action", action, len(children))
@@ -353,19 +358,8 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
             nextVisited.add(nextNode.urlId)
 
             nextChildren = curr.GetUnvisitedChildren(nextVisited)
-            assert(len(children) <= params.NUM_ACTIONS)
+            nextAction, nextAllQ = CalcQ(nextChildren, params, sess, qn)
 
-            # calc Q-value of next node
-            nextInput = np.zeros([1, params.NUM_ACTIONS])
-
-            col = 0
-            for child in nextChildren:
-                nextInput[0, col] = qn.GetLangId(child.textLang)
-
-                col += 1
-
-            print("input", input)
-            action, nextAllQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: nextInput})
             maxQ1 = np.max(nextAllQ)
 
 
