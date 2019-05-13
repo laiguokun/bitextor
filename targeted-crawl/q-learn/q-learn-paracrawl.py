@@ -70,7 +70,7 @@ class Qnetwork():
         self.hidden2 = tf.add(self.hidden2, self.BiasHidden2)
 
         # OUTPUT
-        self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
+        self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, params.NUM_ACTIONS], 0, 0.01))
 
         self.Qout = tf.matmul(self.hidden2, self.Wout)
 
@@ -82,7 +82,7 @@ class Qnetwork():
                         + tf.reduce_sum(self.Whidden1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
+        self.nextQ = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=params.lrn_rate)
         self.trainer = tf.train.AdamOptimizer() #learning_rate=params.lrn_rate)
@@ -179,14 +179,13 @@ class Env:
             if col[i] == 1:
                 ret.append(i)
 
-        for i in range(len(ret), 5):
+        for i in range(len(ret), params.NUM_ACTIONS):
             ret.append(self.ns - 1)
 
         random.shuffle(ret)
 
-        #ret = np.empty([5,1])
         ret = np.array(ret)
-        ret = ret.reshape([1, 5])
+        ret = ret.reshape([1, params.NUM_ACTIONS])
         #print("GetNeighBours", ret.shape, ret)
 
         return ret
@@ -235,14 +234,14 @@ def Neural(epoch, curr, params, env, sess, qn):
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
     a = a[0]
     if np.random.rand(1) < params.eps:
-        a = np.random.randint(0, 5)
+        a = np.random.randint(0, params.NUM_ACTIONS)
 
     next, r, done = env.GetNextState(curr, a, neighbours)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
     if curr == env.ns - 1:
-        targetQ = np.zeros([1, 5])
+        targetQ = np.zeros([1, params.NUM_ACTIONS])
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
@@ -310,8 +309,8 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         if transition.done: break
 
     trajSize = len(path)
-    trajNeighbours = np.empty([trajSize, 5], dtype=np.int)
-    trajTargetQ = np.empty([trajSize, 5])
+    trajNeighbours = np.empty([trajSize, params.NUM_ACTIONS], dtype=np.int)
+    trajTargetQ = np.empty([trajSize, params.NUM_ACTIONS])
 
     i = 0
     for transition in path:
@@ -339,15 +338,15 @@ def Train(params, env, sess, qn):
     losses = []
     sumWeights = []
 
-    corpusNeighbours = np.empty([0, 5], dtype=np.int)
-    corpusTargetQ = np.empty([0, 5])
+    corpusNeighbours = np.empty([0, params.NUM_ACTIONS], dtype=np.int)
+    corpusTargetQ = np.empty([0, params.NUM_ACTIONS])
 
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
         stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, startState, params, env, sess, qn)
             
         assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
-        assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
+        assert(params.NUM_ACTIONS == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
 
         corpusNeighbours, corpusTargetQ = ExpandCorpus(corpusNeighbours, corpusTargetQ, trajNeighbours, trajTargetQ)
@@ -554,8 +553,8 @@ def UpdateQNSitemap(params, sitemap, sess, qn, batch):
     batchSize = len(batch)
     #print("batchSize", batchSize)
 
-    neighbours = np.zeros([batchSize, 5])
-    targetQ = np.zeros([batchSize, 5])
+    neighbours = np.zeros([batchSize, params.NUM_ACTIONS])
+    targetQ = np.zeros([batchSize, params.NUM_ACTIONS])
 
     row = 0
     for transition in batch:
@@ -596,7 +595,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
 
         # Neural network here
         currLink = random.choice(children)
-        targetQ = targetQ = np.zeros([1, 5])
+        targetQ = targetQ = np.zeros([1, params.NUM_ACTIONS])
 
         transition = Transition(currLink, targetQ)
         path.append(transition)
