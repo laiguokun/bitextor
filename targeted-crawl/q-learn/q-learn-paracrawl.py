@@ -270,8 +270,8 @@ def TrainSitemap(params, sitemap, sess, qn):
     corpus = Corpus()
 
     for epoch in range(params.max_epochs):
-        #startState = sitemap.GetRandomNode() # random start state
-        startState = sitemap.GetNode("www.vade-retro.fr/")
+        startState = sitemap.GetRandomNode() # random start state
+        #startState = sitemap.GetNode("www.vade-retro.fr/")
         path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
@@ -370,6 +370,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
 
         targetQ = np.array(allQ, copy=True)
         targetQ[0, action] = reward + params.gamma * maxQ1
+        print("   targetQ", targetQ)
 
         transition = Transition(link, targetQ)
         path.append(transition)
