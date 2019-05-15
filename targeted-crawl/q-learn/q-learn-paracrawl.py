@@ -344,8 +344,8 @@ def AddToCandidates(candidates, unvisitedLinks):
             candidates[urlId] = arr
         arr.append(link)
 
-def PrintCandidates(candidates):
-    print("candidates", len(candidates), end=" ")
+def PrintCandidates(name, candidates):
+    print(name, len(candidates), end=" ")
     for key in candidates:
         print("{key}={value}".format(key=key, value=len(candidates[key])), end=" ")
     print()
@@ -364,7 +364,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         #print("  unvisitedLinks", len(unvisitedLinks))
         
         AddToCandidates(candidates, unvisitedLinks)
-        PrintCandidates(candidates)
+        PrintCandidates("candidates", candidates)
 
         if len(candidates) ==0:
             break
@@ -396,10 +396,11 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         nextVisited = visited.copy()
         nextVisited.add(urlId)
 
-        nextUnvisitedLinks = curr.GetUnvisitedLinks(nextVisited)
+        nextUnvisitedLinks = nextNode.GetUnvisitedLinks(nextVisited)
         AddToCandidates(nextCandidates, nextUnvisitedLinks)
+        PrintCandidates("   nextCandidates", nextCandidates)
 
-        #nextAction, nextAllQ = CalcQ(nextCandidates, params, sess, qn)
+        nextAction, nextAllQ, newURLIds = CalcQ(nextCandidates, params, sess, qn)
 
         #maxQ1 = np.max(nextAllQ)
         #print("   maxQ", nextNode.urlId, maxQ1)
