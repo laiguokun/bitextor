@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 1001
+        self.max_epochs = 10001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -283,7 +283,10 @@ def Train(params, sitemap, sess, qn):
 
         while len(corpus.transitions) >= params.maxBatchSize:
             batch = corpus.GetBatch(params.maxBatchSize)
-            UpdateQN(params, sitemap, sess, qn, batch)
+            loss = UpdateQN(params, sitemap, sess, qn, batch)
+            losses.append(loss)
+
+    return losses
 
 def UpdateQN(params, sitemap, sess, qn, batch):
     batchSize = len(batch)
@@ -311,6 +314,7 @@ def UpdateQN(params, sitemap, sess, qn, batch):
     _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
                                                                     feed_dict={qn.input: input,
                                                                                 qn.nextQ: targetQ})
+    return loss
 
 def CalcQ(input, params, sess, qn):
     # calc Q-value of next node
@@ -458,15 +462,15 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
-        Train(params, siteMap, sess, qn)
+        losses = Train(params, siteMap, sess, qn)
         print("Trained")
-        exit()
-
-        qn.PrintAllQ(env, sess)
-        env.WalkAll(sess, qn)
+        
+        #qn.PrintAllQ(env, sess)
+        #env.WalkAll(sess, qn)
 
         plt.plot(losses)
         plt.show()
+        exit()
 
         plt.plot(sumWeights)
         plt.show()
