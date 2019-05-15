@@ -345,7 +345,7 @@ def AddToCandidates(candidates, unvisitedLinks):
         arr.append(link)
 
 def PrintCandidates(candidates):
-    print("candidates", end=" ")
+    print("candidates", len(candidates), end=" ")
     for key in candidates:
         print("{key}={value}".format(key=key, value=len(candidates[key])), end=" ")
     print()
@@ -357,7 +357,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
     candidates = {}
 
     while True:
-        print("curr", curr.Debug())
+        #print("   curr", curr.Debug())
         visited.add(curr.urlId)
 
         unvisitedLinks = curr.GetUnvisitedLinks(visited)
@@ -375,32 +375,35 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, 5)
 
-        if action >= len(urlIds):
+        if action >= len(candidates):
             # STOP
             maxQ1 = 0
-            print("   action", action, "STOP", len(candidates), urlIds)
-        else:
-            urlId = urlIds[action]
-            links = candidates[urlId]
-            link = links[0]
-            nextNode = link.childNode
-            assert(urlId == nextNode.urlId)
-            print("   action", action, urlId, len(candidates), urlIds)
+            print("   action", "STOP", action, len(candidates), urlIds)
+            print()
+            break
 
-            del candidates[urlId]
+        urlId = urlIds[action]
+        links = candidates[urlId]
+        link = links[0]
+        nextNode = link.childNode
+        assert(urlId == nextNode.urlId)
+        print("   action", urlId, action, len(candidates), urlIds)
 
-            nextCandidates = candidates.copy()
+        del candidates[urlId]
 
-            nextVisited = visited.copy()
-            nextVisited.add(urlId)
+        nextCandidates = candidates.copy()
 
-            nextUnvisitedLinks = curr.GetUnvisitedLinks(nextVisited)
-            AddToCandidates(nextCandidates, nextUnvisitedLinks)
+        nextVisited = visited.copy()
+        nextVisited.add(urlId)
 
-            nextAction, nextAllQ = CalcQ(nextCandidates, params, sess, qn)
+        nextUnvisitedLinks = curr.GetUnvisitedLinks(nextVisited)
+        AddToCandidates(nextCandidates, nextUnvisitedLinks)
 
-            maxQ1 = np.max(nextAllQ)
-            print("   maxQ", nextNode.urlId, maxQ1)
+        #nextAction, nextAllQ = CalcQ(nextCandidates, params, sess, qn)
+
+        #maxQ1 = np.max(nextAllQ)
+        #print("   maxQ", nextNode.urlId, maxQ1)
+        maxQ1= 644
 
 
         if nextNode.aligned:
@@ -415,8 +418,6 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         transition = Transition(link, targetQ)
         path.append(transition)
 
-        if action >= len(unvisitedLinks):
-            break
 
         curr = nextNode
 
