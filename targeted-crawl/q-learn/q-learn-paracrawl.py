@@ -307,14 +307,23 @@ def UpdateQN(params, sitemap, sess, qn, batch):
                                                                     feed_dict={qn.input: neighbours,
                                                                                 qn.nextQ: targetQ})
 
-def CalcQ(unvisitedLinks, params, sess, qn):
+def CalcQ(candidates, params, sess, qn):
     # calc Q-value of next node
-    assert(len(unvisitedLinks) <= params.NUM_ACTIONS)
+    assert(len(candidates) <= params.NUM_ACTIONS)
 
     input = np.zeros([1, params.NUM_ACTIONS])
 
+    urlIds = []
     col = 0
-    for link in unvisitedLinks:
+    for urlId in candidates:
+        #print("urlId", urlId)
+        urlIds.append(urlId)
+        links = candidates[urlId]
+        #for link in links:
+        #    print("   ", link.childNode.urlId, link.childNode.url)
+
+        # just use 1st link
+        link = links[0]
         input[0, col] = qn.GetLangId(link.textLang)
 
         col += 1
@@ -323,7 +332,7 @@ def CalcQ(unvisitedLinks, params, sess, qn):
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
     action = action[0]
 
-    return action, allQ
+    return action, allQ, urlIds
 
 def AddToCandidates(candidates, unvisitedLinks):
     for link in unvisitedLinks:
@@ -335,8 +344,11 @@ def AddToCandidates(candidates, unvisitedLinks):
             candidates[urlId] = arr
         arr.append(link)
 
-    #for key in candidates:
-    #    print("candidates", key, len(candidates[key]))
+def PrintCandidates(candidates):
+    print("candidates", end=" ")
+    for key in candidates:
+        print(key, "=", len(candidates[key]), end=" ")
+    print()
 
 def Trajectory(epoch, curr, params, sitemap, sess, qn):
     Transition = namedtuple("Transition", "link targetQ")
@@ -352,29 +364,40 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         #print("  unvisitedLinks", len(unvisitedLinks))
         
         AddToCandidates(candidates, unvisitedLinks)
+        PrintCandidates(candidates)
 
         if len(candidates) ==0:
             break
 
-        action, allQ = CalcQ(unvisitedLinks, params, sess, qn)
+        action, allQ, urlIds = CalcQ(candidates, params, sess, qn)
+        assert(len(urlIds) == len(candidates))
 
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, 5)
-        print("   action", action, len(unvisitedLinks))
+        print("   action", action, len(candidates), urlIds)
 
-        if action >= len(unvisitedLinks):
+        if action >= len(urlIds):
             # STOP
             maxQ1 = 0
             print("STOP")
         else:
-            link = unvisitedLinks[action]
+            urlId = urlIds[action]
+            links = candidates[urlId]
+            link = links[0]
             nextNode = link.childNode
+            assert(urlId == nextNode.urlId)
+
+            del candidates[urlId]
+
+            nextCandidates = candidates.copy()
 
             nextVisited = visited.copy()
-            nextVisited.add(nextNode.urlId)
+            nextVisited.add(urlId)
 
-            nextChildren = curr.GetUnvisitedLinks(nextVisited)
-            nextAction, nextAllQ = CalcQ(nextChildren, params, sess, qn)
+            nextUnvisitedLinks = curr.GetUnvisitedLinks(nextVisited)
+            AddToCandidates(nextCandidates, nextUnvisitedLinks)
+
+            nextAction, nextAllQ = CalcQ(nextCandidates, params, sess, qn)
 
             maxQ1 = np.max(nextAllQ)
             print("   maxQ", nextNode.urlId, maxQ1)
