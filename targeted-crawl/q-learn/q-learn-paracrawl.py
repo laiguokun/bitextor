@@ -20,9 +20,9 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 1 #00001
+        self.max_epochs = 1001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 3
+        self.maxBatchSize = 32
         self.debug = False
         self.walk = 1000
 
@@ -287,7 +287,7 @@ def Train(params, sitemap, sess, qn):
 
 def UpdateQN(params, sitemap, sess, qn, batch):
     batchSize = len(batch)
-    print("\n batchSize", batchSize)
+    #print("\n batchSize", batchSize)
 
     input = np.zeros([batchSize, params.NUM_ACTIONS])
     targetQ = np.zeros([batchSize, params.NUM_ACTIONS])
@@ -297,15 +297,15 @@ def UpdateQN(params, sitemap, sess, qn, batch):
         link = transition.link
         parentNode = link.parentNode
         childNode = link.childNode
-        print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, parentNode.url, "->", childNode.urlId, childNode.url)
+        #print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, parentNode.url, "->", childNode.urlId, childNode.url)
         
         input[row, :] = transition.input
         targetQ[row, :] = transition.targetQ
 
         row += 1
 
-    print("   input", input)
-    print("   targetQ", targetQ)
+    #print("   input", input)
+    #print("   targetQ", targetQ)
 
     outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
     _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
@@ -370,7 +370,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         #print("  unvisitedLinks", len(unvisitedLinks))
         
         AddToCandidates(candidates, unvisitedLinks)
-        PrintCandidates("candidates", candidates)
+        #PrintCandidates("candidates", candidates)
 
         if len(candidates) ==0:
             break
@@ -385,8 +385,8 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         if action >= len(candidates):
             # STOP
             maxQ1 = 0
-            print("   action", "STOP", action, len(candidates), urlIds)
-            print()
+            #print("   action", "STOP", action, len(candidates), urlIds)
+            #print()
             break
 
         urlId = urlIds[action]
@@ -394,7 +394,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         link = links[0]
         nextNode = link.childNode
         assert(urlId == nextNode.urlId)
-        print("   action", urlId, action, len(candidates), urlIds)
+        #print("   action", urlId, action, len(candidates), urlIds)
 
         del candidates[urlId]
 
@@ -405,23 +405,23 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
 
         nextUnvisitedLinks = nextNode.GetUnvisitedLinks(nextVisited)
         AddToCandidates(nextCandidates, nextUnvisitedLinks)
-        PrintCandidates("   nextCandidates", nextCandidates)
+        #PrintCandidates("   nextCandidates", nextCandidates)
 
         nextInput, _ = GetInput(nextCandidates, params, qn)
         nextAction, nextAllQ = CalcQ(nextInput, params, sess, qn)
         maxQ1 = np.max(nextAllQ)
-        print("   maxQ", urlId, maxQ1, nextAllQ)
+        #print("   maxQ", urlId, maxQ1, nextAllQ)
         
 
         if nextNode.aligned:
             reward = 8.5
         else:
             reward = -1.0
-        print("   reward", reward)
+        #print("   reward", reward)
 
         targetQ = np.array(allQ, copy=True)
         targetQ[0, action] = reward + params.gamma * maxQ1
-        print("   targetQ", targetQ)
+        #print("   targetQ", targetQ)
 
         transition = Transition(link, input, targetQ)
         path.append(transition)
@@ -429,7 +429,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
 
         curr = nextNode
 
-    print("path", curr.Debug(), len(path))
+    #print("path", curr.Debug(), len(path))
     return path
 
     
