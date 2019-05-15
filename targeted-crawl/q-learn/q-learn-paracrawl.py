@@ -347,7 +347,7 @@ def AddToCandidates(candidates, unvisitedLinks):
 def PrintCandidates(candidates):
     print("candidates", end=" ")
     for key in candidates:
-        print(key, "=", len(candidates[key]), end=" ")
+        print("{key}={value}".format(key=key, value=len(candidates[key])), end=" ")
     print()
 
 def Trajectory(epoch, curr, params, sitemap, sess, qn):
@@ -374,18 +374,18 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
 
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, 5)
-        print("   action", action, len(candidates), urlIds)
 
         if action >= len(urlIds):
             # STOP
             maxQ1 = 0
-            print("STOP")
+            print("   action", action, "STOP", len(candidates), urlIds)
         else:
             urlId = urlIds[action]
             links = candidates[urlId]
             link = links[0]
             nextNode = link.childNode
             assert(urlId == nextNode.urlId)
+            print("   action", action, urlId, len(candidates), urlIds)
 
             del candidates[urlId]
 
