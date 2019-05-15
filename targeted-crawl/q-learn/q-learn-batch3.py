@@ -17,7 +17,7 @@ class LearningParams:
         self.maxBatchSize = 32
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 5
+        self.NUM_ACTIONS = 10
 
 ######################################################################################
 class Qnetwork():
