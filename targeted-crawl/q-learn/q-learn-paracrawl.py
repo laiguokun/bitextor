@@ -263,7 +263,7 @@ class Corpus:
         return ret
 
 
-def TrainSitemap(params, sitemap, sess, qn):
+def Train(params, sitemap, sess, qn):
     losses = []
     sumWeights = []
 
@@ -273,14 +273,14 @@ def TrainSitemap(params, sitemap, sess, qn):
         startState = sitemap.GetRandomNode() # random start state
         #startState = sitemap.GetNode("www.vade-retro.fr/")
 
-        path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
+        path = Trajectory(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
         while len(corpus.transitions) >= params.maxBatchSize:
             batch = corpus.GetBatch(params.maxBatchSize)
-            UpdateQNSitemap(params, sitemap, sess, qn, batch)
+            UpdateQN(params, sitemap, sess, qn, batch)
 
-def UpdateQNSitemap(params, sitemap, sess, qn, batch):
+def UpdateQN(params, sitemap, sess, qn, batch):
     batchSize = len(batch)
     #print("batchSize", batchSize)
 
@@ -338,7 +338,7 @@ def AddToCandidates(candidates, unvisitedLinks):
     #for key in candidates:
     #    print("candidates", key, len(candidates[key]))
 
-def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
+def Trajectory(epoch, curr, params, sitemap, sess, qn):
     Transition = namedtuple("Transition", "link targetQ")
     path = []
     visited = set()
@@ -426,7 +426,7 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
-        TrainSitemap(params, siteMap, sess, qn)
+        Train(params, siteMap, sess, qn)
         print("Trained")
         exit()
 
