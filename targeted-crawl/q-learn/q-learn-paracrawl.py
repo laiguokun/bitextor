@@ -282,9 +282,9 @@ def Train(params, sitemap, sess, qn):
 
 def UpdateQN(params, sitemap, sess, qn, batch):
     batchSize = len(batch)
-    #print("batchSize", batchSize)
+    print("\n batchSize", batchSize)
 
-    neighbours = np.zeros([batchSize, params.NUM_ACTIONS])
+    input = np.zeros([batchSize, params.NUM_ACTIONS])
     targetQ = np.zeros([batchSize, params.NUM_ACTIONS])
 
     row = 0
@@ -292,19 +292,19 @@ def UpdateQN(params, sitemap, sess, qn, batch):
         link = transition.link
         parentNode = link.parentNode
         childNode = link.childNode
-        print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, "->", childNode.urlId, childNode.url)
+        print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, parentNode.url, "->", childNode.urlId, childNode.url)
         
-        neighbours[row, 4] = qn.GetLangId(link.textLang)
+        input[row, 4] = qn.GetLangId(link.textLang)
         targetQ[row, :] = transition.targetQ
 
         row += 1
 
-    print("   neighbours", neighbours)
+    print("   input", input)
     print("   targetQ", targetQ)
 
     outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
     _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
-                                                                    feed_dict={qn.input: neighbours,
+                                                                    feed_dict={qn.input: input,
                                                                                 qn.nextQ: targetQ})
 
 def CalcQ(candidates, params, sess, qn):
