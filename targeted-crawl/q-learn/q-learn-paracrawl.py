@@ -316,9 +316,18 @@ def CalcQ(candidates, params, sess, qn):
     # calc Q-value of next node
     assert(len(candidates) <= params.NUM_ACTIONS)
 
-    input = np.zeros([1, params.NUM_ACTIONS])
+    input, urlIds = GetInput(candidates, params, qn)
 
+    #print("input", input)
+    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
+    action = action[0]
+
+    return action, allQ, urlIds
+
+def GetInput(candidates, params, qn):
+    input = np.zeros([1, params.NUM_ACTIONS])
     urlIds = []
+
     col = 0
     for urlId in candidates:
         #print("urlId", urlId)
@@ -332,12 +341,7 @@ def CalcQ(candidates, params, sess, qn):
         input[0, col] = qn.GetLangId(link.textLang)
 
         col += 1
-
-    #print("input", input)
-    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
-    action = action[0]
-
-    return action, allQ, urlIds
+    return input, urlIds
 
 def AddToCandidates(candidates, unvisitedLinks):
     for link in unvisitedLinks:
