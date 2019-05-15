@@ -325,6 +325,19 @@ def CalcQ(unvisitedLinks, params, sess, qn):
 
     return action, allQ
 
+def AddToCandidates(candidates, unvisitedLinks):
+    for link in unvisitedLinks:
+        urlId = link.childNode.urlId
+        if urlId in candidates:
+            arr = candidates[urlId]
+        else:
+            arr = []
+            candidates[urlId] = arr
+        arr.append(link)
+
+    #for key in candidates:
+    #    print("candidates", key, len(candidates[key]))
+
 def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     Transition = namedtuple("Transition", "link targetQ")
     path = []
@@ -338,7 +351,9 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         unvisitedLinks = curr.GetUnvisitedLinks(visited)
         #print("  unvisitedLinks", len(unvisitedLinks))
         
-        if len(unvisitedLinks) ==0:
+        AddToCandidates(candidates, unvisitedLinks)
+
+        if len(candidates) ==0:
             break
 
         action, allQ = CalcQ(unvisitedLinks, params, sess, qn)
