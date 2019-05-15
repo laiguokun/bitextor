@@ -241,13 +241,13 @@ class Node:
             link = Link(text, textLang, self, childNode)
             self.links.append(link)
 
-    def GetUnvisitedChildren(self, visited):
-        children = []
+    def GetUnvisitedLinks(self, visited):
+        links = []
         for link in self.links:
             childNode = link.childNode
             if childNode.docId is not None and childNode.urlId not in visited:
-                children.append(link)
-        return children
+                links.append(link)
+        return links
 
 class Corpus:
     def __init__(self):
@@ -272,6 +272,7 @@ def TrainSitemap(params, sitemap, sess, qn):
     for epoch in range(params.max_epochs):
         startState = sitemap.GetRandomNode() # random start state
         #startState = sitemap.GetNode("www.vade-retro.fr/")
+
         path = TrajectorySitemap(epoch, startState, params, sitemap, sess, qn)
         corpus.AddPath(path)
 
@@ -306,15 +307,15 @@ def UpdateQNSitemap(params, sitemap, sess, qn, batch):
                                                                     feed_dict={qn.input: neighbours,
                                                                                 qn.nextQ: targetQ})
 
-def CalcQ(children, params, sess, qn):
+def CalcQ(unvisitedLinks, params, sess, qn):
     # calc Q-value of next node
-    assert(len(children) <= params.NUM_ACTIONS)
+    assert(len(unvisitedLinks) <= params.NUM_ACTIONS)
 
     input = np.zeros([1, params.NUM_ACTIONS])
 
     col = 0
-    for child in children:
-        input[0, col] = qn.GetLangId(child.textLang)
+    for link in unvisitedLinks:
+        input[0, col] = qn.GetLangId(link.textLang)
 
         col += 1
 
@@ -328,35 +329,36 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
     Transition = namedtuple("Transition", "link targetQ")
     path = []
     visited = set()
-    
+    candidates = {}
+
     while True:
         print("curr", curr.Debug())
         visited.add(curr.urlId)
 
-        children = curr.GetUnvisitedChildren(visited)
-        #print("  children", len(children))
+        unvisitedLinks = curr.GetUnvisitedLinks(visited)
+        #print("  unvisitedLinks", len(unvisitedLinks))
         
-        if len(children) ==0:
+        if len(unvisitedLinks) ==0:
             break
 
-        action, allQ = CalcQ(children, params, sess, qn)
+        action, allQ = CalcQ(unvisitedLinks, params, sess, qn)
 
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, 5)
-        print("   action", action, len(children))
+        print("   action", action, len(unvisitedLinks))
 
-        if action >= len(children):
+        if action >= len(unvisitedLinks):
             # STOP
             maxQ1 = 0
             print("STOP")
         else:
-            link = children[action]
+            link = unvisitedLinks[action]
             nextNode = link.childNode
 
             nextVisited = visited.copy()
             nextVisited.add(nextNode.urlId)
 
-            nextChildren = curr.GetUnvisitedChildren(nextVisited)
+            nextChildren = curr.GetUnvisitedLinks(nextVisited)
             nextAction, nextAllQ = CalcQ(nextChildren, params, sess, qn)
 
             maxQ1 = np.max(nextAllQ)
@@ -375,7 +377,7 @@ def TrajectorySitemap(epoch, curr, params, sitemap, sess, qn):
         transition = Transition(link, targetQ)
         path.append(transition)
 
-        if action >= len(children):
+        if action >= len(unvisitedLinks):
             break
 
         curr = nextNode
