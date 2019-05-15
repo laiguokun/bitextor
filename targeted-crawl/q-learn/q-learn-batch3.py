@@ -23,7 +23,7 @@ class LearningParams:
 class Qnetwork():
     def __init__(self, params, env):
         # These lines establish the feed-forward part of the network used to choose actions
-        EMBED_DIM = 80
+        EMBED_DIM = 90
 
         INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
 
@@ -61,7 +61,7 @@ class Qnetwork():
         self.hidden2 = tf.add(self.hidden2, self.BiasHidden2)
 
         # OUTPUT
-        self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
+        self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, params.NUM_ACTIONS], 0, 0.01))
 
         self.Qout = tf.matmul(self.hidden2, self.Wout)
 
@@ -73,24 +73,24 @@ class Qnetwork():
                         + tf.reduce_sum(self.Whidden1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[None, 5], dtype=tf.float32)
+        self.nextQ = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def PrintQ(self, curr, env, sess):
+    def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
-        neighbours = env.GetNeighBours(curr)
+        neighbours = env.GetNeighBours(curr, params)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
         #print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
         print("curr=", curr, allQ, neighbours)
 
-    def PrintAllQ(self, env, sess):
+    def PrintAllQ(self, params, env, sess):
         print("         Q-values                          Next state")
         for curr in range(env.ns):
-            self.PrintQ(curr, env, sess)
+            self.PrintQ(curr, params, env, sess)
 
 ######################################################################################
 # helpers
@@ -153,26 +153,26 @@ class Env:
 
         return next, reward, done
 
-    def GetNeighBours(self, curr):
+    def GetNeighBours(self, curr, params):
         col = self.F[curr, :]
         ret = []
         for i in range(len(col)):
             if col[i] == 1:
                 ret.append(i)
 
-        for i in range(len(ret), 5):
+        for i in range(len(ret), params.NUM_ACTIONS):
             ret.append(self.ns - 1)
 
         random.shuffle(ret)
 
         #ret = np.empty([5,1])
         ret = np.array(ret)
-        ret = ret.reshape([1, 5])
+        ret = ret.reshape([1, params.NUM_ACTIONS])
         #print("GetNeighBours", ret.shape, ret)
 
         return ret
 
-    def Walk(self, start, sess, qn, printQ):
+    def Walk(self, start, params, sess, qn, printQ):
         curr = start
         i = 0
         totReward = 0
@@ -180,7 +180,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            neighbours = self.GetNeighBours(curr)
+            neighbours = self.GetNeighBours(curr, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
             next, reward, done = self.GetNextState(curr, action, neighbours)
@@ -203,31 +203,31 @@ class Env:
 
         print(" ", totReward)
 
-    def WalkAll(self, sess, qn):
+    def WalkAll(self, params, sess, qn):
         for start in range(self.ns):
-            self.Walk(start, sess, qn, False)
+            self.Walk(start, params, sess, qn, False)
 
 ######################################################################################
 
 def Neural(epoch, curr, params, env, sess, qn):
     # NEURAL
     # print("hh", next, hh)
-    neighbours = env.GetNeighBours(curr)
+    neighbours = env.GetNeighBours(curr, params)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
     a = a[0]
     if np.random.rand(1) < params.eps:
-        a = np.random.randint(0, 5)
+        a = np.random.randint(0, params.NUM_ACTIONS)
 
     next, r, done = env.GetNextState(curr, a, neighbours)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
     if curr == env.ns - 1:
-        targetQ = np.zeros([1, 5])
+        targetQ = np.zeros([1, params.NUM_ACTIONS])
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
-        nextNeighbours = env.GetNeighBours(next)
+        nextNeighbours = env.GetNeighBours(next, params)
         Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextNeighbours})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
@@ -291,8 +291,8 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         if transition.done: break
 
     trajSize = len(path)
-    trajNeighbours = np.empty([trajSize, 5], dtype=np.int)
-    trajTargetQ = np.empty([trajSize, 5])
+    trajNeighbours = np.empty([trajSize, params.NUM_ACTIONS], dtype=np.int)
+    trajTargetQ = np.empty([trajSize, params.NUM_ACTIONS])
 
     i = 0
     for transition in path:
@@ -320,15 +320,15 @@ def Train(params, env, sess, qn):
     losses = []
     sumWeights = []
 
-    corpusNeighbours = np.empty([0, 5], dtype=np.int)
-    corpusTargetQ = np.empty([0, 5])
+    corpusNeighbours = np.empty([0, params.NUM_ACTIONS], dtype=np.int)
+    corpusTargetQ = np.empty([0, params.NUM_ACTIONS])
 
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
         stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, startState, params, env, sess, qn)
             
         assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
-        assert(5 == trajNeighbours.shape[1] == trajTargetQ.shape[1])
+        assert(params.NUM_ACTIONS == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
 
         corpusNeighbours, corpusTargetQ = ExpandCorpus(corpusNeighbours, corpusTargetQ, trajNeighbours, trajTargetQ)
@@ -348,8 +348,8 @@ def Train(params, env, sess, qn):
 
         if epoch % params.walk == 0:
             print("\nepoch", epoch)
-            qn.PrintAllQ(env, sess)
-            env.WalkAll(sess, qn)
+            qn.PrintAllQ(params, env, sess)
+            env.WalkAll(params, sess, qn)
             #env.Walk(9, sess, qn, True)
 
         # add to batch
@@ -396,7 +396,7 @@ def Main():
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
 
-        qn.PrintAllQ(env, sess)
+        qn.PrintAllQ(params, env, sess)
         env.WalkAll(sess, qn)
 
         plt.plot(losses)
