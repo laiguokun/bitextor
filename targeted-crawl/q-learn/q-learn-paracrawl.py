@@ -299,7 +299,7 @@ def UpdateQN(params, sitemap, sess, qn, batch):
         childNode = link.childNode
         print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, parentNode.url, "->", childNode.urlId, childNode.url)
         
-        input[row, 4] = qn.GetLangId(link.textLang)
+        input[row, :] = transition.input
         targetQ[row, :] = transition.targetQ
 
         row += 1
@@ -312,19 +312,16 @@ def UpdateQN(params, sitemap, sess, qn, batch):
                                                                     feed_dict={qn.input: input,
                                                                                 qn.nextQ: targetQ})
 
-def CalcQ(candidates, params, sess, qn):
+def CalcQ(input, params, sess, qn):
     # calc Q-value of next node
-    assert(len(candidates) <= params.NUM_ACTIONS)
-
-    input, urlIds = GetInput(candidates, params, qn)
-
     #print("input", input)
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
     action = action[0]
 
-    return action, allQ, urlIds
+    return action, allQ
 
 def GetInput(candidates, params, qn):
+    assert(len(candidates) <= params.NUM_ACTIONS)
     input = np.zeros([1, params.NUM_ACTIONS])
     urlIds = []
 
@@ -360,7 +357,7 @@ def PrintCandidates(name, candidates):
     print()
 
 def Trajectory(epoch, curr, params, sitemap, sess, qn):
-    Transition = namedtuple("Transition", "link targetQ")
+    Transition = namedtuple("Transition", "link input targetQ")
     path = []
     visited = set()
     candidates = {}
@@ -379,7 +376,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
             break
 
         input, urlIds = GetInput(candidates, params, qn)
-        action, allQ, urlIds = CalcQ(candidates, params, sess, qn)
+        action, allQ = CalcQ(input, params, sess, qn)
         assert(len(urlIds) == len(candidates))
 
         if np.random.rand(1) < params.eps:
@@ -411,7 +408,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         PrintCandidates("   nextCandidates", nextCandidates)
 
         nextInput, _ = GetInput(nextCandidates, params, qn)
-        nextAction, nextAllQ, newURLIds = CalcQ(nextCandidates, params, sess, qn)
+        nextAction, nextAllQ = CalcQ(nextInput, params, sess, qn)
         maxQ1 = np.max(nextAllQ)
         print("   maxQ", urlId, maxQ1, nextAllQ)
         
@@ -426,7 +423,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         targetQ[0, action] = reward + params.gamma * maxQ1
         print("   targetQ", targetQ)
 
-        transition = Transition(link, targetQ)
+        transition = Transition(link, input, targetQ)
         path.append(transition)
 
 
