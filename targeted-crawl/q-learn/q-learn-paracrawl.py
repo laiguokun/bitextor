@@ -92,6 +92,11 @@ class Qnetwork():
         # server-side lookups
         self.lang2Id = {}
 
+    def __del__(self):
+        print("Lang lookup")
+        for lang in self.lang2Id:
+            print("   {lang}={id}".format(lang=lang, id=self.lang2Id[lang]))
+
     def GetLangId(self, langStr):
         if langStr in self.lang2Id:
             ret = self.lang2Id[langStr]
@@ -401,16 +406,15 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         PrintCandidates("   nextCandidates", nextCandidates)
 
         nextAction, nextAllQ, newURLIds = CalcQ(nextCandidates, params, sess, qn)
-
-        #maxQ1 = np.max(nextAllQ)
-        #print("   maxQ", nextNode.urlId, maxQ1)
-        maxQ1= 644
-
+        maxQ1 = np.max(nextAllQ)
+        print("   maxQ", urlId, maxQ1, nextAllQ)
+        
 
         if nextNode.aligned:
             reward = 8.5
         else:
             reward = -1.0
+        print("   reward", reward)
 
         targetQ = np.array(allQ, copy=True)
         targetQ[0, action] = reward + params.gamma * maxQ1
