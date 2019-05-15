@@ -378,6 +378,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         if len(candidates) ==0:
             break
 
+        input, urlIds = GetInput(candidates, params, qn)
         action, allQ, urlIds = CalcQ(candidates, params, sess, qn)
         assert(len(urlIds) == len(candidates))
 
@@ -409,6 +410,7 @@ def Trajectory(epoch, curr, params, sitemap, sess, qn):
         AddToCandidates(nextCandidates, nextUnvisitedLinks)
         PrintCandidates("   nextCandidates", nextCandidates)
 
+        nextInput, _ = GetInput(nextCandidates, params, qn)
         nextAction, nextAllQ, newURLIds = CalcQ(nextCandidates, params, sess, qn)
         maxQ1 = np.max(nextAllQ)
         print("   maxQ", urlId, maxQ1, nextAllQ)
