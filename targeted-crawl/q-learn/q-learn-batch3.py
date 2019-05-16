@@ -248,7 +248,20 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     return transition
 
-def UpdateQN(params, env, sess, qn, batch, neighbours, targetQ):
+def UpdateQN(params, env, sess, qn, batch):
+    batchSize = len(batch)
+    neighbours = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+    targetQ = np.empty([batchSize, params.NUM_ACTIONS])
+
+    i = 0
+    for transition in batch:
+        #print("transition", transition.neighbours.shape, transition.targetQ.shape)
+        neighbours[i, :] = transition.neighbours
+        targetQ[i, :] = transition.targetQ
+    
+        i += 1
+
+
     outLoop = 1000
     if params.debug: 
         outLoop = 1
@@ -290,44 +303,23 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 
         if transition.done: break
 
-    trajSize = len(path)
-    trajNeighbours = np.empty([trajSize, params.NUM_ACTIONS], dtype=np.int)
-    trajTargetQ = np.empty([trajSize, params.NUM_ACTIONS])
-
-    i = 0
-    for transition in path:
-        #print("transition", transition.neighbours.shape, transition.targetQ.shape)
-        trajNeighbours[i, :] = transition.neighbours
-        trajTargetQ[i, :] = transition.targetQ
-    
-        i += 1
-    return curr, path, trajNeighbours, trajTargetQ
+    return curr, path
 
 ######################################################################################
 class Corpus:
     def __init__(self, params):
         self.transitions = []
-        self.corpusNeighbours = np.empty([0, params.NUM_ACTIONS], dtype=np.int)
-        self.corpusTargetQ = np.empty([0, params.NUM_ACTIONS])
 
-    def AddPath(self, path, trajNeighbours, trajTargetQ):
-        self.corpusNeighbours = np.append(self.corpusNeighbours, trajNeighbours, axis=0)
-        self.corpusTargetQ = np.append(self.corpusTargetQ, trajTargetQ, axis=0)
-
+    def AddPath(self, path):
         for transition in path:
             self.transitions.append(transition)
 
 
-    def GetBatch(self, maxBatchSize):
-        batchNeighbours = self.corpusNeighbours[0:maxBatchSize, :]
-        batchTargetQ = self.corpusTargetQ[0:maxBatchSize, :]
-        self.corpusNeighbours = self.corpusNeighbours[maxBatchSize:, :]
-        self.corpusTargetQ = self.corpusTargetQ[maxBatchSize:, :]
-        
+    def GetBatch(self, maxBatchSize):        
         batch = self.transitions[0:maxBatchSize]
         self.transitions = self.transitions[maxBatchSize:]
 
-        return batch, batchNeighbours, batchTargetQ
+        return batch
 
 ######################################################################################
 
@@ -338,24 +330,18 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
-        stopState, path, trajNeighbours, trajTargetQ = Trajectory(epoch, startState, params, env, sess, qn)
-            
-        assert(trajNeighbours.shape[0] == trajTargetQ.shape[0])
-        assert(params.NUM_ACTIONS == trajNeighbours.shape[1] == trajTargetQ.shape[1])
-        trajSize = trajNeighbours.shape[0]
+        stopState, path = Trajectory(epoch, startState, params, env, sess, qn)
+        corpus.AddPath(path)
 
-        corpus.AddPath(path, trajNeighbours, trajTargetQ)
-
-        while corpus.corpusNeighbours.shape[0] >= params.maxBatchSize:
-            corpusSize = corpus.corpusNeighbours.shape[0]
+        while len(corpus.transitions) >= params.maxBatchSize:
             #print("corpusSize", corpusSize)
             
-            batch, batchNeighbours, batchTargetQ = corpus.GetBatch(params.maxBatchSize)
+            batch = corpus.GetBatch(params.maxBatchSize)
             #print("batchSize", batchNeighbours.shape)
             #print("corpusNeighbours", corpusNeighbours.shape)
             #print("corpusTargetQ", corpusTargetQ.shape)
 
-            loss, sumWeight = UpdateQN(params, env, sess, qn, batch, batchNeighbours, batchTargetQ)
+            loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
             losses.append(loss)
             sumWeights.append(sumWeight)
 
