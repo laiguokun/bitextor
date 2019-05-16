@@ -2,10 +2,10 @@
 
 import numpy as np
 import pylab as plt
-import random
-import mysql.connector
 import tensorflow as tf
+import random
 from collections import namedtuple
+import mysql.connector
 
 ######################################################################################
 def StrNone(arg):
@@ -13,20 +13,18 @@ def StrNone(arg):
         return "None"
     else:
         return str(arg)
-
 ######################################################################################
 class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 10001
+        self.max_epochs = 100001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
         self.walk = 1000
-
-        self.NUM_ACTIONS = 30
+        self.NUM_ACTIONS = 10
 
 ######################################################################################
 class Qnetwork():
@@ -84,45 +82,301 @@ class Qnetwork():
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
-        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=params.lrn_rate)
-        self.trainer = tf.train.AdamOptimizer() #learning_rate=params.lrn_rate)
+        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-        # server-side lookups
-        self.lang2Id = {}
-
-    def __del__(self):
-        print("Lang lookup")
-        for lang in self.lang2Id:
-            print("   {lang}={id}".format(lang=lang, id=self.lang2Id[lang]))
-
-    def GetLangId(self, langStr):
-        if langStr in self.lang2Id:
-            ret = self.lang2Id[langStr]
-        else:
-            ret = len(self.lang2Id) + 1
-            self.lang2Id[langStr] = ret
-
-        return ret
-
-    def PrintQ(self, curr, env, sess):
+    def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
-        neighbours = env.GetNeighBours(curr)
+        neighbours = env.GetNeighBours(curr, params)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
-        print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
+        #print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
+        print("curr=", curr, allQ, neighbours)
 
-    def PrintAllQ(self, env, sess):
+    def PrintAllQ(self, params, env, sess):
+        print("         Q-values                          Next state")
         for curr in range(env.ns):
-            self.PrintQ(curr, env, sess)
+            self.PrintQ(curr, params, env, sess)
 
 ######################################################################################
 # helpers
 class Env:
     def __init__(self):
+        self.goal = 14
         self.ns = 16  # number of states
 
+        self.F = np.zeros(shape=[self.ns, self.ns], dtype=np.int)  # Feasible
+        self.F[0, 1] = 1;
+        self.F[0, 5] = 1;
+        self.F[1, 0] = 1;
+        self.F[2, 3] = 1;
+        self.F[3, 2] = 1
+        self.F[3, 4] = 1;
+        self.F[3, 8] = 1;
+        self.F[4, 3] = 1;
+        self.F[4, 9] = 1;
+        self.F[5, 0] = 1
+        self.F[5, 6] = 1;
+        self.F[5, 10] = 1;
+        self.F[6, 5] = 1;
+        # self.F[6, 7] = 1; # hole
+        # self.F[7, 6] = 1; # hole
+        self.F[7, 8] = 1;
+        self.F[7, 12] = 1
+        self.F[8, 3] = 1;
+        self.F[8, 7] = 1;
+        self.F[9, 4] = 1;
+        self.F[9, 14] = 1;
+        self.F[10, 5] = 1
+        self.F[10, 11] = 1;
+        self.F[11, 10] = 1;
+        self.F[11, 12] = 1;
+        self.F[12, 7] = 1;
+        self.F[12, 11] = 1;
+        self.F[12, 13] = 1;
+        self.F[13, 12] = 1;
+        #self.F[14, 9] = 1;
+
+        for i in range(self.ns):
+            self.F[i, self.ns - 1] = 1
+        #print("F", self.F)
+
+    def GetNextState(self, curr, action, neighbours):
+        #print("curr", curr, action, neighbours)
+        next = neighbours[0, action]
+        assert(next >= 0)
+        #print("next", next)
+
+        done = False
+        if next == self.goal:
+            reward = 8.5
+            done = True
+        elif next == self.ns - 1:
+            reward = 0
+            done = True
+        else:
+            reward = -1
+
+        return next, reward, done
+
+    def GetNeighBours(self, curr, params):
+        col = self.F[curr, :]
+        ret = []
+        for i in range(len(col)):
+            if col[i] == 1:
+                ret.append(i)
+
+        for i in range(len(ret), params.NUM_ACTIONS):
+            ret.append(self.ns - 1)
+
+        random.shuffle(ret)
+
+        #ret = np.empty([5,1])
+        ret = np.array(ret)
+        ret = ret.reshape([1, params.NUM_ACTIONS])
+        #print("GetNeighBours", ret.shape, ret)
+
+        return ret
+
+    def Walk(self, start, params, sess, qn, printQ):
+        curr = start
+        i = 0
+        totReward = 0
+        print(str(curr) + "->", end="")
+        while True:
+            # print("curr", curr)
+            # print("hh", next, hh)
+            neighbours = self.GetNeighBours(curr, params)
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
+            action = action[0]
+            next, reward, done = self.GetNextState(curr, action, neighbours)
+            totReward += reward
+
+            #if printQ:
+            #    print("printQ", action, allQ, neighbours)
+
+            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+            print(str(next) + "->", end="")
+            curr = next
+
+            if done: break
+            if curr == self.goal: break
+
+            i += 1
+            if i > 20:
+                print("LOOPING", end="")
+                break
+
+        print(" ", totReward)
+
+    def WalkAll(self, params, sess, qn):
+        for start in range(self.ns):
+            self.Walk(start, params, sess, qn, False)
+
 ######################################################################################
+
+def Neural(epoch, curr, params, env, sess, qn):
+    # NEURAL
+    # print("hh", next, hh)
+    neighbours = env.GetNeighBours(curr, params)
+    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
+    a = a[0]
+    if np.random.rand(1) < params.eps:
+        a = np.random.randint(0, params.NUM_ACTIONS)
+
+    next, r, done = env.GetNextState(curr, a, neighbours)
+    #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
+
+    # Obtain the Q' values by feeding the new state through our network
+    if curr == env.ns - 1:
+        targetQ = np.zeros([1, params.NUM_ACTIONS])
+        maxQ1 = 0
+    else:
+        # print("  hh2", hh2)
+        nextNeighbours = env.GetNeighBours(next, params)
+        Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextNeighbours})
+        # print("  Q1", Q1)
+        maxQ1 = np.max(Q1)
+
+        #targetQ = allQ
+        targetQ = np.array(allQ, copy=True)
+        #print("  targetQ", targetQ)
+        newVal = r + params.gamma * maxQ1
+        #targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
+        targetQ[0, a] = newVal
+        #print("  targetQ", targetQ)
+
+    #print("  targetQ", targetQ, maxQ1)
+    #print("  new Q", a, allQ)
+
+    Transition = namedtuple("Transition", "curr next done neighbours targetQ")
+    transition = Transition(curr, next, done, np.array(neighbours, copy=True), np.array(targetQ, copy=True))
+
+    return transition
+
+def UpdateQN(params, env, sess, qn, batch):
+    batchSize = len(batch)
+    neighbours = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+    targetQ = np.empty([batchSize, params.NUM_ACTIONS])
+
+    i = 0
+    for transition in batch:
+        #print("transition", transition.neighbours.shape, transition.targetQ.shape)
+        neighbours[i, :] = transition.neighbours
+        targetQ[i, :] = transition.targetQ
+    
+        i += 1
+
+
+    outLoop = 1000
+    if params.debug: 
+        outLoop = 1
+        print("neighbours", neighbours)
+        print("targetQ", targetQ)
+        print()
+
+    if params.debug:
+        outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
+        _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
+                                                                            feed_dict={qn.input: neighbours,
+                                                                                       qn.nextQ: targetQ})
+        #print("embeddings", embeddings.shape, embeddings)
+        #print("embedding", embedding.shape, embedding)
+        #print("embedConcat", embedConcat.shape)
+
+        #print("  Wout\n", Wout)
+        #print("  Whidden\n", Whidden)
+        #print("  BiasHidden\n", BiasHidden)
+
+        #print("curr", curr, "next", next, "action", a)
+        #print("allQ", allQ)
+        #print("targetQ", targetQ)
+        #print("Qout", Qout)
+        #print("eps", params.eps)
+
+    else:
+        _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+
+    #print("loss", loss)
+    return loss, sumWeight
+
+def Trajectory(epoch, curr, params, env, sess, qn):
+    path = []
+    while (True):
+        transition = Neural(epoch, curr, params, env, sess, qn)
+        path.append(transition)
+        curr = transition.next
+
+        if transition.done: break
+
+    return path
+
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.transitions = []
+
+    def AddPath(self, path):
+        for transition in path:
+            self.transitions.append(transition)
+
+
+    def GetBatch(self, maxBatchSize):        
+        batch = self.transitions[0:maxBatchSize]
+        self.transitions = self.transitions[maxBatchSize:]
+
+        return batch
+
+######################################################################################
+
+def Train(params, env, sess, qn):
+    losses = []
+    sumWeights = []
+    corpus = Corpus(params)
+
+    for epoch in range(params.max_epochs):
+        startState = np.random.randint(0, env.ns)  # random start state
+        path = Trajectory(epoch, startState, params, env, sess, qn)
+        corpus.AddPath(path)
+
+        while len(corpus.transitions) >= params.maxBatchSize:
+            #print("corpusSize", corpusSize)
+            
+            batch = corpus.GetBatch(params.maxBatchSize)
+            #print("batchSize", batchNeighbours.shape)
+            #print("corpusNeighbours", corpusNeighbours.shape)
+            #print("corpusTargetQ", corpusTargetQ.shape)
+
+            loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
+            losses.append(loss)
+            sumWeights.append(sumWeight)
+
+        if epoch % params.walk == 0:
+            print("\nepoch", epoch)
+            qn.PrintAllQ(params, env, sess)
+            env.WalkAll(params, sess, qn)
+            #env.Walk(9, sess, qn, True)
+
+        # add to batch
+        stopState = path[-1].next
+        if stopState == env.goal:
+            #eps = 1. / ((i/50) + 10)
+            params.eps *= .999
+            params.eps = max(0.1, params.eps)
+            #print("eps", params.eps)
+            
+            #params.q_lrn_rate * 0.999
+            #params.q_lrn_rate = max(0.1, params.q_lrn_rate)
+            #print("q_lrn_rate", params.q_lrn_rate)
+            
+
+    # LAST BATCH
+    #corpusSize = corpusNeighbours.shape[0]
+    #if corpusSize > 0:
+    #    UpdateQN(params, env, sess, qn, corpusNeighbours, corpusTargetQ)
+            
+    return losses, sumWeights
 
 ######################################################################################
 class MySQL:
@@ -254,189 +508,8 @@ class Node:
                 links.append(link)
         return links
 
-class Corpus:
-    def __init__(self):
-        self.transitions = []
+######################################################################################
 
-    def AddPath(self, path):
-        for transition in path:
-            self.transitions.append(transition)
-
-    def GetBatch(self, maxBatchSize):
-        ret = self.transitions[0:maxBatchSize]
-        self.transitions = self.transitions[maxBatchSize:]
-        return ret
-
-
-def Train(params, sitemap, sess, qn):
-    losses = []
-    sumWeights = []
-
-    corpus = Corpus()
-
-    for epoch in range(params.max_epochs):
-        startState = sitemap.GetRandomNode() # random start state
-        #startState = sitemap.GetNode("www.vade-retro.fr/")
-
-        path = Trajectory(epoch, startState, params, sitemap, sess, qn)
-        corpus.AddPath(path)
-
-        while len(corpus.transitions) >= params.maxBatchSize:
-            batch = corpus.GetBatch(params.maxBatchSize)
-            loss = UpdateQN(params, sitemap, sess, qn, batch)
-            losses.append(loss)
-
-    return losses
-
-def UpdateQN(params, sitemap, sess, qn, batch):
-    batchSize = len(batch)
-    #print("\n batchSize", batchSize)
-
-    input = np.zeros([batchSize, params.NUM_ACTIONS])
-    targetQ = np.zeros([batchSize, params.NUM_ACTIONS])
-
-    row = 0
-    for transition in batch:
-        link = transition.link
-        parentNode = link.parentNode
-        childNode = link.childNode
-        #print("transition", transition.targetQ, link.text, link.textLang, parentNode.urlId, parentNode.url, "->", childNode.urlId, childNode.url)
-        
-        input[row, :] = transition.input
-        targetQ[row, :] = transition.targetQ
-
-        row += 1
-
-    #print("   input", input)
-    #print("   targetQ", targetQ)
-
-    outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
-    _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
-                                                                    feed_dict={qn.input: input,
-                                                                                qn.nextQ: targetQ})
-    return loss
-
-def CalcQ(input, params, sess, qn):
-    # calc Q-value of next node
-    #print("input", input)
-    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: input})
-    action = action[0]
-
-    return action, allQ
-
-def GetInput(candidates, params, qn):
-    assert(len(candidates) <= params.NUM_ACTIONS)
-    input = np.zeros([1, params.NUM_ACTIONS])
-    urlIds = []
-
-    col = 0
-    for urlId in candidates:
-        #print("urlId", urlId)
-        urlIds.append(urlId)
-        links = candidates[urlId]
-        #for link in links:
-        #    print("   ", link.childNode.urlId, link.childNode.url)
-
-        # just use 1st link
-        link = links[0]
-        input[0, col] = qn.GetLangId(link.textLang)
-
-        col += 1
-    return input, urlIds
-
-def AddToCandidates(candidates, unvisitedLinks):
-    for link in unvisitedLinks:
-        urlId = link.childNode.urlId
-        if urlId in candidates:
-            arr = candidates[urlId]
-        else:
-            arr = []
-            candidates[urlId] = arr
-        arr.append(link)
-
-def PrintCandidates(name, candidates):
-    print(name, len(candidates), end=" ")
-    for key in candidates:
-        print("{key}={value}".format(key=key, value=len(candidates[key])), end=" ")
-    print()
-
-def Trajectory(epoch, curr, params, sitemap, sess, qn):
-    Transition = namedtuple("Transition", "link input targetQ")
-    path = []
-    visited = set()
-    candidates = {}
-
-    while True:
-        #print("   curr", curr.Debug())
-        visited.add(curr.urlId)
-
-        unvisitedLinks = curr.GetUnvisitedLinks(visited)
-        #print("  unvisitedLinks", len(unvisitedLinks))
-        
-        AddToCandidates(candidates, unvisitedLinks)
-        #PrintCandidates("candidates", candidates)
-
-        if len(candidates) ==0:
-            break
-
-        input, urlIds = GetInput(candidates, params, qn)
-        action, allQ = CalcQ(input, params, sess, qn)
-        assert(len(urlIds) == len(candidates))
-
-        if np.random.rand(1) < params.eps:
-            action = np.random.randint(0, 5)
-
-        if action >= len(candidates):
-            # STOP
-            maxQ1 = 0
-            #print("   action", "STOP", action, len(candidates), urlIds)
-            #print()
-            break
-
-        urlId = urlIds[action]
-        links = candidates[urlId]
-        link = links[0]
-        nextNode = link.childNode
-        assert(urlId == nextNode.urlId)
-        #print("   action", urlId, action, len(candidates), urlIds)
-
-        del candidates[urlId]
-
-        nextCandidates = candidates.copy()
-
-        nextVisited = visited.copy()
-        nextVisited.add(urlId)
-
-        nextUnvisitedLinks = nextNode.GetUnvisitedLinks(nextVisited)
-        AddToCandidates(nextCandidates, nextUnvisitedLinks)
-        #PrintCandidates("   nextCandidates", nextCandidates)
-
-        nextInput, _ = GetInput(nextCandidates, params, qn)
-        nextAction, nextAllQ = CalcQ(nextInput, params, sess, qn)
-        maxQ1 = np.max(nextAllQ)
-        #print("   maxQ", urlId, maxQ1, nextAllQ)
-        
-
-        if nextNode.aligned:
-            reward = 8.5
-        else:
-            reward = -1.0
-        #print("   reward", reward)
-
-        targetQ = np.array(allQ, copy=True)
-        targetQ[0, action] = reward + params.gamma * maxQ1
-        #print("   targetQ", targetQ)
-
-        transition = Transition(link, input, targetQ)
-        path.append(transition)
-
-
-        curr = nextNode
-
-    #print("path", curr.Debug(), len(path))
-    return path
-
-    
 ######################################################################################
 
 def Main():
@@ -448,7 +521,6 @@ def Main():
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
-    
     # =============================================================
     env = Env()
 
@@ -462,15 +534,14 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
-        losses = Train(params, siteMap, sess, qn)
+        losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
-        
-        #qn.PrintAllQ(env, sess)
-        #env.WalkAll(sess, qn)
+
+        qn.PrintAllQ(params, env, sess)
+        env.WalkAll(params, sess, qn)
 
         plt.plot(losses)
         plt.show()
-        exit()
 
         plt.plot(sumWeights)
         plt.show()
