@@ -417,7 +417,8 @@ class Sitemap:
         self.nodesbyURL = {} # indexed by URL
         for rec in res:
             #print("rec", rec[0], rec[1])
-            node = Node(sqlconn, rec[0], rec[1], rec[2], rec[3])
+            id = len(self.nodes)
+            node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
             self.nodesbyURL[node.url] = node
         #print("nodes", len(self.nodes))
@@ -460,7 +461,8 @@ class Sitemap:
 
 
 class Node:
-    def __init__(self, sqlconn, urlId, docId, lang, url):
+    def __init__(self, sqlconn, id, urlId, docId, lang, url):
+        self.id = id
         self.urlId = urlId
         self.docId = docId
         self.lang = lang
@@ -482,7 +484,7 @@ class Node:
         print(self.Debug())
 
     def Debug(self):
-        return " ".join([StrNone(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
+        return " ".join([str(self.id), str(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
 
     def CreateLinks(self, sqlconn, nodes, nodesbyURL):
         #sql = "select id, text, url_id from link where document_id = %s"
@@ -504,7 +506,8 @@ class Node:
                 childNode = nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
-                childNode = Node(sqlconn, urlId, None, None, url)
+                id = len(nodes)
+                childNode = Node(sqlconn, id, urlId, None, None, url)
                 nodes[childNode.urlId] = childNode
                 nodesbyURL[childNode.url] = childNode
 
