@@ -248,7 +248,7 @@ def Neural(epoch, curr, params, env, sess, qn):
 
     return transition
 
-def UpdateQN(params, env, sess, qn, neighbours, targetQ):
+def UpdateQN(params, env, sess, qn, batch, neighbours, targetQ):
     outLoop = 1000
     if params.debug: 
         outLoop = 1
@@ -306,21 +306,28 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 ######################################################################################
 class Corpus:
     def __init__(self, params):
+        self.transitions = []
         self.corpusNeighbours = np.empty([0, params.NUM_ACTIONS], dtype=np.int)
         self.corpusTargetQ = np.empty([0, params.NUM_ACTIONS])
 
     def AddPath(self, path, trajNeighbours, trajTargetQ):
         self.corpusNeighbours = np.append(self.corpusNeighbours, trajNeighbours, axis=0)
         self.corpusTargetQ = np.append(self.corpusTargetQ, trajTargetQ, axis=0)
-        return self.corpusNeighbours, self.corpusTargetQ
 
-    def GetBatch(self, batchSize):
-        batchNeighbours = self.corpusNeighbours[0:batchSize, :]
-        batchTargetQ = self.corpusTargetQ[0:batchSize, :]
-        self.corpusNeighbours = self.corpusNeighbours[batchSize:, :]
-        self.corpusTargetQ = self.corpusTargetQ[batchSize:, :]
+        for transition in path:
+            self.transitions.append(transition)
+
+
+    def GetBatch(self, maxBatchSize):
+        batchNeighbours = self.corpusNeighbours[0:maxBatchSize, :]
+        batchTargetQ = self.corpusTargetQ[0:maxBatchSize, :]
+        self.corpusNeighbours = self.corpusNeighbours[maxBatchSize:, :]
+        self.corpusTargetQ = self.corpusTargetQ[maxBatchSize:, :]
         
-        return batchNeighbours, batchTargetQ
+        batch = self.transitions[0:maxBatchSize]
+        self.transitions = self.transitions[maxBatchSize:]
+
+        return batch, batchNeighbours, batchTargetQ
 
 ######################################################################################
 
@@ -343,12 +350,12 @@ def Train(params, env, sess, qn):
             corpusSize = corpus.corpusNeighbours.shape[0]
             #print("corpusSize", corpusSize)
             
-            batchNeighbours, batchTargetQ = corpus.GetBatch(params.maxBatchSize)
+            batch, batchNeighbours, batchTargetQ = corpus.GetBatch(params.maxBatchSize)
             #print("batchSize", batchNeighbours.shape)
             #print("corpusNeighbours", corpusNeighbours.shape)
             #print("corpusTargetQ", corpusTargetQ.shape)
 
-            loss, sumWeight = UpdateQN(params, env, sess, qn, batchNeighbours, batchTargetQ)
+            loss, sumWeight = UpdateQN(params, env, sess, qn, batch, batchNeighbours, batchTargetQ)
             losses.append(loss)
             sumWeights.append(sumWeight)
 
