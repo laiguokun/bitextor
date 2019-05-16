@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 50001
+        self.max_epochs = 30001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -174,7 +174,7 @@ class Env:
         for i in range(len(ret), params.NUM_ACTIONS):
             ret.append(self.ns - 1)
 
-        random.shuffle(ret)
+        #random.shuffle(ret)
 
         #ret = np.empty([5,1])
         ret = np.array(ret)
