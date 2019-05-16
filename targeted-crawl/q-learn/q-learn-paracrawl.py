@@ -19,12 +19,12 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 100001
+        self.max_epochs = 30001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 10
+        self.NUM_ACTIONS = 5
 
 ######################################################################################
 class Qnetwork():
@@ -89,7 +89,9 @@ class Qnetwork():
 
     def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
-        neighbours = env.GetNeighBours(curr, params)
+        visited = set()
+
+        neighbours = env.GetNeighBours(curr, visited, params)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
         #print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
         print("curr=", curr, allQ, neighbours)
@@ -102,7 +104,9 @@ class Qnetwork():
 ######################################################################################
 # helpers
 class Env:
-    def __init__(self):
+    def __init__(self, siteMap):
+        self.siteMap = siteMap
+
         self.goal = 14
         self.ns = 16  # number of states
 
@@ -160,11 +164,11 @@ class Env:
 
         return next, reward, done
 
-    def GetNeighBours(self, curr, params):
+    def GetNeighBours(self, curr, visited, params):
         col = self.F[curr, :]
         ret = []
         for i in range(len(col)):
-            if col[i] == 1:
+            if col[i] == 1 and i not in visited:
                 ret.append(i)
 
         for i in range(len(ret), params.NUM_ACTIONS):
@@ -180,6 +184,7 @@ class Env:
         return ret
 
     def Walk(self, start, params, sess, qn, printQ):
+        visited = set()
         curr = start
         i = 0
         totReward = 0
@@ -187,11 +192,12 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            neighbours = self.GetNeighBours(curr, params)
+            neighbours = self.GetNeighBours(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
             next, reward, done = self.GetNextState(curr, action, neighbours)
             totReward += reward
+            visited.add(next)
 
             #if printQ:
             #    print("printQ", action, allQ, neighbours)
@@ -216,10 +222,10 @@ class Env:
 
 ######################################################################################
 
-def Neural(epoch, curr, params, env, sess, qn):
+def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
-    # print("hh", next, hh)
-    neighbours = env.GetNeighBours(curr, params)
+    #print("curr", curr, visited)
+    neighbours = env.GetNeighBours(curr, visited, params)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
     a = a[0]
     if np.random.rand(1) < params.eps:
@@ -228,13 +234,15 @@ def Neural(epoch, curr, params, env, sess, qn):
     next, r, done = env.GetNextState(curr, a, neighbours)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
+    visited.add(next)
+
     # Obtain the Q' values by feeding the new state through our network
     if curr == env.ns - 1:
         targetQ = np.zeros([1, params.NUM_ACTIONS])
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
-        nextNeighbours = env.GetNeighBours(next, params)
+        nextNeighbours = env.GetNeighBours(next, visited, params)
         Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextNeighbours})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
@@ -303,8 +311,10 @@ def UpdateQN(params, env, sess, qn, batch):
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
+    visited = set()
+
     while (True):
-        transition = Neural(epoch, curr, params, env, sess, qn)
+        transition = Neural(epoch, curr, params, env, sess, qn, visited)
         path.append(transition)
         curr = transition.next
 
@@ -522,7 +532,7 @@ def Main():
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
     # =============================================================
-    env = Env()
+    env = Env(siteMap)
 
     params = LearningParams()
 
