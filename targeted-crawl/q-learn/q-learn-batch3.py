@@ -339,7 +339,7 @@ def Train(params, env, sess, qn):
 
         corpus.AddPath(path, trajNeighbours, trajTargetQ)
 
-        if corpus.corpusNeighbours.shape[0] >= params.maxBatchSize:
+        while corpus.corpusNeighbours.shape[0] >= params.maxBatchSize:
             corpusSize = corpus.corpusNeighbours.shape[0]
             #print("corpusSize", corpusSize)
             
