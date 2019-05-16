@@ -303,7 +303,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 
         if transition.done: break
 
-    return curr, path
+    return path
 
 ######################################################################################
 class Corpus:
@@ -330,7 +330,7 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
-        stopState, path = Trajectory(epoch, startState, params, env, sess, qn)
+        path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
         while len(corpus.transitions) >= params.maxBatchSize:
@@ -352,6 +352,7 @@ def Train(params, env, sess, qn):
             #env.Walk(9, sess, qn, True)
 
         # add to batch
+        stopState = path[-1].next
         if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
             params.eps *= .999
