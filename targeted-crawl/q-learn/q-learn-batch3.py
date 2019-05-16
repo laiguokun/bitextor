@@ -303,25 +303,31 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         i += 1
     return curr, path, trajNeighbours, trajTargetQ
 
-def ExpandCorpus(corpusNeighbours, corpusTargetQ, trajNeighbours, trajTargetQ):
-    corpusNeighbours = np.append(corpusNeighbours, trajNeighbours, axis=0)
-    corpusTargetQ = np.append(corpusTargetQ, trajTargetQ, axis=0)
-    return corpusNeighbours, corpusTargetQ
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.corpusNeighbours = np.empty([0, params.NUM_ACTIONS], dtype=np.int)
+        self.corpusTargetQ = np.empty([0, params.NUM_ACTIONS])
 
-def CreateBatch(corpusNeighbours, corpusTargetQ, batchSize):
-    batchNeighbours = corpusNeighbours[0:batchSize, :]
-    batchTargetQ = corpusTargetQ[0:batchSize, :]
-    corpusNeighbours = corpusNeighbours[batchSize:, :]
-    corpusTargetQ = corpusTargetQ[batchSize:, :]
-    
-    return batchNeighbours, batchTargetQ, corpusNeighbours, corpusTargetQ
+    def ExpandCorpus(self, trajNeighbours, trajTargetQ):
+        self.corpusNeighbours = np.append(self.corpusNeighbours, trajNeighbours, axis=0)
+        self.corpusTargetQ = np.append(self.corpusTargetQ, trajTargetQ, axis=0)
+        return self.corpusNeighbours, self.corpusTargetQ
+
+    def CreateBatch(self, batchSize):
+        batchNeighbours = self.corpusNeighbours[0:batchSize, :]
+        batchTargetQ = self.corpusTargetQ[0:batchSize, :]
+        self.corpusNeighbours = self.corpusNeighbours[batchSize:, :]
+        self.corpusTargetQ = self.corpusTargetQ[batchSize:, :]
+        
+        return batchNeighbours, batchTargetQ
+
+######################################################################################
 
 def Train(params, env, sess, qn):
     losses = []
     sumWeights = []
-
-    corpusNeighbours = np.empty([0, params.NUM_ACTIONS], dtype=np.int)
-    corpusTargetQ = np.empty([0, params.NUM_ACTIONS])
+    corpus = Corpus(params)
 
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
@@ -331,13 +337,13 @@ def Train(params, env, sess, qn):
         assert(params.NUM_ACTIONS == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
 
-        corpusNeighbours, corpusTargetQ = ExpandCorpus(corpusNeighbours, corpusTargetQ, trajNeighbours, trajTargetQ)
-        corpusSize = corpusNeighbours.shape[0]
+        corpus.ExpandCorpus(trajNeighbours, trajTargetQ)
+        corpusSize = corpus.corpusNeighbours.shape[0]
 
         if corpusSize >= params.maxBatchSize:
             #print("corpusSize", corpusSize)
             
-            batchNeighbours, batchTargetQ, corpusNeighbours, corpusTargetQ = CreateBatch(corpusNeighbours, corpusTargetQ, params.maxBatchSize)
+            batchNeighbours, batchTargetQ = corpus.CreateBatch(params.maxBatchSize)
             #print("batchSize", batchNeighbours.shape)
             #print("corpusNeighbours", corpusNeighbours.shape)
             #print("corpusTargetQ", corpusTargetQ.shape)
