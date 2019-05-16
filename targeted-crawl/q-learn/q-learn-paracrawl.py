@@ -19,12 +19,12 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 30001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 5
+        self.NUM_ACTIONS = 10
 
 ######################################################################################
 class Qnetwork():
@@ -317,8 +317,10 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         transition = Neural(epoch, curr, params, env, sess, qn, visited)
         path.append(transition)
         curr = transition.next
+        #print("visited", visited)
 
         if transition.done: break
+    #print()
 
     return path
 
