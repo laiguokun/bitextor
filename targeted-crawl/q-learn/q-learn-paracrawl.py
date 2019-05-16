@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 30001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -91,7 +91,7 @@ class Qnetwork():
         # print("hh", next, hh)
         visited = set()
 
-        neighbours = env.GetNeighBours(curr, visited, params)
+        neighbours = env.GetNeighbours(curr, visited, params)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
         #print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
         print("curr=", curr, allQ, neighbours)
@@ -164,7 +164,7 @@ class Env:
 
         return next, reward, done
 
-    def GetNeighBours(self, curr, visited, params):
+    def GetNeighbours(self, curr, visited, params):
         col = self.F[curr, :]
         ret = []
         for i in range(len(col)):
@@ -179,7 +179,7 @@ class Env:
         #ret = np.empty([5,1])
         ret = np.array(ret)
         ret = ret.reshape([1, params.NUM_ACTIONS])
-        #print("GetNeighBours", ret.shape, ret)
+        #print("GetNeighbours", ret.shape, ret)
 
         return ret
 
@@ -192,7 +192,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            neighbours = self.GetNeighBours(curr, visited, params)
+            neighbours = self.GetNeighbours(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
             next, reward, done = self.GetNextState(curr, action, neighbours)
@@ -225,7 +225,7 @@ class Env:
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
-    neighbours = env.GetNeighBours(curr, visited, params)
+    neighbours = env.GetNeighbours(curr, visited, params)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
     a = a[0]
     if np.random.rand(1) < params.eps:
@@ -242,7 +242,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
-        nextNeighbours = env.GetNeighBours(next, visited, params)
+        nextNeighbours = env.GetNeighbours(next, visited, params)
         Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextNeighbours})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
