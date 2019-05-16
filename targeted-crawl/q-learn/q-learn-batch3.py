@@ -397,7 +397,7 @@ def Main():
         print("Trained")
 
         qn.PrintAllQ(params, env, sess)
-        env.WalkAll(sess, qn)
+        env.WalkAll(params, sess, qn)
 
         plt.plot(losses)
         plt.show()
