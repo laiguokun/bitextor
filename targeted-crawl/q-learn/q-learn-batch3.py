@@ -309,12 +309,12 @@ class Corpus:
         self.corpusNeighbours = np.empty([0, params.NUM_ACTIONS], dtype=np.int)
         self.corpusTargetQ = np.empty([0, params.NUM_ACTIONS])
 
-    def ExpandCorpus(self, trajNeighbours, trajTargetQ):
+    def AddPath(self, path, trajNeighbours, trajTargetQ):
         self.corpusNeighbours = np.append(self.corpusNeighbours, trajNeighbours, axis=0)
         self.corpusTargetQ = np.append(self.corpusTargetQ, trajTargetQ, axis=0)
         return self.corpusNeighbours, self.corpusTargetQ
 
-    def CreateBatch(self, batchSize):
+    def GetBatch(self, batchSize):
         batchNeighbours = self.corpusNeighbours[0:batchSize, :]
         batchTargetQ = self.corpusTargetQ[0:batchSize, :]
         self.corpusNeighbours = self.corpusNeighbours[batchSize:, :]
@@ -337,13 +337,13 @@ def Train(params, env, sess, qn):
         assert(params.NUM_ACTIONS == trajNeighbours.shape[1] == trajTargetQ.shape[1])
         trajSize = trajNeighbours.shape[0]
 
-        corpus.ExpandCorpus(trajNeighbours, trajTargetQ)
-        corpusSize = corpus.corpusNeighbours.shape[0]
+        corpus.AddPath(path, trajNeighbours, trajTargetQ)
 
-        if corpusSize >= params.maxBatchSize:
+        if corpus.corpusNeighbours.shape[0] >= params.maxBatchSize:
+            corpusSize = corpus.corpusNeighbours.shape[0]
             #print("corpusSize", corpusSize)
             
-            batchNeighbours, batchTargetQ = corpus.CreateBatch(params.maxBatchSize)
+            batchNeighbours, batchTargetQ = corpus.GetBatch(params.maxBatchSize)
             #print("batchSize", batchNeighbours.shape)
             #print("corpusNeighbours", corpusNeighbours.shape)
             #print("corpusTargetQ", corpusTargetQ.shape)
