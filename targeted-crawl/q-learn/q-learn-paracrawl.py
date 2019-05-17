@@ -146,7 +146,7 @@ class Env:
             self.F[i, self.ns - 1] = 1
         #print("F", self.F)
 
-    def GetNextState(self, curr, action, neighbours):
+    def GetNextState(self, curr, action, neighbours, childNodeIds):
         #print("curr", curr, action, neighbours)
         next = neighbours[0, action]
         assert(next >= 0)
@@ -161,6 +161,12 @@ class Env:
             done = True
         else:
             reward = -1
+
+        # SITEMAP
+        if curr < len(childNodeIds):
+            nextNode = childNodeIds[curr]
+
+        
 
         return next, reward, done
 
@@ -207,7 +213,7 @@ class Env:
             neighbours, childNodeIds = self.GetNeighbours(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
-            next, reward, done = self.GetNextState(curr, action, neighbours)
+            next, reward, done = self.GetNextState(curr, action, neighbours, childNodeIds)
             totReward += reward
             visited.add(next)
 
@@ -243,7 +249,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, params.NUM_ACTIONS)
 
-    next, r, done = env.GetNextState(curr, a, neighbours)
+    next, r, done = env.GetNextState(curr, a, neighbours, childNodeIds)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     visited.add(next)
@@ -521,11 +527,12 @@ class Node:
                 childNode = nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
-                id = len(nodes)
-                childNode = Node(sqlconn, id, urlId, None, None, url)
-                nodes[childNode.urlId] = childNode
-                nodesbyURL[childNode.url] = childNode
-                nodesById.append(childNode)
+                continue
+                #id = len(nodes)
+                #childNode = Node(sqlconn, id, urlId, None, None, url)
+                #nodes[childNode.urlId] = childNode
+                #nodesbyURL[childNode.url] = childNode
+                #nodesById.append(childNode)
 
             Link = namedtuple("Link", "text textLang parentNode childNode")
             link = Link(text, textLang, self, childNode)
