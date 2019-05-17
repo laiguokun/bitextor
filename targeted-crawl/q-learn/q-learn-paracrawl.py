@@ -415,12 +415,15 @@ class Sitemap:
 
         self.nodes = {} # indexed by URL id
         self.nodesbyURL = {} # indexed by URL
+        self.nodesById = []
+
         for rec in res:
             #print("rec", rec[0], rec[1])
             id = len(self.nodes)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
             self.nodesbyURL[node.url] = node
+            self.nodesById.append(node)
         #print("nodes", len(self.nodes))
 
         self.nodesWithDoc = self.nodes.copy()
@@ -428,7 +431,7 @@ class Sitemap:
 
         # links between nodes, possibly to nodes without doc
         for node in self.nodesWithDoc.values():
-            node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL)
+            node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL, self.nodesById)
             #print("node", node.Debug())
         print("all nodes", len(self.nodes))
 
@@ -486,7 +489,7 @@ class Node:
     def Debug(self):
         return " ".join([str(self.id), str(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
 
-    def CreateLinks(self, sqlconn, nodes, nodesbyURL):
+    def CreateLinks(self, sqlconn, nodes, nodesbyURL, nodesById):
         #sql = "select id, text, url_id from link where document_id = %s"
         sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
@@ -510,6 +513,7 @@ class Node:
                 childNode = Node(sqlconn, id, urlId, None, None, url)
                 nodes[childNode.urlId] = childNode
                 nodesbyURL[childNode.url] = childNode
+                nodesById.append(childNode)
 
             Link = namedtuple("Link", "text textLang parentNode childNode")
             link = Link(text, textLang, self, childNode)
