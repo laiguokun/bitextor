@@ -205,7 +205,7 @@ class Env:
         #print("   childNodeIds", childNodeIds)
 
         for i in range(len(childNodeIds), params.NUM_ACTIONS):
-            childNodeIds.append(self.ns - 1)
+            childNodeIds.append(0)
 
         childNodeIds = np.array(childNodeIds)
         childNodeIds = childNodeIds.reshape([1, params.NUM_ACTIONS])
