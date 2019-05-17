@@ -460,6 +460,12 @@ class Sitemap:
         self.nodesbyURL = {} # indexed by URL
         self.nodesById = []
 
+        # stop node
+        node = Node(sqlconn, 0, 0, 0, "", "STOP")
+        self.nodes[node.urlId] = node
+        self.nodesbyURL[node.url] = node
+        self.nodesById.append(node)
+
         for rec in res:
             #print("rec", rec[0], rec[1])
             id = len(self.nodes)
