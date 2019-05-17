@@ -163,12 +163,17 @@ class Env:
             reward = -1
 
         # SITEMAP
+        nextNodeId = 0
+        rewardNode = 0
         if curr < len(childNodeIds):
-            nextNode = childNodeIds[curr]
+            nextNodeId = childNodeIds[curr]
+            nextNode = self.siteMap.nodesById[nextNodeId]
+            if nextNode.aligned:
+                rewardNode = 8.5
+            else:
+                rewardNode = -1        
 
-        
-
-        return next, reward, done
+        return next, reward, done, nextNodeId, rewardNode
 
     def GetNeighbours(self, curr, visited, params):
         col = self.F[curr, :]
@@ -213,7 +218,7 @@ class Env:
             neighbours, childNodeIds = self.GetNeighbours(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
-            next, reward, done = self.GetNextState(curr, action, neighbours, childNodeIds)
+            next, reward, done, nextNodeId, rewardNode = self.GetNextState(curr, action, neighbours, childNodeIds)
             totReward += reward
             visited.add(next)
 
@@ -249,7 +254,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, params.NUM_ACTIONS)
 
-    next, r, done = env.GetNextState(curr, a, neighbours, childNodeIds)
+    next, r, done, nextNodeId, rewardNode = env.GetNextState(curr, a, neighbours, childNodeIds)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     visited.add(next)
