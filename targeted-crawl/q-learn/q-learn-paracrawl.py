@@ -165,13 +165,12 @@ class Env:
         # SITEMAP
         nextNodeId = 0
         rewardNode = 0
-        if action < len(childNodeIds):  # get rid once we use nodes
-            nextNodeId = childNodeIds[0, action]
-            nextNode = self.siteMap.nodesById[nextNodeId]
-            if nextNode.aligned:
-                rewardNode = 8.5
-            else:
-                rewardNode = -1        
+        nextNodeId = childNodeIds[0, action]
+        nextNode = self.siteMap.nodesById[nextNodeId]
+        if nextNode.aligned:
+            rewardNode = 8.5
+        else:
+            rewardNode = -1        
 
         return next, reward, done, nextNodeId, rewardNode
 
