@@ -91,7 +91,7 @@ class Qnetwork():
         # print("hh", next, hh)
         visited = set()
 
-        neighbours = env.GetNeighbours(curr, visited, params)
+        neighbours, childNodeIds = env.GetNeighbours(curr, visited, params)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
         #print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
         print("curr=", curr, allQ, neighbours)
@@ -181,7 +181,19 @@ class Env:
         ret = ret.reshape([1, params.NUM_ACTIONS])
         #print("GetNeighbours", ret.shape, ret)
 
-        return ret
+        # SITEMAP
+        currNode = self.siteMap.nodesById[curr]
+        #print("currNode", currNode.Debug())
+
+        childNodeIds = []
+        for link in currNode.links:
+            childNode = link.childNode
+            #print("   ", childNode.Debug())
+            if childNode.id not in visited:
+                childNodeIds.append(childNode.id)
+        #print("   childNodeIds", childNodeIds)
+
+        return ret, childNodeIds
 
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
@@ -192,7 +204,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            neighbours = self.GetNeighbours(curr, visited, params)
+            neighbours, childNodeIds = self.GetNeighbours(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
             next, reward, done = self.GetNextState(curr, action, neighbours)
@@ -225,7 +237,7 @@ class Env:
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
-    neighbours = env.GetNeighbours(curr, visited, params)
+    neighbours, childNodeIds = env.GetNeighbours(curr, visited, params)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
     a = a[0]
     if np.random.rand(1) < params.eps:
@@ -242,7 +254,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
-        nextNeighbours = env.GetNeighbours(next, visited, params)
+        nextNeighbours, nextChildNodeIds = env.GetNeighbours(next, visited, params)
         Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextNeighbours})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
