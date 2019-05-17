@@ -24,7 +24,7 @@ class LearningParams:
         self.maxBatchSize = 32
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 10
+        self.NUM_ACTIONS = 15
 
 ######################################################################################
 class Qnetwork():
@@ -108,7 +108,7 @@ class Env:
         self.siteMap = siteMap
 
         self.goal = 14
-        self.ns = 16  # number of states
+        self.ns = 31  # number of states
 
         self.F = np.zeros(shape=[self.ns, self.ns], dtype=np.int)  # Feasible
         self.F[0, 1] = 1;
