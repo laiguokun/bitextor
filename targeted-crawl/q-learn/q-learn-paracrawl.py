@@ -244,20 +244,6 @@ class Env:
 
         print(" ", totReward)
 
-        # SITEMAP
-        currNodeId = start
-        i = 0
-        totReward = 0
-        print(str(curr) + "->", end="")
-        while True:
-            # print("curr", curr)
-            # print("hh", next, hh)
-            neighbours, childNodeIds = self.GetNeighbours(curr, visited, params)
-            #print("   neighbours", neighbours, childNodeIds)
-            #action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
-
-            break
-
     def WalkAll(self, params, sess, qn):
         for start in range(self.ns):
             self.Walk(start, params, sess, qn, False)
