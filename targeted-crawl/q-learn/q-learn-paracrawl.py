@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 50001
+        self.max_epochs = 70001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -165,8 +165,8 @@ class Env:
         # SITEMAP
         nextNodeId = 0
         rewardNode = 0
-        if curr < len(childNodeIds):
-            nextNodeId = childNodeIds[curr]
+        if action < len(childNodeIds):  # get rid once we use nodes
+            nextNodeId = childNodeIds[0, action]
             nextNode = self.siteMap.nodesById[nextNodeId]
             if nextNode.aligned:
                 rewardNode = 8.5
@@ -204,6 +204,12 @@ class Env:
                 childNodeIds.append(childNode.id)
         #print("   childNodeIds", childNodeIds)
 
+        for i in range(len(childNodeIds), params.NUM_ACTIONS):
+            childNodeIds.append(self.ns - 1)
+
+        childNodeIds = np.array(childNodeIds)
+        childNodeIds = childNodeIds.reshape([1, params.NUM_ACTIONS])
+
         return ret, childNodeIds
 
     def Walk(self, start, params, sess, qn, printQ):
@@ -238,6 +244,20 @@ class Env:
                 break
 
         print(" ", totReward)
+
+        # SITEMAP
+        currNodeId = start
+        i = 0
+        totReward = 0
+        print(str(curr) + "->", end="")
+        while True:
+            # print("curr", curr)
+            # print("hh", next, hh)
+            neighbours, childNodeIds = self.GetNeighbours(curr, visited, params)
+            #print("   neighbours", neighbours, childNodeIds)
+            #action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
+
+            break
 
     def WalkAll(self, params, sess, qn):
         for start in range(self.ns):
