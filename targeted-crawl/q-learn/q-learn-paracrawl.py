@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 70001
+        self.max_epochs = 100001
         self.eps = 1  # 0.7
         self.maxBatchSize = 32
         self.debug = False
@@ -91,7 +91,7 @@ class Qnetwork():
         # print("hh", next, hh)
         visited = set()
 
-        neighbours, childNodeIds = env.GetNeighbours(curr, visited, params)
+        neighbours = env.GetNeighbours(curr, visited, params)
         a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: neighbours})
         #print("curr=", curr, "a=", a, "allQ=", allQ, neighbours)
         print("curr=", curr, allQ, neighbours)
@@ -106,92 +106,24 @@ class Qnetwork():
 class Env:
     def __init__(self, siteMap):
         self.siteMap = siteMap
-
-        self.goal = 14
         self.ns = 31  # number of states
 
-        self.F = np.zeros(shape=[self.ns, self.ns], dtype=np.int)  # Feasible
-        self.F[0, 1] = 1;
-        self.F[0, 5] = 1;
-        self.F[1, 0] = 1;
-        self.F[2, 3] = 1;
-        self.F[3, 2] = 1
-        self.F[3, 4] = 1;
-        self.F[3, 8] = 1;
-        self.F[4, 3] = 1;
-        self.F[4, 9] = 1;
-        self.F[5, 0] = 1
-        self.F[5, 6] = 1;
-        self.F[5, 10] = 1;
-        self.F[6, 5] = 1;
-        # self.F[6, 7] = 1; # hole
-        # self.F[7, 6] = 1; # hole
-        self.F[7, 8] = 1;
-        self.F[7, 12] = 1
-        self.F[8, 3] = 1;
-        self.F[8, 7] = 1;
-        self.F[9, 4] = 1;
-        self.F[9, 14] = 1;
-        self.F[10, 5] = 1
-        self.F[10, 11] = 1;
-        self.F[11, 10] = 1;
-        self.F[11, 12] = 1;
-        self.F[12, 7] = 1;
-        self.F[12, 11] = 1;
-        self.F[12, 13] = 1;
-        self.F[13, 12] = 1;
-        #self.F[14, 9] = 1;
-
-        for i in range(self.ns):
-            self.F[i, self.ns - 1] = 1
-        #print("F", self.F)
-
-    def GetNextState(self, curr, action, neighbours, childNodeIds):
+    def GetNextState(self, curr, action, childNodeIds):
         #print("curr", curr, action, neighbours)
-        next = neighbours[0, action]
-        assert(next >= 0)
-        #print("next", next)
-
         done = False
-        if next == self.goal:
-            reward = 8.5
-            done = True
-        elif next == self.ns - 1:
-            reward = 0
-            done = True
-        else:
-            reward = -1
-
-        # SITEMAP
-        nextNodeId = 0
         rewardNode = 0
         nextNodeId = childNodeIds[0, action]
         nextNode = self.siteMap.nodesById[nextNodeId]
-        if nextNode.aligned:
+        if nextNodeId == 0:
+            done = True
+        elif nextNode.aligned:
             rewardNode = 8.5
         else:
             rewardNode = -1        
 
-        return next, reward, done, nextNodeId, rewardNode
+        return nextNodeId, rewardNode, done
 
     def GetNeighbours(self, curr, visited, params):
-        col = self.F[curr, :]
-        ret = []
-        for i in range(len(col)):
-            if col[i] == 1 and i not in visited:
-                ret.append(i)
-
-        for i in range(len(ret), params.NUM_ACTIONS):
-            ret.append(self.ns - 1)
-
-        #random.shuffle(ret)
-
-        #ret = np.empty([5,1])
-        ret = np.array(ret)
-        ret = ret.reshape([1, params.NUM_ACTIONS])
-        #print("GetNeighbours", ret.shape, ret)
-
-        # SITEMAP
         currNode = self.siteMap.nodesById[curr]
         #print("currNode", currNode.Debug())
 
@@ -209,7 +141,7 @@ class Env:
         childNodeIds = np.array(childNodeIds)
         childNodeIds = childNodeIds.reshape([1, params.NUM_ACTIONS])
 
-        return ret, childNodeIds
+        return childNodeIds
 
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
@@ -220,10 +152,10 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            neighbours, childNodeIds = self.GetNeighbours(curr, visited, params)
+            neighbours = self.GetNeighbours(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
             action = action[0]
-            next, reward, done, nextNodeId, rewardNode = self.GetNextState(curr, action, neighbours, childNodeIds)
+            next, reward, done = self.GetNextState(curr, action, neighbours)
             totReward += reward
             visited.add(next)
 
@@ -235,7 +167,6 @@ class Env:
             curr = next
 
             if done: break
-            if curr == self.goal: break
 
             i += 1
             if i > 20:
@@ -253,13 +184,13 @@ class Env:
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
-    neighbours, childNodeIds = env.GetNeighbours(curr, visited, params)
+    neighbours = env.GetNeighbours(curr, visited, params)
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: neighbours})
     a = a[0]
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, params.NUM_ACTIONS)
 
-    next, r, done, nextNodeId, rewardNode = env.GetNextState(curr, a, neighbours, childNodeIds)
+    next, r, done = env.GetNextState(curr, a, neighbours)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     visited.add(next)
@@ -270,7 +201,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
-        nextNeighbours, nextChildNodeIds = env.GetNeighbours(next, visited, params)
+        nextNeighbours = env.GetNeighbours(next, visited, params)
         Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextNeighbours})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
@@ -400,10 +331,10 @@ def Train(params, env, sess, qn):
 
         # add to batch
         stopState = path[-1].next
-        if stopState == env.goal:
+        #if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
-            params.eps *= .999
-            params.eps = max(0.1, params.eps)
+        #    params.eps *= .999
+        #    params.eps = max(0.1, params.eps)
             #print("eps", params.eps)
             
             #params.q_lrn_rate * 0.999
