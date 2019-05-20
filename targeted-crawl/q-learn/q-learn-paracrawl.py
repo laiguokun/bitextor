@@ -19,9 +19,9 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 100001
+        self.max_epochs = 500001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 32
+        self.maxBatchSize = 64
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 15
@@ -320,8 +320,8 @@ def Train(params, env, sess, qn):
             losses.append(loss)
             sumWeights.append(sumWeight)
 
-        if epoch % params.walk == 0:
-            print("\nepoch", epoch)
+        if epoch > 0 and epoch % params.walk == 0:
+            print("\nepoch", epoch, "loss", losses[-1])
             qn.PrintAllQ(params, env, sess)
             env.WalkAll(params, sess, qn)
             #env.Walk(9, sess, qn, True)
