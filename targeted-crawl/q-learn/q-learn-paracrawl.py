@@ -19,9 +19,9 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 1 #500001
+        self.max_epochs = 500001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 1
+        self.maxBatchSize = 64
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 15
@@ -224,13 +224,13 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 
 def UpdateQN(params, env, sess, qn, batch):
     batchSize = len(batch)
-    print("batchSize", batchSize)
+    #print("batchSize", batchSize)
     childNodes = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
     targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
     i = 0
     for transition in batch:
-        print("transition", transition.curr, transition.next, transition.childNodes.shape, transition.targetQ.shape)
+        #print("transition", transition.curr, transition.next, transition.childNodes.shape, transition.targetQ.shape)
         childNodes[i, :] = transition.childNodes
         targetQ[i, :] = transition.targetQ
     
@@ -280,7 +280,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         #print("visited", visited)
 
         if transition.done: break
-    print("path", path)
+    #print("path", path)
 
     return path
 
