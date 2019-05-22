@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 50001
+        self.max_epochs = 100001
         self.eps = 1  # 0.7
         self.maxBatchSize = 64
         self.debug = False
@@ -309,8 +309,8 @@ def Train(params, env, sess, qn):
     corpus = Corpus(params)
 
     for epoch in range(params.max_epochs):
-        #startState = np.random.randint(0, env.ns)  # random start state
-        startState = 1
+        startState = np.random.randint(0, env.ns)  # random start state
+        #startState = 1
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
@@ -536,11 +536,11 @@ def Main():
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
-        #plt.plot(losses)
-        #plt.show()
+        plt.plot(losses)
+        plt.show()
 
-        #plt.plot(sumWeights)
-        #plt.show()
+        plt.plot(sumWeights)
+        plt.show()
 
     print("Finished")
 
