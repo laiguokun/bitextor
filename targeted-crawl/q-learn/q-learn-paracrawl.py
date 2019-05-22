@@ -19,9 +19,9 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 500001
+        self.max_epochs = 1 #500001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 64
+        self.maxBatchSize = 1
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 15
@@ -224,12 +224,13 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 
 def UpdateQN(params, env, sess, qn, batch):
     batchSize = len(batch)
+    print("batchSize", batchSize)
     childNodes = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
     targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
     i = 0
     for transition in batch:
-        #print("transition", transition.childNodes.shape, transition.targetQ.shape)
+        print("transition", transition.curr, transition.next, transition.childNodes.shape, transition.targetQ.shape)
         childNodes[i, :] = transition.childNodes
         targetQ[i, :] = transition.targetQ
     
@@ -279,7 +280,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         #print("visited", visited)
 
         if transition.done: break
-    #print()
+    print("path", path)
 
     return path
 
@@ -327,7 +328,7 @@ def Train(params, env, sess, qn):
             #env.Walk(9, sess, qn, True)
 
         # add to batch
-        stopState = path[-1].next
+        endState = path[-1].next
         #if stopState == env.goal:
             #eps = 1. / ((i/50) + 10)
         #    params.eps *= .999
@@ -391,7 +392,8 @@ class Sitemap:
         # links between nodes, possibly to nodes without doc
         for node in self.nodesWithDoc.values():
             node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL, self.nodesById)
-            #print("node", node.Debug())
+            print(node.Debug())
+        
         print("all nodes", len(self.nodes))
 
         # lang id
@@ -443,10 +445,18 @@ class Node:
             if len(res) > 0:
                 self.aligned = True
 
-        print(self.Debug())
+        #print(self.Debug())
 
     def Debug(self):
-        return " ".join([str(self.id), str(self.urlId), StrNone(self.docId), StrNone(self.lang), str(len(self.links)), str(self.aligned), self.url])
+        strLinks = ""
+        for link in self.links:
+            #strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
+            strLinks += str(link.childNode.id) + " "
+
+        return " ".join([str(self.id), str(self.urlId), 
+                        StrNone(self.docId), StrNone(self.lang), 
+                        str(self.aligned), self.url,
+                        "links=", str(len(self.links)), ":", strLinks ] )
 
     def CreateLinks(self, sqlconn, nodes, nodesbyURL, nodesById):
         #sql = "select id, text, url_id from link where document_id = %s"
@@ -516,14 +526,14 @@ def Main():
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
 
-        qn.PrintAllQ(params, env, sess)
-        env.WalkAll(params, sess, qn)
+        #qn.PrintAllQ(params, env, sess)
+        #env.WalkAll(params, sess, qn)
 
-        plt.plot(losses)
-        plt.show()
+        #plt.plot(losses)
+        #plt.show()
 
-        plt.plot(sumWeights)
-        plt.show()
+        #plt.plot(sumWeights)
+        #plt.show()
 
     print("Finished")
 
