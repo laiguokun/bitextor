@@ -196,7 +196,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     visited.add(next)
 
     # Obtain the Q' values by feeding the new state through our network
-    if curr == env.ns - 1:
+    if curr == 0:
         targetQ = np.zeros([1, params.NUM_ACTIONS])
         maxQ1 = 0
     else:
@@ -308,7 +308,8 @@ def Train(params, env, sess, qn):
     corpus = Corpus(params)
 
     for epoch in range(params.max_epochs):
-        startState = np.random.randint(0, env.ns)  # random start state
+        #startState = np.random.randint(0, env.ns)  # random start state
+        startState = 1
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
