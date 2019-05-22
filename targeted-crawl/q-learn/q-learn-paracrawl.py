@@ -160,11 +160,17 @@ class Env:
             totReward += reward
             visited.add(next)
 
+            nextNode = self.siteMap.nodesById[next]
+            aligned = nextNode.aligned
+            alignedStr = ""
+            if aligned:
+                alignedStr = "*"
+
             #if printQ:
             #    print("printQ", action, allQ, childNodes)
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            print(str(next) + "->", end="")
+            print(str(next) + alignedStr + "->", end="")
             curr = next
 
             if done: break
