@@ -123,7 +123,7 @@ namespace search {
         } else if (pointer == '<') {
           j -= 1;
         } else if (pointer == 'm') {
-          res.push_back(utils::match(i, i, j, j, *get_score(i,j)));
+          res.push_back(utils::match(i, i, j, j,*get_score(i,j)));
           i -= 1;
           j -= 1;
         } else {

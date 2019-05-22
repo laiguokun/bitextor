@@ -13,7 +13,7 @@ namespace {
 
     TEST(align, test_align) {
 
-      std::vector<std::string> text1_doc = {
+      std::vector<std::string> text2_doc = {
               "Albatec | The Albanian People Skip to the navigation .",
               "Skip to the content .",
               "With friends and guests to share them if necessary their last piece of bread.",
@@ -26,7 +26,7 @@ namespace {
               "The country, which before the war, only one million inhabitants, has a high birthrate increase over three and a half million people and one of 38 to 70 years increased life expectancy.",
       };
 
-      std::vector<std::string> tex12translates_doc = {
+      std::vector<std::string> text1translated_doc = {
               "Albatec | Die Albaner Skip to the navigation .",
               "Skip to the content .",
               "on the other hand , are the Albanians in contrast to many of the &apos; benefits &apos; of the industrial society pampered Europeans , of course , very open @-@ minded and warm .",
@@ -46,7 +46,7 @@ namespace {
       std::vector<int> expected_correct_bigram = {5, 2, 4, 2, 2, 1, 6, 1, 5, 13, 2, 12, 4, 15, 2};
 
       std::vector<utils::scoremap> scorelist;
-      align::EvalSents(scorelist, tex12translates_doc, text1_doc, 2, 2);
+      align::EvalSents(scorelist, text1translated_doc, text2_doc, 2, 2);
 
       int pos = 0;
       for (size_t s = 0; s < scorelist.size(); ++s) {
@@ -68,19 +68,19 @@ namespace {
 
     TEST(align, test_align_emptyscorelist) {
 
-      std::vector<std::string> text1_doc = {
+      std::vector<std::string> text2_doc = {
               "Albatec | The Albanian People Skip to the navigation .",
               "Skip to the content .",
       };
 
-      std::vector<std::string> tex12translates_doc = {
+      std::vector<std::string> text1translated_doc = {
               "during the Türkenherrschaft came about 70 % of the Albanians to Islam , on 20 % were Orthodox and less than 10 % Catholics .",
               "since 1967 was constitution prohibited by any religion , churches and mosques were stockrooms or sports , turned into some served as museums .",
               "this is now everything undone .",
       };
 
       std::vector<utils::scoremap> scorelist;
-      align::EvalSents(scorelist, tex12translates_doc, text1_doc, 2, 2);
+      align::EvalSents(scorelist, text1translated_doc, text2_doc, 2, 2);
       ASSERT_EQ(scorelist.size(), 3);
 
     }
@@ -88,19 +88,19 @@ namespace {
 
     TEST(align, test_GapFiller1) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 1, 1),
-              utils::match(2, 2, 3, 3),
-              utils::match(3, 3, 2, 2),
-              utils::match(4, 4, 4, 4),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 1, 1, 0.0),
+              utils::match(2, 2, 3, 3, 0.0),
+              utils::match(3, 3, 2, 2, 0.0),
+              utils::match(4, 4, 4, 4, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 1, 1),
-              utils::match(2, 2, 3, 3),
-              utils::match(3, 3, 2, 2),
-              utils::match(4, 4, 4, 4),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 1, 1, 0.0),
+              utils::match(2, 2, 3, 3, 0.0),
+              utils::match(3, 3, 2, 2, 0.0),
+              utils::match(4, 4, 4, 4, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -149,15 +149,15 @@ namespace {
 
     TEST(align, test_GapFiller_race) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(2, 2, 1, 1),
-              utils::match(3, 3, 3, 3),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(2, 2, 1, 1, 0.0),
+              utils::match(3, 3, 3, 3, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 1, 0, 0),
-              utils::match(2, 2, 1, 2),
-              utils::match(3, 3, 3, 3),
+              utils::match(0, 1, 0, 0, 0.0),
+              utils::match(2, 2, 1, 2, 0.0),
+              utils::match(3, 3, 3, 3, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -186,13 +186,13 @@ namespace {
 
     TEST(align, test_GapFiller_pregap0) {
       utils::matches_vec matched = {
-              utils::match(1, 1, 0, 0),
-              utils::match(2, 2, 1, 1),
+              utils::match(1, 1, 0, 0, 0.0),
+              utils::match(2, 2, 1, 1, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 1, 0, 0),
-              utils::match(2, 2, 1, 1),
+              utils::match(0, 1, 0, 0, 0.0),
+              utils::match(2, 2, 1, 1, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -218,15 +218,15 @@ namespace {
 
     TEST(align, test_GapFiller_pregap1) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 2, 2),
-              utils::match(2, 2, 3, 3),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 2, 2, 0.0),
+              utils::match(2, 2, 3, 3, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 1, 2),
-              utils::match(2, 2, 3, 3),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 1, 2, 0.0),
+              utils::match(2, 2, 3, 3, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -254,15 +254,15 @@ namespace {
 
     TEST(align, test_GapFiller_pregap2) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(3, 3, 1, 1),
-              utils::match(4, 4, 2, 2),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(3, 3, 1, 1, 0.0),
+              utils::match(4, 4, 2, 2, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 3, 1, 1),
-              utils::match(4, 4, 2, 2),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 3, 1, 1, 0.0),
+              utils::match(4, 4, 2, 2, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -291,15 +291,15 @@ namespace {
 
     TEST(align, test_GapFiller_pregap3) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(2, 2, 3, 3),
-              utils::match(3, 3, 4, 4),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(2, 2, 3, 3, 0.0),
+              utils::match(3, 3, 4, 4, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 2, 1, 3),
-              utils::match(3, 3, 4, 4),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 2, 1, 3, 0.0),
+              utils::match(3, 3, 4, 4, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -329,13 +329,13 @@ namespace {
 
     TEST(align, test_GapFiller_postgap0) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(2, 2, 1, 1),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(2, 2, 1, 1, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 1, 0, 0),
-              utils::match(2, 2, 1, 1),
+              utils::match(0, 1, 0, 0, 0.0),
+              utils::match(2, 2, 1, 1, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -361,15 +361,15 @@ namespace {
 
     TEST(align, test_GapFiller_postgap1) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 1, 1),
-              utils::match(2, 2, 3, 3),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 1, 1, 0.0),
+              utils::match(2, 2, 3, 3, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 1, 2),
-              utils::match(2, 2, 3, 3),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 1, 2, 0.0),
+              utils::match(2, 2, 3, 3, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -397,15 +397,15 @@ namespace {
 
     TEST(align, test_GapFiller_postgap2) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 1, 1),
-              utils::match(4, 4, 2, 2),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 1, 1, 0.0),
+              utils::match(4, 4, 2, 2, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 3, 1, 1),
-              utils::match(4, 4, 2, 2),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 3, 1, 1, 0.0),
+              utils::match(4, 4, 2, 2, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -434,15 +434,15 @@ namespace {
 
     TEST(align, test_GapFiller_postgap3) {
       utils::matches_vec matched = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 1, 1, 1),
-              utils::match(3, 3, 4, 4),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 1, 1, 1, 0.0),
+              utils::match(3, 3, 4, 4, 0.0),
       };
 
       utils::matches_vec expected = {
-              utils::match(0, 0, 0, 0),
-              utils::match(1, 2, 1, 3),
-              utils::match(3, 3, 4, 4),
+              utils::match(0, 0, 0, 0, 0.0),
+              utils::match(1, 2, 1, 3, 0.0),
+              utils::match(3, 3, 4, 4, 0.0),
       };
 
       std::vector<std::string> translated = {
@@ -796,7 +796,7 @@ namespace {
       int arr1_expected[] = {1, 1, 1};
       int arr2_expected[] = {-1, 0, 0, -1};
 
-      align::FillMatches(arr1, arr2, utils::match(0, 2, 1, 2));
+      align::FillMatches(arr1, arr2, utils::match(0, 2, 1, 2, 0.0));
 
       for (size_t i = 0; i < arr1_size; ++i) {
         ASSERT_EQ(arr1_expected[i], arr1[i]);
@@ -820,9 +820,9 @@ namespace {
       int arr1_expected[] = {-1, 2, 2, 2, 2};
       int arr2_expected[] = {-1, -1, 1, 2, -1};
 
-      align::FillMatches(arr1, arr2, utils::match(2, 2, 3, 3));
-      align::FillMatches(arr1, arr2, utils::match(3, 3, 2, 2));
-      align::FillMatches(arr1, arr2, utils::match(1, 4, 2, 2));
+      align::FillMatches(arr1, arr2, utils::match(2, 2, 3, 3, 0.0));
+      align::FillMatches(arr1, arr2, utils::match(3, 3, 2, 2, 0.0));
+      align::FillMatches(arr1, arr2, utils::match(1, 4, 2, 2, 0.0));
 
       for (size_t i = 0; i < arr1_size; ++i) {
         ASSERT_EQ(arr1_expected[i], arr1[i]);

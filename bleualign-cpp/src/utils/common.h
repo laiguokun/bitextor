@@ -31,7 +31,7 @@ namespace utils {
 
         inner first;
         inner second;
-	double score;
+        double score;
 
         match() : first(0, 0), second(0, 0) {score=0;};
 
@@ -60,7 +60,7 @@ namespace utils {
     struct Config {
         std::string text1_path;
         std::string text2_path;
-        std::string text2_translated_path;
+        std::string text1_translated_path;
         std::string output_dir;
         std::string matches_path;
         float doc_threshold;
@@ -71,7 +71,7 @@ namespace utils {
         matches_list matches;
         umap_extracted umap_text1;
         umap_extracted umap_text2;
-        umap_extracted umap_text2translated;
+        umap_extracted umap_text1translated;
     };
 
     std::string PieceToString(StringPiece sp);

@@ -91,23 +91,28 @@ cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=Fals
 
 for record in f:
     #Initial checks
-    if record.type == 'warcinfo':
+    if record.type == 'warcinfo' or record.type == 'request':
         continue
-
-    url = record.url
+    if record.url[0] == '<' and record.url[-1] == '>':
+        url = record.url[1:-1]
+    else:
+        url = record.url
     if url == "unknown":
-        print("Skipping page with unknown URL")
+        logging.info("Skipping page with unknown URL")
         continue
 
     pageSize = int(record['Content-Length'])
     if pageSize > 5242880:
-        print("Skipping page, over limit. ", pageSize, url)
+        logging.info("Skipping page, over limit. " + str(pageSize) + " " + url)
         continue
 
     #print("url", num, url, pageSize)
 
     # We convert into UTF8 first of all
-    orig_encoding, text = convert_encoding(record.payload.read())
+    payload=record.payload.read()
+    if payload.lstrip()[0:7] == b"HTTP/1.":
+        payload=payload[payload.index(b"\r\n\r\n")+4:]
+    orig_encoding, text = convert_encoding(payload)
     logging.info("Processing document: " + url)
     if orig_encoding is None:
         logging.info("Encoding of document " + url + " could not be identified")
@@ -173,6 +178,7 @@ for record in f:
                                        re.sub(r" *\n *", "\n", re.sub(r" +", " ", re.sub(r"\r", "", plaintext))))
 
                 if len(plaintext) > 0:
+                    seen_md5[c.hexdigest()] = c.hexdigest()
                     # Guessing MIME of the file (checked on original content)
                     logging.info(url + ": Getting mime")
                     mime = magic.from_buffer(text, mime=True)
