@@ -130,9 +130,10 @@ class Env:
         childNodeIds = []
         for link in currNode.links:
             childNode = link.childNode
+            childNodeId = childNode.id
             #print("   ", childNode.Debug())
-            if childNode.id not in visited:
-                childNodeIds.append(childNode.id)
+            if childNodeId != curr and childNodeId not in visited:
+                childNodeIds.append(childNodeId)
         #print("   childNodeIds", childNodeIds)
 
         for i in range(len(childNodeIds), params.NUM_ACTIONS):
