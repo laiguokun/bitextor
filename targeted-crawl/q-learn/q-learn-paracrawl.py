@@ -19,9 +19,9 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 1 #500001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
-        self.maxBatchSize = 1
+        self.maxBatchSize = 64
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 15
@@ -225,13 +225,13 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 
 def UpdateQN(params, env, sess, qn, batch):
     batchSize = len(batch)
-    print("batchSize", batchSize)
+    #print("batchSize", batchSize)
     childNodes = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
     targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
     i = 0
     for transition in batch:
-        print("transition", transition.curr, transition.next, transition.childNodes.shape, transition.targetQ.shape)
+        #print("transition", transition.curr, transition.next, transition.childNodes.shape, transition.targetQ.shape)
         childNodes[i, :] = transition.childNodes
         targetQ[i, :] = transition.targetQ
     
@@ -281,7 +281,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         #print("visited", visited)
 
         if transition.done: break
-    print("path", path)
+    #print("path", path)
 
     return path
 
@@ -324,10 +324,11 @@ def Train(params, env, sess, qn):
             sumWeights.append(sumWeight)
 
         if epoch > 0 and epoch % params.walk == 0:
-            print("\nepoch", epoch, "loss", losses[-1])
             qn.PrintAllQ(params, env, sess)
             env.WalkAll(params, sess, qn)
             #env.Walk(9, sess, qn, True)
+            print("epoch", epoch, "loss", losses[-1])
+            print()
 
         # add to batch
         endState = path[-1].next
@@ -524,6 +525,10 @@ def Main():
 
     with tf.Session() as sess:
         sess.run(init)
+
+        qn.PrintAllQ(params, env, sess)
+        #env.WalkAll(params, sess, qn)
+        print()
 
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
