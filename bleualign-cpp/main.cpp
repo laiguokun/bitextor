@@ -3,7 +3,7 @@
 #include "src/align.h"
 #include "src/utils/common.h"
 #include "src/utils/CompressedWriter.h"
-//#include "src/utils/logging.h"
+#include "src/utils/logging.h"
 #include "src/utils/string_to_float.h"
 
 #include "util/string_piece.hh"
@@ -83,7 +83,7 @@ void LoadData(utils::AlignData &align_data, const utils::Config &cfg) {
   if (matchLoaded) {
     LoadExtracted(align_data.umap_text1, cfg.text1_path);
     LoadExtracted(align_data.umap_text2, cfg.text2_path);
-    LoadExtracted(align_data.umap_text2translated, cfg.text2_translated_path);
+    LoadExtracted(align_data.umap_text1translated, cfg.text1_translated_path);
   }
 }
 
@@ -92,23 +92,19 @@ void Process(const utils::Config &cfg) {
   utils::AlignData align_data;
   LoadData(align_data, cfg);
 
-  WriteAlignedTextToFile(cfg.output_dir, align_data.matches);
-
   for (size_t i = 0; i < align_data.matches.size(); ++i) {
     std::string output_path = MakeOutputPath(cfg.output_dir, std::to_string(i));
     align::AlignDocuments(output_path, align_data, align_data.matches.at(i).first, align_data.matches.at(i).second, cfg.bleu_threshold);
   }
+
+  WriteAlignedTextToFile(cfg.output_dir, align_data.matches);
 
 }
 
 
 std::string MakeOutputPath(const std::string &path_dir, const std::string &suffix) {
   std::stringstream ss;
-#ifdef XZ_COMPRESS
-  ss << path_dir << "/aligned." << suffix << ".xz";
-#else
   ss << path_dir << "/aligned." << suffix << ".gz";
-#endif
   return ss.str();
 }
 
@@ -132,14 +128,14 @@ void WriteAlignedTextToFile(const std::string &output_dir, const utils::matches_
 
 int main(int argc, char *argv[]) {
 
-  //utils::init();
+  utils::init();
 
   po::options_description desc("Allowed options");
   desc.add_options()
           ("help", "produce help message")
           ("text1", po::value<std::string>()->required(), "path to the first text file")
           ("text2", po::value<std::string>()->required(), "path to the second text file")
-          ("text2translated", po::value<std::string>()->required(), "path to the translated text file (text2 to text1)")
+          ("text1translated", po::value<std::string>()->required(), "path to the translated text file (text1 to text2)")
           ("output-dir", po::value<std::string>()->required(), "path to the output directory")
           ("matches", po::value<std::string>()->required(),
            "path to a file containing matched documents. Format: score <tab> uri(text1) <tab> uri(text2)")
@@ -160,7 +156,7 @@ int main(int argc, char *argv[]) {
   utils::Config cfg;
   cfg.text1_path = vm["text1"].as<std::string>();
   cfg.text2_path = vm["text2"].as<std::string>();
-  cfg.text2_translated_path = vm["text2translated"].as<std::string>();
+  cfg.text1_translated_path = vm["text1translated"].as<std::string>();
   cfg.output_dir = vm["output-dir"].as<std::string>();
   cfg.matches_path = vm["matches"].as<std::string>();
   cfg.doc_threshold = vm["doc-threshold"].as<float>();
