@@ -20,7 +20,7 @@ class LearningParams:
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
         self.max_epochs = 50001
-        self.eps = 1  # 0.7
+        self.eps = 1 #0.7
         self.maxBatchSize = 64
         self.debug = False
         self.walk = 1000
@@ -339,7 +339,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
-
+    
     next, r = env.GetNextState(action, childNodeIds)
 
     if curr == 0 and next == 0:
@@ -454,6 +454,7 @@ def Train(params, env, sess, qn):
             qn.PrintAllQ(params, env, sess)
             env.WalkAll(params, sess, qn)
             #env.Walk(9, sess, qn, True)
+            print("eps", params.eps)
             print("epoch", epoch, "loss", losses[-1])
             print()
 
@@ -461,9 +462,9 @@ def Train(params, env, sess, qn):
         endState = path[-1].next
 
         numAligned = env.GetNumberAligned(path)
-        #print("path", numAligned, path)
-        if numAligned >= env.numAligned - 1:
-            print("got them all!")
+        #print("path", numAligned)
+        if numAligned >= env.numAligned - 5:
+            #print("got them all!")
             #eps = 1. / ((i/50) + 10)
             params.eps *= .999
             params.eps = max(0.1, params.eps)
@@ -507,7 +508,6 @@ def Main():
 
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
-        print(env)
         
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
