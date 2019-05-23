@@ -174,18 +174,16 @@ class Env:
 
 
     def GetNextState(self, action, childNodeIds):
-        done = False
         nextNodeId = childNodeIds[0, action]
         nextNode = self.nodesById[nextNodeId]
         if nextNodeId == 0:
-            done = True
             rewardNode = 0
         elif nextNode.aligned:
             rewardNode = 8.5
         else:
             rewardNode = -1        
 
-        return nextNodeId, rewardNode, done
+        return nextNodeId, rewardNode
 
     def GetChildNodes(self, curr, visited, params):
         currNode = self.nodesById[curr]
@@ -222,7 +220,7 @@ class Env:
             childNodeIds = self.GetChildNodes(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
             action = action[0]
-            next, reward, done = self.GetNextState(action, childNodeIds)
+            next, reward = self.GetNextState(action, childNodeIds)
             totReward += reward
             visited.add(next)
 
@@ -239,7 +237,7 @@ class Env:
             print(str(next) + alignedStr + "->", end="")
             curr = next
 
-            if done: break
+            if next == 0: break
 
             i += 1
 
@@ -342,7 +340,12 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
 
-    next, r, done = env.GetNextState(action, childNodeIds)
+    next, r = env.GetNextState(action, childNodeIds)
+
+    if curr == 0 and next == 0:
+        done = True
+    else:
+        done = False
 
     visited.add(next)
 
@@ -433,8 +436,8 @@ def Train(params, env, sess, qn):
     corpus = Corpus(params)
 
     for epoch in range(params.max_epochs):
-        startState = np.random.randint(0, env.ns)  # random start state
-        #startState = 30
+        #startState = np.random.randint(0, env.ns)  # random start state
+        startState = 30
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
@@ -459,7 +462,7 @@ def Train(params, env, sess, qn):
 
         numAligned = env.GetNumberAligned(path)
         #print("path", numAligned, path)
-        if numAligned == env.numAligned - 1:
+        if numAligned >= env.numAligned - 1:
             print("got them all!")
             #eps = 1. / ((i/50) + 10)
             params.eps *= .999
@@ -504,7 +507,8 @@ def Main():
 
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
-
+        print(env)
+        
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
