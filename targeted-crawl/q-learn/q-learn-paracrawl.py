@@ -91,10 +91,10 @@ class Qnetwork():
         # print("hh", next, hh)
         visited = set()
 
-        childNodes = env.GetChildNodes(curr, visited, params)
-        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodes})
-        #print("curr=", curr, "a=", a, "allQ=", allQ, childNodes)
-        print("curr=", curr, allQ, childNodes)
+        childNodeIds = env.GetChildNodes(curr, visited, params)
+        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
+        #print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
+        print("curr=", curr, allQ, childNodeIds)
 
     def PrintAllQ(self, params, env, sess):
         print("         Q-values                          Next state")
@@ -169,7 +169,7 @@ class Env:
 
 
     def GetNextState(self, curr, action, childNodeIds):
-        #print("curr", curr, action, childNodes)
+        #print("curr", curr, action, childNodeIds)
         done = False
         nextNodeId = childNodeIds[0, action]
         nextNode = self.nodesById[nextNodeId]
@@ -353,7 +353,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     #print("  targetQ", targetQ, maxQ1)
     #print("  new Q", a, allQ)
 
-    Transition = namedtuple("Transition", "curr next done childNodes targetQ")
+    Transition = namedtuple("Transition", "curr next done childNodeIds targetQ")
     transition = Transition(curr, next, done, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
 
     return transition
@@ -369,7 +369,7 @@ def UpdateQN(params, env, sess, qn, batch):
         curr = transition.curr
         next = transition.next
 
-        childNodeIds[i, :] = transition.childNodes
+        childNodeIds[i, :] = transition.childNodeIds
         targetQ[i, :] = transition.targetQ
     
         i += 1
