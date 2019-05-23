@@ -30,7 +30,7 @@ class LearningParams:
 class Qnetwork():
     def __init__(self, params, env):
         # These lines establish the feed-forward part of the network used to choose actions
-        EMBED_DIM = 90
+        EMBED_DIM = 1500
 
         INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
 
