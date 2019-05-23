@@ -246,23 +246,6 @@ class Env:
         for start in range(self.ns):
             self.Walk(start, params, sess, qn, False)
 
-    def GetLangId(self, langStr):
-        if langStr in self.langIds:
-            langId = self.langIds[langStr]
-        else:
-            langId = len(self.langIds)
-            self.langIds[langStr] = langId
-        return langId
-
-    def GetRandomNode(self):
-        l = list(self.nodesWithDoc.values())
-        node = random.choice(l)
-        return node 
-
-    def GetNode(self, url):
-        node = self.nodesbyURL[url]
-        return node 
-
 ######################################################################################
 
 class Node:
@@ -329,14 +312,6 @@ class Node:
             Link = namedtuple("Link", "text textLang parentNode childNode")
             link = Link(text, textLang, self, childNode)
             self.links.append(link)
-
-    def GetUnvisitedLinks(self, visited):
-        links = []
-        for link in self.links:
-            childNode = link.childNode
-            if childNode.docId is not None and childNode.urlId not in visited:
-                links.append(link)
-        return links
 
 ######################################################################################
 
