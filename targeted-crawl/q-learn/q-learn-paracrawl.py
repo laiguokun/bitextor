@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 10001
+        self.max_epochs = 50001
         self.eps = 1  # 0.7
         self.maxBatchSize = 64
         self.debug = False
@@ -323,13 +323,12 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
     childNodeIds = env.GetChildNodes(curr, visited, params)
-    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
-    a = a[0]
+    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
+    action = action[0]
     if np.random.rand(1) < params.eps:
-        a = np.random.randint(0, params.NUM_ACTIONS)
+        action = np.random.randint(0, params.NUM_ACTIONS)
 
-    next, r, done = env.GetNextState(a, childNodeIds)
-    #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
+    next, r, done = env.GetNextState(action, childNodeIds)
 
     visited.add(next)
 
@@ -349,7 +348,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
         #print("  targetQ", targetQ)
         newVal = r + params.gamma * maxQ1
         #targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
-        targetQ[0, a] = newVal
+        targetQ[0, action] = newVal
         #print("  targetQ", targetQ)
 
     #print("  targetQ", targetQ, maxQ1)
@@ -491,7 +490,7 @@ def Main():
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
-        #env.Walk(30)
+        env.Walk(30, params, sess, qn, True)
 
         plt.plot(losses)
         plt.show()
