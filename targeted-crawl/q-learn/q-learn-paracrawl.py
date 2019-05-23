@@ -103,99 +103,6 @@ class Qnetwork():
 
 ######################################################################################
 # helpers
-class Env:
-    def __init__(self, siteMap):
-        self.siteMap = siteMap
-        self.ns = 31  # number of states
-
-    def GetNextState(self, curr, action, childNodeIds):
-        #print("curr", curr, action, childNodes)
-        done = False
-        nextNodeId = childNodeIds[0, action]
-        nextNode = self.siteMap.nodesById[nextNodeId]
-        if nextNodeId == 0:
-            done = True
-            rewardNode = 0
-        elif nextNode.aligned:
-            rewardNode = 8.5
-        else:
-            rewardNode = -1        
-
-        return nextNodeId, rewardNode, done
-
-    def GetChildNodes(self, curr, visited, params):
-        currNode = self.siteMap.nodesById[curr]
-        #print("currNode", currNode.Debug())
-
-        childNodeIds = []
-        for link in currNode.links:
-            childNode = link.childNode
-            childNodeId = childNode.id
-            #print("   ", childNode.Debug())
-            if childNodeId != curr and childNodeId not in visited:
-                childNodeIds.append(childNodeId)
-        #print("   childNodeIds", childNodeIds)
-
-        for i in range(len(childNodeIds), params.NUM_ACTIONS):
-            childNodeIds.append(0)
-
-        childNodeIds = np.array(childNodeIds)
-        childNodeIds = childNodeIds.reshape([1, params.NUM_ACTIONS])
-
-        return childNodeIds
-
-    def Walk(self, start, params, sess, qn, printQ):
-        visited = set()
-        curr = start
-        i = 0
-        totReward = 0
-        print(str(curr) + "->", end="")
-        while True:
-            # print("curr", curr)
-            # print("hh", next, hh)
-            childNodes = self.GetChildNodes(curr, visited, params)
-            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodes})
-            action = action[0]
-            next, reward, done = self.GetNextState(curr, action, childNodes)
-            totReward += reward
-            visited.add(next)
-
-            nextNode = self.siteMap.nodesById[next]
-            aligned = nextNode.aligned
-            alignedStr = ""
-            if aligned:
-                alignedStr = "*"
-
-            #if printQ:
-            #    print("printQ", action, allQ, childNodes)
-
-            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            print(str(next) + alignedStr + "->", end="")
-            curr = next
-
-            if done: break
-
-            i += 1
-            if i > 20:
-                print("LOOPING", end="")
-                break
-
-        print(" ", totReward)
-
-    def WalkAll(self, params, sess, qn):
-        for start in range(self.ns):
-            self.Walk(start, params, sess, qn, False)
-
-    def GetLangId(self, langStr):
-        self.siteMap.GetLangIdSM(langStr)
-
-    def GetRandomNode(self):
-        self.siteMap.GetRandomNodeSM()
-
-    def GetNode(self, url):
-        self.siteMap.GetNode(url)
-
-######################################################################################
 class MySQL:
     def __init__(self):
         # paracrawl
@@ -209,8 +116,11 @@ class MySQL:
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
 
-class Sitemap:
+######################################################################################
+class Env:
     def __init__(self, sqlconn, url):
+        self.ns = 31  # number of states
+
         # all nodes with docs
         sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
         val = (url + "%",)
@@ -257,7 +167,86 @@ class Sitemap:
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)       
 
-    def GetLangIdSM(self, langStr):
+
+    def GetNextState(self, curr, action, childNodeIds):
+        #print("curr", curr, action, childNodes)
+        done = False
+        nextNodeId = childNodeIds[0, action]
+        nextNode = self.nodesById[nextNodeId]
+        if nextNodeId == 0:
+            done = True
+            rewardNode = 0
+        elif nextNode.aligned:
+            rewardNode = 8.5
+        else:
+            rewardNode = -1        
+
+        return nextNodeId, rewardNode, done
+
+    def GetChildNodes(self, curr, visited, params):
+        currNode = self.nodesById[curr]
+        #print("currNode", currNode.Debug())
+
+        childNodeIds = []
+        for link in currNode.links:
+            childNode = link.childNode
+            childNodeId = childNode.id
+            #print("   ", childNode.Debug())
+            if childNodeId != curr and childNodeId not in visited:
+                childNodeIds.append(childNodeId)
+        #print("   childNodeIds", childNodeIds)
+
+        for i in range(len(childNodeIds), params.NUM_ACTIONS):
+            childNodeIds.append(0)
+
+        childNodeIds = np.array(childNodeIds)
+        childNodeIds = childNodeIds.reshape([1, params.NUM_ACTIONS])
+
+        return childNodeIds
+
+    def Walk(self, start, params, sess, qn, printQ):
+        visited = set()
+        curr = start
+        i = 0
+        totReward = 0
+        print(str(curr) + "->", end="")
+        while True:
+            # print("curr", curr)
+            # print("hh", next, hh)
+            childNodes = self.GetChildNodes(curr, visited, params)
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodes})
+            action = action[0]
+            next, reward, done = self.GetNextState(curr, action, childNodes)
+            totReward += reward
+            visited.add(next)
+
+            nextNode = self.nodesById[next]
+            aligned = nextNode.aligned
+            alignedStr = ""
+            if aligned:
+                alignedStr = "*"
+
+            #if printQ:
+            #    print("printQ", action, allQ, childNodes)
+
+            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+            print(str(next) + alignedStr + "->", end="")
+            curr = next
+
+            if done: break
+
+            i += 1
+            if i > 20:
+                print("LOOPING", end="")
+                break
+
+        print(" ", totReward)
+
+    def WalkAll(self, params, sess, qn):
+        for start in range(self.ns):
+            self.Walk(start, params, sess, qn, False)
+
+    def GetLangId(self, langStr):
         if langStr in self.langIds:
             langId = self.langIds[langStr]
         else:
@@ -265,7 +254,7 @@ class Sitemap:
             self.langIds[langStr] = langId
         return langId
 
-    def GetRandomNodeSM(self):
+    def GetRandomNode(self):
         l = list(self.nodesWithDoc.values())
         node = random.choice(l)
         return node 
@@ -274,6 +263,7 @@ class Sitemap:
         node = self.nodesbyURL[url]
         return node 
 
+######################################################################################
 
 class Node:
     def __init__(self, sqlconn, id, urlId, docId, lang, url):
@@ -527,9 +517,8 @@ def Main():
     # =============================================================
     sqlconn = MySQL()
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
-    siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
     # =============================================================
-    env = Env(siteMap)
+    env = Env(sqlconn, "www.vade-retro.fr/")
 
     params = LearningParams()
 
