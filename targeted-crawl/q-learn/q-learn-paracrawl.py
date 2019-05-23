@@ -236,9 +236,6 @@ class Env:
             if done: break
 
             i += 1
-            if i > 20:
-                print("LOOPING", end="")
-                break
 
         print(" ", totReward)
 
