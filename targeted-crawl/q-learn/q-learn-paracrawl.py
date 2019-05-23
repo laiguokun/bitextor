@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 50001
+        self.max_epochs = 10001
         self.eps = 1  # 0.7
         self.maxBatchSize = 64
         self.debug = False
@@ -213,10 +213,10 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            childNodes = self.GetChildNodes(curr, visited, params)
-            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodes})
+            childNodeIds = self.GetChildNodes(curr, visited, params)
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
             action = action[0]
-            next, reward, done = self.GetNextState(curr, action, childNodes)
+            next, reward, done = self.GetNextState(curr, action, childNodeIds)
             totReward += reward
             visited.add(next)
 
@@ -320,13 +320,13 @@ class Node:
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
-    childNodes = env.GetChildNodes(curr, visited, params)
-    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodes})
+    childNodeIds = env.GetChildNodes(curr, visited, params)
+    a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
     a = a[0]
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, params.NUM_ACTIONS)
 
-    next, r, done = env.GetNextState(curr, a, childNodes)
+    next, r, done = env.GetNextState(curr, a, childNodeIds)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     visited.add(next)
@@ -337,8 +337,8 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
         maxQ1 = 0
     else:
         # print("  hh2", hh2)
-        nextChildNodes = env.GetChildNodes(next, visited, params)
-        Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildNodes})
+        nextChildNodeIds = env.GetChildNodes(next, visited, params)
+        Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildNodeIds})
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
 
@@ -354,53 +354,27 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     #print("  new Q", a, allQ)
 
     Transition = namedtuple("Transition", "curr next done childNodes targetQ")
-    transition = Transition(curr, next, done, np.array(childNodes, copy=True), np.array(targetQ, copy=True))
+    transition = Transition(curr, next, done, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
 
     return transition
 
 def UpdateQN(params, env, sess, qn, batch):
     batchSize = len(batch)
     #print("batchSize", batchSize)
-    childNodes = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+    childNodeIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
     targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
     i = 0
     for transition in batch:
-        #print("transition", transition.curr, transition.next, transition.childNodes.shape, transition.targetQ.shape)
-        childNodes[i, :] = transition.childNodes
+        curr = transition.curr
+        next = transition.next
+
+        childNodeIds[i, :] = transition.childNodes
         targetQ[i, :] = transition.targetQ
     
         i += 1
 
-
-    outLoop = 1000
-    if params.debug: 
-        outLoop = 1
-        print("childNodes", childNodes)
-        print("targetQ", targetQ)
-        print()
-
-    if params.debug:
-        outs = [qn.updateModel, qn.loss, qn.sumWeight, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedding]
-        _, loss, sumWeight, Wout, Whidden, BiasHidden, Qout, embeddings, embedding = sess.run(outs,
-                                                                            feed_dict={qn.input: childNodes,
-                                                                                       qn.nextQ: targetQ})
-        #print("embeddings", embeddings.shape, embeddings)
-        #print("embedding", embedding.shape, embedding)
-        #print("embedConcat", embedConcat.shape)
-
-        #print("  Wout\n", Wout)
-        #print("  Whidden\n", Whidden)
-        #print("  BiasHidden\n", BiasHidden)
-
-        #print("curr", curr, "next", next, "action", a)
-        #print("allQ", allQ)
-        #print("targetQ", targetQ)
-        #print("Qout", Qout)
-        #print("eps", params.eps)
-
-    else:
-        _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childNodes, qn.nextQ: targetQ})
+    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childNodeIds, qn.nextQ: targetQ})
 
     #print("loss", loss)
     return loss, sumWeight
