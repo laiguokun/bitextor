@@ -120,6 +120,7 @@ class MySQL:
 class Env:
     def __init__(self, sqlconn, url):
         self.ns = 31  # number of states
+        self.numAligned = 0
 
         # all nodes with docs
         sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
@@ -145,7 +146,11 @@ class Env:
             self.nodes[node.urlId] = node
             self.nodesbyURL[node.url] = node
             self.nodesById.append(node)
+
+            if node.aligned:
+                self.numAligned += 1
         #print("nodes", len(self.nodes))
+        print("numAligned", self.numAligned)
 
         self.nodesWithDoc = self.nodes.copy()
         print("nodesWithDoc", len(self.nodesWithDoc))
@@ -247,6 +252,15 @@ class Env:
     def WalkAll(self, params, sess, qn):
         for start in range(self.ns):
             self.Walk(start, params, sess, qn, False)
+
+    def GetNumberAligned(self, path):
+        ret = 0
+        for transition in path:
+            next = transition.next
+            nextNode = self.nodesById[next]
+            if nextNode.aligned:
+                ret += 1
+        return ret
 
 ######################################################################################
 
@@ -420,7 +434,7 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
-        #startState = 1
+        #startState = 30
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
@@ -442,10 +456,14 @@ def Train(params, env, sess, qn):
 
         # add to batch
         endState = path[-1].next
-        #if stopState == env.goal:
+
+        numAligned = env.GetNumberAligned(path)
+        #print("path", numAligned, path)
+        if numAligned == env.numAligned - 1:
+            print("got them all!")
             #eps = 1. / ((i/50) + 10)
-        #    params.eps *= .999
-        #    params.eps = max(0.1, params.eps)
+            params.eps *= .999
+            params.eps = max(0.1, params.eps)
             #print("eps", params.eps)
             
             #params.q_lrn_rate * 0.999
