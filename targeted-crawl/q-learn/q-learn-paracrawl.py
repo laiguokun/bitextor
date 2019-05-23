@@ -168,8 +168,7 @@ class Env:
         #print("node", node.docId, node.urlId)       
 
 
-    def GetNextState(self, curr, action, childNodeIds):
-        #print("curr", curr, action, childNodeIds)
+    def GetNextState(self, action, childNodeIds):
         done = False
         nextNodeId = childNodeIds[0, action]
         nextNode = self.nodesById[nextNodeId]
@@ -210,13 +209,15 @@ class Env:
         i = 0
         totReward = 0
         print(str(curr) + "->", end="")
+        debugStr = ""
+
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
             childNodeIds = self.GetChildNodes(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
             action = action[0]
-            next, reward, done = self.GetNextState(curr, action, childNodeIds)
+            next, reward, done = self.GetNextState(action, childNodeIds)
             totReward += reward
             visited.add(next)
 
@@ -226,8 +227,8 @@ class Env:
             if aligned:
                 alignedStr = "*"
 
-            #if printQ:
-            #    print("printQ", action, allQ, childNodes)
+            if printQ:
+                debugStr += "   " + str(action) + " " + str(allQ) + " " + str(childNodeIds) + "\n"
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
             print(str(next) + alignedStr + "->", end="")
@@ -238,6 +239,10 @@ class Env:
             i += 1
 
         print(" ", totReward)
+
+        if printQ:
+            print(debugStr)
+
 
     def WalkAll(self, params, sess, qn):
         for start in range(self.ns):
@@ -323,7 +328,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     if np.random.rand(1) < params.eps:
         a = np.random.randint(0, params.NUM_ACTIONS)
 
-    next, r, done = env.GetNextState(curr, a, childNodeIds)
+    next, r, done = env.GetNextState(a, childNodeIds)
     #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     visited.add(next)
@@ -485,6 +490,8 @@ def Main():
 
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
+
+        #env.Walk(30)
 
         plt.plot(losses)
         plt.show()
