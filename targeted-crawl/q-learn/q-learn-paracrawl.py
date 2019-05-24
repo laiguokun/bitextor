@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 500001
+        self.max_epochs = 100001
         self.eps = 1  # 0.7
         self.maxBatchSize = 64
         self.debug = False
@@ -130,9 +130,10 @@ class Env:
         childNodeIds = []
         for link in currNode.links:
             childNode = link.childNode
+            childNodeId = childNode.id
             #print("   ", childNode.Debug())
-            if childNode.id not in visited:
-                childNodeIds.append(childNode.id)
+            if childNodeId != curr and childNodeId not in visited:
+                childNodeIds.append(childNodeId)
         #print("   childNodeIds", childNodeIds)
 
         for i in range(len(childNodeIds), params.NUM_ACTIONS):
@@ -159,11 +160,17 @@ class Env:
             totReward += reward
             visited.add(next)
 
+            nextNode = self.siteMap.nodesById[next]
+            aligned = nextNode.aligned
+            alignedStr = ""
+            if aligned:
+                alignedStr = "*"
+
             #if printQ:
             #    print("printQ", action, allQ, childNodes)
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            print(str(next) + "->", end="")
+            print(str(next) + alignedStr + "->", end="")
             curr = next
 
             if done: break
@@ -196,7 +203,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     visited.add(next)
 
     # Obtain the Q' values by feeding the new state through our network
-    if curr == env.ns - 1:
+    if curr == 0:
         targetQ = np.zeros([1, params.NUM_ACTIONS])
         maxQ1 = 0
     else:
@@ -309,6 +316,7 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         startState = np.random.randint(0, env.ns)  # random start state
+        #startState = 1
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
@@ -322,10 +330,11 @@ def Train(params, env, sess, qn):
             sumWeights.append(sumWeight)
 
         if epoch > 0 and epoch % params.walk == 0:
-            print("\nepoch", epoch, "loss", losses[-1])
             qn.PrintAllQ(params, env, sess)
             env.WalkAll(params, sess, qn)
             #env.Walk(9, sess, qn, True)
+            print("epoch", epoch, "loss", losses[-1])
+            print()
 
         # add to batch
         endState = path[-1].next
@@ -523,17 +532,21 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
+        qn.PrintAllQ(params, env, sess)
+        #env.WalkAll(params, sess, qn)
+        print()
+
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
 
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
-        #plt.plot(losses)
-        #plt.show()
+        plt.plot(losses)
+        plt.show()
 
-        #plt.plot(sumWeights)
-        #plt.show()
+        plt.plot(sumWeights)
+        plt.show()
 
     print("Finished")
 
