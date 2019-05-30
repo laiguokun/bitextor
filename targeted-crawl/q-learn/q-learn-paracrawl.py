@@ -122,7 +122,6 @@ class MySQL:
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
-        self.ns = 31  # number of states
         self.numAligned = 0
 
         # all nodes with docs
@@ -138,13 +137,13 @@ class Env:
 
         # stop node
         node = Node(sqlconn, 0, 0, 0, "", "STOP")
-        self.nodes[node.urlId] = node
-        self.nodesbyURL[node.url] = node
+        #self.nodes[node.urlId] = node
+        #self.nodesbyURL[node.url] = node
         self.nodesById.append(node)
 
         for rec in res:
             #print("rec", rec[0], rec[1])
-            id = len(self.nodes)
+            id = len(self.nodesById)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
             self.nodesbyURL[node.url] = node
@@ -155,11 +154,26 @@ class Env:
         #print("nodes", len(self.nodes))
         print("numAligned", self.numAligned)
 
+        # start node
+        id = len(self.nodesById)
+        rootNode = self.nodesbyURL[url]
+        assert(rootNode is not None)
+        startNode = Node(sqlconn, id, 0, 0, "", "START")
+        startNode.CreateLink("", "", rootNode)
+        #self.nodes[node.urlId] = startNode
+        #self.nodesbyURL[node.url] = startNode
+        self.nodesById.append(startNode)
+        self.startNodeId = startNode.id
+        #print("startNode", startNode.Debug())
+
+        self.ns = len(self.nodesById) # number of states
+
         self.nodesWithDoc = self.nodes.copy()
         print("nodesWithDoc", len(self.nodesWithDoc))
 
         # links between nodes, possibly to nodes without doc
-        for node in self.nodesWithDoc.values():
+        #for node in self.nodesWithDoc.values():
+        for node in self.nodesById:
             node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL, self.nodesById)
             print(node.Debug())
         
@@ -331,6 +345,9 @@ class Node:
                 #nodesbyURL[childNode.url] = childNode
                 #nodesById.append(childNode)
 
+            self.CreateLink(text, textLang, childNode)
+
+    def CreateLink(self, text, textLang, childNode):
             Link = namedtuple("Link", "text textLang parentNode childNode")
             link = Link(text, textLang, self, childNode)
             self.links.append(link)
@@ -453,7 +470,10 @@ def Train(params, env, sess, qn):
 
     for epoch in range(params.max_epochs):
         #startState = np.random.randint(0, env.ns)  # random start state
-        startState = 30
+        #startState = 30
+        startState = env.startNodeId
+        #print("startState", startState)
+        
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
@@ -475,12 +495,11 @@ def Train(params, env, sess, qn):
             qn.PrintAllQ(params, env, sess)
             #env.WalkAll(params, sess, qn)
             numAligned = env.Walk(30, params, sess, qn, True)
-            print("eps", params.eps)
-            print("epoch", epoch, "loss", losses[-1])
+            print("epoch", epoch, "loss", losses[-1], "eps", params.eps)
             print()
 
             #numAligned = env.GetNumberAligned(path)
-            print("path", numAligned, env.numAligned)
+            #print("path", numAligned, env.numAligned)
             if numAligned >= env.numAligned - 5:
                 #print("got them all!")
                 #eps = 1. / ((i/50) + 10)
