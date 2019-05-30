@@ -458,9 +458,6 @@ def Train(params, env, sess, qn):
             print("epoch", epoch, "loss", losses[-1])
             print()
 
-        # add to batch
-        endState = path[-1].next
-
         numAligned = env.GetNumberAligned(path)
         #print("path", numAligned)
         if numAligned >= env.numAligned - 5:
