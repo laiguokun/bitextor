@@ -336,10 +336,36 @@ class Node:
             self.links.append(link)
 
 ######################################################################################
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.transitions = []
+
+    def AddPath(self, path):
+        for transition in path:
+            self.transitions.append(transition)
+
+
+    def GetBatch(self, maxBatchSize):        
+        batch = self.transitions[0:maxBatchSize]
+        self.transitions = self.transitions[maxBatchSize:]
+
+        return batch
+
+    def GetBatchWithoutDelete(self, maxBatchSize):
+        batch = []
+
+        size = len(self.transitions)
+        for i in range(maxBatchSize):
+            idx = np.random.randint(0, size)
+            transition = self.transitions[idx]
+            batch.append(transition)
+
+        return batch
 
 ######################################################################################
 
-def Neural(epoch, curr, params, env, sess, qn, visited):
+def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     # NEURAL
     #print("curr", curr, visited)
     childNodeIds = env.GetChildNodes(curr, visited, params)
@@ -405,12 +431,12 @@ def UpdateQN(params, env, sess, qn, batch):
     #print("loss", loss)
     return loss, sumWeight
 
-def Trajectory(epoch, curr, params, env, sess, qn):
+def Trajectory(epoch, curr, params, env, sess, qn, unvisited):
     path = []
     visited = set()
 
     while (True):
-        transition = Neural(epoch, curr, params, env, sess, qn, visited)
+        transition = Neural(epoch, curr, params, env, sess, qn, visited, unvisited)
         path.append(transition)
         curr = transition.next
         #print("visited", visited)
@@ -420,37 +446,6 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 
     return path
 
-######################################################################################
-class Corpus:
-    def __init__(self, params):
-        self.transitions = []
-
-    def AddPath(self, path):
-        for transition in path:
-            self.transitions.append(transition)
-
-
-    def GetBatch(self, maxBatchSize):        
-        batch = self.transitions[0:maxBatchSize]
-        self.transitions = self.transitions[maxBatchSize:]
-
-        return batch
-
-    def GetBatchWithoutDelete(self, maxBatchSize):
-        batch = []
-
-        size = len(self.transitions)
-        for i in range(maxBatchSize):
-            idx = np.random.randint(0, size)
-            transition = self.transitions[idx]
-            batch.append(transition)
-
-        return batch
-
-    
-
-######################################################################################
-
 def Train(params, env, sess, qn):
     losses = []
     sumWeights = []
@@ -459,7 +454,10 @@ def Train(params, env, sess, qn):
     for epoch in range(params.max_epochs):
         #startState = np.random.randint(0, env.ns)  # random start state
         startState = 30
-        path = Trajectory(epoch, startState, params, env, sess, qn)
+        unvisited = set()
+        unvisited.add(startState)
+
+        path = Trajectory(epoch, startState, params, env, sess, qn, unvisited)
         corpus.AddPath(path)
 
         #while len(corpus.transitions) >= params.minCorpusSize:
