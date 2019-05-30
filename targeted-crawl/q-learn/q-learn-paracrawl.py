@@ -20,8 +20,11 @@ class LearningParams:
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
         self.max_epochs = 50001
-        self.eps = 1 #0.7
+        self.eps = 0.7
         self.maxBatchSize = 64
+        self.minCorpusSize = 200
+        self.trainNumIter = 10
+        
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 15
@@ -207,6 +210,8 @@ class Env:
         return childNodeIds
 
     def Walk(self, start, params, sess, qn, printQ):
+        numAligned = 0
+
         visited = set()
         curr = start
         i = 0
@@ -229,6 +234,7 @@ class Env:
             alignedStr = ""
             if aligned:
                 alignedStr = "*"
+                numAligned += 1
 
             if printQ:
                 debugStr += "   " + str(action) + " " + str(allQ) + " " + str(childNodeIds) + "\n"
@@ -245,6 +251,8 @@ class Env:
 
         if printQ:
             print(debugStr)
+
+        return numAligned
 
 
     def WalkAll(self, params, sess, qn):
@@ -428,6 +436,19 @@ class Corpus:
 
         return batch
 
+    def GetBatchWithoutDelete(self, maxBatchSize):
+        batch = []
+
+        size = len(self.transitions)
+        for i in range(maxBatchSize):
+            idx = np.random.randint(0, size)
+            transition = self.transitions[idx]
+            batch.append(transition)
+
+        return batch
+
+    
+
 ######################################################################################
 
 def Train(params, env, sess, qn):
@@ -441,36 +462,41 @@ def Train(params, env, sess, qn):
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
-        while len(corpus.transitions) >= params.maxBatchSize:
-            #print("corpusSize", corpusSize)
-            
-            batch = corpus.GetBatch(params.maxBatchSize)
-  
-            loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
-            losses.append(loss)
-            sumWeights.append(sumWeight)
+        #while len(corpus.transitions) >= params.minCorpusSize:
+        #    #print("corpusSize", corpusSize)
+        #    batch = corpus.GetBatch(params.maxBatchSize)
+        #    loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
+        #    losses.append(loss)
+        #    sumWeights.append(sumWeight)
+        if len(corpus.transitions) >= params.minCorpusSize:
+            for i in range(params.trainNumIter):
+                batch = corpus.GetBatchWithoutDelete(params.maxBatchSize)
+                loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
+                losses.append(loss)
+                sumWeights.append(sumWeight)
+            corpus.transitions.clear()
 
         if epoch > 0 and epoch % params.walk == 0:
             qn.PrintAllQ(params, env, sess)
-            env.WalkAll(params, sess, qn)
-            env.Walk(30, params, sess, qn, True)
+            #env.WalkAll(params, sess, qn)
+            numAligned = env.Walk(30, params, sess, qn, True)
             print("eps", params.eps)
             print("epoch", epoch, "loss", losses[-1])
             print()
 
-        numAligned = env.GetNumberAligned(path)
-        #print("path", numAligned)
-        if numAligned >= env.numAligned - 5:
-            #print("got them all!")
-            #eps = 1. / ((i/50) + 10)
-            params.eps *= .999
-            params.eps = max(0.1, params.eps)
-            #print("eps", params.eps)
-            
-            #params.q_lrn_rate * 0.999
-            #params.q_lrn_rate = max(0.1, params.q_lrn_rate)
-            #print("q_lrn_rate", params.q_lrn_rate)
-            
+            #numAligned = env.GetNumberAligned(path)
+            print("path", numAligned, env.numAligned)
+            if numAligned >= env.numAligned - 5:
+                #print("got them all!")
+                #eps = 1. / ((i/50) + 10)
+                params.eps *= .99
+                params.eps = max(0.1, params.eps)
+                #print("eps", params.eps)
+                
+                #params.q_lrn_rate * 0.999
+                #params.q_lrn_rate = max(0.1, params.q_lrn_rate)
+                #print("q_lrn_rate", params.q_lrn_rate)
+                
 
     # LAST BATCH
             
