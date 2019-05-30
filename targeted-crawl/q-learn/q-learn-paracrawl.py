@@ -453,7 +453,7 @@ def Train(params, env, sess, qn):
         if epoch > 0 and epoch % params.walk == 0:
             qn.PrintAllQ(params, env, sess)
             env.WalkAll(params, sess, qn)
-            #env.Walk(9, sess, qn, True)
+            env.Walk(30, params, sess, qn, True)
             print("eps", params.eps)
             print("epoch", epoch, "loss", losses[-1])
             print()
@@ -484,7 +484,7 @@ def Train(params, env, sess, qn):
 def Main():
     print("Starting")
     np.random.seed()
-    np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)})
+    np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)}, linewidth=666)
 
     # =============================================================
     sqlconn = MySQL()
