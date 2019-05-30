@@ -336,8 +336,55 @@ class Node:
             self.links.append(link)
 
 ######################################################################################
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.transitions = []
+
+    def AddPath(self, path):
+        for transition in path:
+            self.transitions.append(transition)
+
+
+    def GetBatch(self, maxBatchSize):        
+        batch = self.transitions[0:maxBatchSize]
+        self.transitions = self.transitions[maxBatchSize:]
+
+        return batch
+
+    def GetBatchWithoutDelete(self, maxBatchSize):
+        batch = []
+
+        size = len(self.transitions)
+        for i in range(maxBatchSize):
+            idx = np.random.randint(0, size)
+            transition = self.transitions[idx]
+            batch.append(transition)
+
+        return batch
 
 ######################################################################################
+
+def UpdateQN(params, env, sess, qn, batch):
+    batchSize = len(batch)
+    #print("batchSize", batchSize)
+    childNodeIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+    targetQ = np.empty([batchSize, params.NUM_ACTIONS])
+
+    i = 0
+    for transition in batch:
+        curr = transition.curr
+        next = transition.next
+
+        childNodeIds[i, :] = transition.childNodeIds
+        targetQ[i, :] = transition.targetQ
+    
+        i += 1
+
+    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childNodeIds, qn.nextQ: targetQ})
+
+    #print("loss", loss)
+    return loss, sumWeight
 
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
@@ -384,27 +431,6 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 
     return transition
 
-def UpdateQN(params, env, sess, qn, batch):
-    batchSize = len(batch)
-    #print("batchSize", batchSize)
-    childNodeIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
-    targetQ = np.empty([batchSize, params.NUM_ACTIONS])
-
-    i = 0
-    for transition in batch:
-        curr = transition.curr
-        next = transition.next
-
-        childNodeIds[i, :] = transition.childNodeIds
-        targetQ[i, :] = transition.targetQ
-    
-        i += 1
-
-    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childNodeIds, qn.nextQ: targetQ})
-
-    #print("loss", loss)
-    return loss, sumWeight
-
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     visited = set()
@@ -419,37 +445,6 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     #print("path", path)
 
     return path
-
-######################################################################################
-class Corpus:
-    def __init__(self, params):
-        self.transitions = []
-
-    def AddPath(self, path):
-        for transition in path:
-            self.transitions.append(transition)
-
-
-    def GetBatch(self, maxBatchSize):        
-        batch = self.transitions[0:maxBatchSize]
-        self.transitions = self.transitions[maxBatchSize:]
-
-        return batch
-
-    def GetBatchWithoutDelete(self, maxBatchSize):
-        batch = []
-
-        size = len(self.transitions)
-        for i in range(maxBatchSize):
-            idx = np.random.randint(0, size)
-            transition = self.transitions[idx]
-            batch.append(transition)
-
-        return batch
-
-    
-
-######################################################################################
 
 def Train(params, env, sess, qn):
     losses = []
