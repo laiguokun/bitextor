@@ -223,6 +223,10 @@ class Env:
 
         return childNodeIds
 
+    def GetStopChildNodes(self, params):
+        childNodeIds = np.zeros([1, params.NUM_ACTIONS])
+        return childNodeIds
+
     def Walk(self, start, params, sess, qn, printQ):
         numAligned = 0
 
@@ -380,6 +384,14 @@ class Corpus:
 
         return batch
 
+    def AddStopTransition(self, env, params):
+        # stop state
+        targetQ = np.zeros([1, params.NUM_ACTIONS])
+        childNodeIds = env.GetStopChildNodes(params)
+        Transition = namedtuple("Transition", "curr next done childNodeIds targetQ")
+        transition = Transition(0, 0, True, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
+        self.transitions.append(transition)
+
 ######################################################################################
 
 def UpdateQN(params, env, sess, qn, batch):
@@ -407,6 +419,8 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
     childNodeIds = env.GetChildNodes(curr, visited, params)
+    #print("childNodeIds", childNodeIds)
+
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
     action = action[0]
     if np.random.rand(1) < params.eps:
@@ -414,7 +428,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     
     next, r = env.GetNextState(action, childNodeIds)
 
-    if curr == 0 and next == 0:
+    if next == 0:
         done = True
     else:
         done = False
@@ -460,7 +474,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 
         if transition.done: break
     #print("path", path)
-
+    
     return path
 
 def Train(params, env, sess, qn):
@@ -484,6 +498,8 @@ def Train(params, env, sess, qn):
         #    losses.append(loss)
         #    sumWeights.append(sumWeight)
         if len(corpus.transitions) >= params.minCorpusSize:
+            corpus.AddStopTransition(env, params)
+
             for i in range(params.trainNumIter):
                 batch = corpus.GetBatchWithoutDelete(params.maxBatchSize)
                 loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
