@@ -206,16 +206,8 @@ class Env:
 
     def GetChildIdsNP(self, curr, visited, params):
         currNode = self.nodesById[curr]
-        #print("currNode", currNode.Debug())
-
-        childNodeIds = []
-        for link in currNode.links:
-            childNode = link.childNode
-            childNodeId = childNode.id
-            #print("   ", childNode.Debug())
-            if childNodeId != curr and childNodeId not in visited:
-                childNodeIds.append(childNodeId)
-        #print("   childNodeIds", childNodeIds)
+        #print("currNode", curr, currNode.Debug())
+        childNodeIds = currNode.GetChildIds(visited, params)
 
         for i in range(len(childNodeIds), params.NUM_ACTIONS):
             childNodeIds.append(0)
@@ -357,6 +349,18 @@ class Node:
             Link = namedtuple("Link", "text textLang parentNode childNode")
             link = Link(text, textLang, self, childNode)
             self.links.append(link)
+
+    def GetChildIds(self, visited, params):
+        childNodeIds = []
+        for link in self.links:
+            childNode = link.childNode
+            childNodeId = childNode.id
+            #print("   ", childNode.Debug())
+            if childNodeId != self.id and childNodeId not in visited:
+                childNodeIds.append(childNodeId)
+        #print("   childNodeIds", childNodeIds)
+
+        return childNodeIds
 
 ######################################################################################
 ######################################################################################
