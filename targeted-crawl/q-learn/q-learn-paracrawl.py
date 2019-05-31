@@ -95,9 +95,9 @@ class Qnetwork():
         visited = set()
 
         childNodeIds = env.GetChildNodes(curr, visited, params)
-        a, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
+        action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
         #print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
-        print("curr=", curr, allQ, childNodeIds)
+        print("state", curr, action, allQ, childNodeIds)
 
     def PrintAllQ(self, params, env, sess):
         print("         Q-values                          Next state")
