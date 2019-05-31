@@ -97,10 +97,10 @@ class Qnetwork():
         childNodeIds = env.GetChildIdsNP(curr, visited, params)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
         #print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
-        print("state", curr, action, allQ, childNodeIds)
+        print(curr, action, allQ, childNodeIds)
 
     def PrintAllQ(self, params, env, sess):
-        print("         Q-values                          Next state")
+        print("State         Q-values                          Next state")
         for curr in range(env.ns):
             self.PrintQ(curr, params, env, sess)
 
@@ -535,7 +535,7 @@ def Train(params, env, sess, qn):
 def Main():
     print("Starting")
     np.random.seed()
-    np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)}, linewidth=666)
+    np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
     # =============================================================
     sqlconn = MySQL()
