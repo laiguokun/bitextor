@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
-        self.max_epochs = 50001
+        self.max_epochs = 20001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -494,7 +494,7 @@ def Train(params, env, sess, qn):
         if epoch > 0 and epoch % params.walk == 0:
             qn.PrintAllQ(params, env, sess)
             #env.WalkAll(params, sess, qn)
-            numAligned = env.Walk(30, params, sess, qn, True)
+            numAligned = env.Walk(startState, params, sess, qn, True)
             print("epoch", epoch, "loss", losses[-1], "eps", params.eps)
             print()
 
