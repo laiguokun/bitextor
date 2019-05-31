@@ -122,6 +122,8 @@ class MySQL:
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
+        self.Transition = namedtuple("Transition", "curr next done childNodeIds targetQ")
+
         self.numAligned = 0
 
         # all nodes with docs
@@ -360,7 +362,6 @@ class Node:
 ######################################################################################
 class Corpus:
     def __init__(self, params):
-        self.Transition = namedtuple("Transition", "curr next done childNodeIds targetQ")
         self.transitions = []
 
     def AddPath(self, path):
@@ -389,7 +390,7 @@ class Corpus:
         # stop state
         targetQ = np.zeros([1, params.NUM_ACTIONS])
         childNodeIds = env.GetStopChildNodes(params)
-        transition = self.Transition(0, 0, True, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
+        transition = env.Transition(0, 0, True, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
         self.transitions.append(transition)
 
 ######################################################################################
@@ -415,7 +416,7 @@ def UpdateQN(params, env, sess, qn, batch):
     #print("loss", loss)
     return loss, sumWeight
 
-def Neural(epoch, curr, params, env, sess, qn, visited, corpus):
+def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
     childNodeIds = env.GetChildNodes(curr, visited, params)
@@ -457,16 +458,16 @@ def Neural(epoch, curr, params, env, sess, qn, visited, corpus):
     #print("  targetQ", targetQ, maxQ1)
     #print("  new Q", a, allQ)
 
-    transition = corpus.Transition(curr, next, done, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
+    transition = env.Transition(curr, next, done, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
 
     return transition
 
-def Trajectory(epoch, curr, params, env, sess, qn, corpus):
+def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     visited = set()
 
     while (True):
-        transition = Neural(epoch, curr, params, env, sess, qn, visited, corpus)
+        transition = Neural(epoch, curr, params, env, sess, qn, visited)
         path.append(transition)
         curr = transition.next
         #print("visited", visited)
@@ -487,7 +488,7 @@ def Train(params, env, sess, qn):
         startState = env.startNodeId
         #print("startState", startState)
         
-        path = Trajectory(epoch, startState, params, env, sess, qn, corpus)
+        path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
         #while len(corpus.transitions) >= params.minCorpusSize:
