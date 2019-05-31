@@ -94,7 +94,7 @@ class Qnetwork():
         # print("hh", next, hh)
         visited = set()
 
-        childNodeIds = env.GetChildNodes(curr, visited, params)
+        childNodeIds = env.GetChildIdsNP(curr, visited, params)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
         #print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
         print("state", curr, action, allQ, childNodeIds)
@@ -204,7 +204,7 @@ class Env:
 
         return nextNodeId, rewardNode
 
-    def GetChildNodes(self, curr, visited, params):
+    def GetChildIdsNP(self, curr, visited, params):
         currNode = self.nodesById[curr]
         #print("currNode", currNode.Debug())
 
@@ -225,7 +225,7 @@ class Env:
 
         return childNodeIds
 
-    def GetStopChildNodes(self, params):
+    def GetStopChildIdsNP(self, params):
         childNodeIds = np.zeros([1, params.NUM_ACTIONS])
         return childNodeIds
 
@@ -242,7 +242,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            childNodeIds = self.GetChildNodes(curr, visited, params)
+            childNodeIds = self.GetChildIdsNP(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
             action = action[0]
             next, reward = self.GetNextState(action, childNodeIds)
@@ -389,7 +389,7 @@ class Corpus:
     def AddStopTransition(self, env, params):
         # stop state
         targetQ = np.zeros([1, params.NUM_ACTIONS])
-        childNodeIds = env.GetStopChildNodes(params)
+        childNodeIds = env.GetStopChildIdsNP(params)
         transition = env.Transition(0, 0, True, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
         self.transitions.append(transition)
 
@@ -419,7 +419,7 @@ def UpdateQN(params, env, sess, qn, batch):
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
-    childNodeIds = env.GetChildNodes(curr, visited, params)
+    childNodeIds = env.GetChildIdsNP(curr, visited, params)
     #print("childNodeIds", childNodeIds)
 
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
@@ -438,7 +438,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 
     # Obtain the Q' values by feeding the new state through our network
     # print("  hh2", hh2)
-    nextChildNodeIds = env.GetChildNodes(next, visited, params)
+    nextChildNodeIds = env.GetChildIdsNP(next, visited, params)
     Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildNodeIds})
     # print("  Q1", Q1)
     maxQ1 = np.max(Q1)
