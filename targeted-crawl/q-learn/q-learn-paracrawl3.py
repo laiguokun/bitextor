@@ -93,9 +93,8 @@ class Qnetwork():
     def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
         visited = set()
-        unvisited = set()
 
-        childNodeIds = env.GetChildIdsNP(curr, unvisited, visited, params)
+        childNodeIds = env.GetChildIdsNP(curr, visited, params)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
         #print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
         print(curr, action, allQ, childNodeIds)
@@ -205,29 +204,18 @@ class Env:
 
         return nextNodeId, rewardNode
 
-    def GetChildIdsNP(self, curr, unvisited, visited, params):
-        #print("unvisited", unvisited)
+    def GetChildIdsNP(self, curr, visited, params):
         currNode = self.nodesById[curr]
         #print("currNode", curr, currNode.Debug())
         childNodeIds = currNode.GetChildIds(visited, params)
-        #print("childNodeIds", childNodeIds)
 
-        for childNodeId in childNodeIds:
-            unvisited.add(childNodeId)
+        for i in range(len(childNodeIds), params.NUM_ACTIONS):
+            childNodeIds.append(0)
 
-        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+        childNodeIds = np.array(childNodeIds)
+        childNodeIds = childNodeIds.reshape([1, params.NUM_ACTIONS])
 
-        i = 0
-        for childId in unvisited:
-            ret[0, i] = childId
-
-            i += 1
-            if i >= params.NUM_ACTIONS:
-                break
-        #print("ret", ret)
-        #print()
-
-        return ret
+        return childNodeIds
 
     def GetStopChildIdsNP(self, params):
         childNodeIds = np.zeros([1, params.NUM_ACTIONS])
@@ -235,13 +223,9 @@ class Env:
 
     def Walk(self, start, params, sess, qn, printQ):
         numAligned = 0
-        curr = start        
 
         visited = set()
-        visited.add(curr)
-        unvisited = set()
-        unvisited.add(0)
-
+        curr = start
         i = 0
         totReward = 0
         print(str(curr) + "->", end="")
@@ -250,14 +234,12 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            childNodeIds = self.GetChildIdsNP(curr, unvisited, visited, params)
+            childNodeIds = self.GetChildIdsNP(curr, visited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
             action = action[0]
             next, reward = self.GetNextState(action, childNodeIds)
             totReward += reward
-
             visited.add(next)
-            unvisited.remove(next)
 
             nextNode = self.nodesById[next]
             aligned = nextNode.aligned
@@ -438,10 +420,10 @@ def UpdateQN(params, env, sess, qn, batch):
     #print("loss", loss)
     return loss, sumWeight
 
-def Neural(epoch, curr, unvisited, params, env, sess, qn, visited):
+def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
-    childNodeIds = env.GetChildIdsNP(curr, unvisited, visited, params)
+    childNodeIds = env.GetChildIdsNP(curr, visited, params)
     #print("childNodeIds", childNodeIds)
 
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
@@ -451,18 +433,16 @@ def Neural(epoch, curr, unvisited, params, env, sess, qn, visited):
     
     next, r = env.GetNextState(action, childNodeIds)
 
-    visited.add(next)
-    unvisited.remove(next)
-    nextUnvisited = unvisited.copy()
-
     if next == 0:
         done = True
     else:
         done = False
 
+    visited.add(next)
+
     # Obtain the Q' values by feeding the new state through our network
     # print("  hh2", hh2)
-    nextChildNodeIds = env.GetChildIdsNP(next, nextUnvisited, visited, params)
+    nextChildNodeIds = env.GetChildIdsNP(next, visited, params)
     Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildNodeIds})
     # print("  Q1", Q1)
     maxQ1 = np.max(Q1)
@@ -483,14 +463,10 @@ def Neural(epoch, curr, unvisited, params, env, sess, qn, visited):
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     visited = set()
-    unvisited = set()
-    unvisited.add(0)
 
     while (True):
-    
-        transition = Neural(epoch, curr, unvisited, params, env, sess, qn, visited)
+        transition = Neural(epoch, curr, params, env, sess, qn, visited)
         path.append(transition)
-        
         curr = transition.next
         #print("visited", visited)
 
