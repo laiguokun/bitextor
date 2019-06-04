@@ -94,10 +94,10 @@ class Qnetwork():
         # print("hh", next, hh)
         visited = set()
 
-        childNodeIds = env.GetChildIdsNP(curr, visited, params)
-        action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
-        #print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
-        print(curr, action, allQ, childNodeIds)
+        childIds = env.GetChildIdsNP(curr, visited, params)
+        action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
+        #print("curr=", curr, "a=", a, "allQ=", allQ, childIds)
+        print(curr, action, allQ, childIds)
 
     def PrintAllQ(self, params, env, sess):
         print("State         Q-values                          Next state")
@@ -122,7 +122,7 @@ class MySQL:
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
-        self.Transition = namedtuple("Transition", "curr next done childNodeIds targetQ")
+        self.Transition = namedtuple("Transition", "curr next done childIds targetQ")
 
         self.numAligned = 0
 
@@ -192,8 +192,8 @@ class Env:
         #print("node", node.docId, node.urlId)       
 
 
-    def GetNextState(self, action, childNodeIds):
-        nextNodeId = childNodeIds[0, action]
+    def GetNextState(self, action, childIds):
+        nextNodeId = childIds[0, action]
         nextNode = self.nodesById[nextNodeId]
         if nextNodeId == 0:
             rewardNode = 0
@@ -207,19 +207,19 @@ class Env:
     def GetChildIdsNP(self, curr, visited, params):
         currNode = self.nodesById[curr]
         #print("currNode", curr, currNode.Debug())
-        childNodeIds = currNode.GetChildIds(visited, params)
+        childIds = currNode.GetChildIds(visited, params)
 
-        for i in range(len(childNodeIds), params.NUM_ACTIONS):
-            childNodeIds.append(0)
+        for i in range(len(childIds), params.NUM_ACTIONS):
+            childIds.append(0)
 
-        childNodeIds = np.array(childNodeIds)
-        childNodeIds = childNodeIds.reshape([1, params.NUM_ACTIONS])
+        childIds = np.array(childIds)
+        childIds = childIds.reshape([1, params.NUM_ACTIONS])
 
-        return childNodeIds
+        return childIds
 
     def GetStopChildIdsNP(self, params):
-        childNodeIds = np.zeros([1, params.NUM_ACTIONS])
-        return childNodeIds
+        childIds = np.zeros([1, params.NUM_ACTIONS])
+        return childIds
 
     def Walk(self, start, params, sess, qn, printQ):
         numAligned = 0
@@ -234,10 +234,10 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            childNodeIds = self.GetChildIdsNP(curr, visited, params)
-            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
+            childIds = self.GetChildIdsNP(curr, visited, params)
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
             action = action[0]
-            next, reward = self.GetNextState(action, childNodeIds)
+            next, reward = self.GetNextState(action, childIds)
             totReward += reward
             visited.add(next)
 
@@ -249,7 +249,7 @@ class Env:
                 numAligned += 1
 
             if printQ:
-                debugStr += "   " + str(action) + " " + str(allQ) + " " + str(childNodeIds) + "\n"
+                debugStr += "   " + str(action) + " " + str(allQ) + " " + str(childIds) + "\n"
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
             print(str(next) + alignedStr + "->", end="")
@@ -351,16 +351,16 @@ class Node:
             self.links.append(link)
 
     def GetChildIds(self, visited, params):
-        childNodeIds = []
+        childIds = []
         for link in self.links:
             childNode = link.childNode
             childNodeId = childNode.id
             #print("   ", childNode.Debug())
             if childNodeId != self.id and childNodeId not in visited:
-                childNodeIds.append(childNodeId)
-        #print("   childNodeIds", childNodeIds)
+                childIds.append(childNodeId)
+        #print("   childIds", childIds)
 
-        return childNodeIds
+        return childIds
 
 ######################################################################################
 ######################################################################################
@@ -393,8 +393,8 @@ class Corpus:
     def AddStopTransition(self, env, params):
         # stop state
         targetQ = np.zeros([1, params.NUM_ACTIONS])
-        childNodeIds = env.GetStopChildIdsNP(params)
-        transition = env.Transition(0, 0, True, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
+        childIds = env.GetStopChildIdsNP(params)
+        transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
         self.transitions.append(transition)
 
 ######################################################################################
@@ -402,7 +402,7 @@ class Corpus:
 def UpdateQN(params, env, sess, qn, batch):
     batchSize = len(batch)
     #print("batchSize", batchSize)
-    childNodeIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+    childIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
     targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
     i = 0
@@ -410,12 +410,12 @@ def UpdateQN(params, env, sess, qn, batch):
         curr = transition.curr
         next = transition.next
 
-        childNodeIds[i, :] = transition.childNodeIds
+        childIds[i, :] = transition.childIds
         targetQ[i, :] = transition.targetQ
     
         i += 1
 
-    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childNodeIds, qn.nextQ: targetQ})
+    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
 
     #print("loss", loss)
     return loss, sumWeight
@@ -423,15 +423,15 @@ def UpdateQN(params, env, sess, qn, batch):
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
     #print("curr", curr, visited)
-    childNodeIds = env.GetChildIdsNP(curr, visited, params)
-    #print("childNodeIds", childNodeIds)
+    childIds = env.GetChildIdsNP(curr, visited, params)
+    #print("childIds", childIds)
 
-    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
+    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
     
-    next, r = env.GetNextState(action, childNodeIds)
+    next, r = env.GetNextState(action, childIds)
 
     if next == 0:
         done = True
@@ -442,8 +442,8 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 
     # Obtain the Q' values by feeding the new state through our network
     # print("  hh2", hh2)
-    nextChildNodeIds = env.GetChildIdsNP(next, visited, params)
-    Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildNodeIds})
+    nextChildIds = env.GetChildIdsNP(next, visited, params)
+    Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
     # print("  Q1", Q1)
     maxQ1 = np.max(Q1)
 
@@ -456,7 +456,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     #print("  targetQ", targetQ, maxQ1)
     #print("  new Q", a, allQ)
 
-    transition = env.Transition(curr, next, done, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
+    transition = env.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
 
     return transition
 
