@@ -210,13 +210,18 @@ class Env:
         #print("currNode", curr, currNode.Debug())
         childIds = currNode.GetChildIds(visited, params)
 
-        for i in range(len(childIds), params.NUM_ACTIONS):
-            childIds.append(0)
+        for childId in childIds:
+            unvisited.add(childId)
 
-        childIds = np.array(childIds)
-        childIds = childIds.reshape([1, params.NUM_ACTIONS])
+        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
-        return childIds
+        i = 0
+        for childId in unvisited:
+           ret[0, i] = childId
+           if i >= params.NUM_ACTIONS:
+               break
+
+        return ret
 
     def GetStopChildIdsNP(self, params):
         childIds = np.zeros([1, params.NUM_ACTIONS])
@@ -227,6 +232,7 @@ class Env:
 
         visited = set()
         unvisited = set()
+        unvisited.add(0)
 
         curr = start
         i = 0
@@ -243,6 +249,7 @@ class Env:
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
             visited.add(next)
+            unvisited.remove(next)
 
             nextNode = self.nodesById[next]
             aligned = nextNode.aligned
