@@ -436,9 +436,9 @@ def UpdateQN(params, env, sess, qn, batch):
 
 def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     # NEURAL
-    #print("curr", curr, visited)
+    #print("curr", curr, visited, unvisited)
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
-    #print("childIds", childIds)
+    #print("   childIds", childIds, unvisited)
 
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
     action = action[0]
@@ -446,6 +446,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         action = np.random.randint(0, params.NUM_ACTIONS)
     
     next, r = env.GetNextState(action, childIds)
+    #print("   action", action, next)
 
     if next == 0:
         done = True
@@ -586,11 +587,11 @@ def Main():
         startState = env.startNodeId
         env.Walk(startState, params, sess, qn, True)
 
-        plt.plot(losses)
-        plt.show()
+        #plt.plot(losses)
+        #plt.show()
 
-        plt.plot(sumWeights)
-        plt.show()
+        #plt.plot(sumWeights)
+        #plt.show()
 
     print("Finished")
 
