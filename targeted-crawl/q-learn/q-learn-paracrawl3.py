@@ -94,6 +94,7 @@ class Qnetwork():
         # print("hh", next, hh)
         visited = set()
         unvisited = set()
+        unvisited.add(0)
 
         childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
@@ -452,8 +453,9 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         done = False
 
     visited.add(next)
+    unvisited.remove(next)
 
-    nextUnvisited = set()
+    nextUnvisited = unvisited.copy()
 
     # Obtain the Q' values by feeding the new state through our network
     # print("  hh2", hh2)
@@ -479,6 +481,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     visited = set()
     unvisited = set()
+    unvisited.add(0)
 
     while (True):
         transition = Neural(epoch, curr, params, env, sess, qn, visited, unvisited)
@@ -497,6 +500,7 @@ def Train(params, env, sess, qn):
     corpus = Corpus(params)
 
     for epoch in range(params.max_epochs):
+        #print("epoch", epoch)
         #startState = np.random.randint(0, env.ns)  # random start state
         #startState = 30
         startState = env.startNodeId
