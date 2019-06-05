@@ -18,7 +18,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
-        self.q_lrn_rate = 0.7
+        self.alpha = 1
         self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
@@ -470,7 +470,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     targetQ = np.array(allQ, copy=True)
     #print("  targetQ", targetQ)
     newVal = r + params.gamma * maxQ1
-    targetQ[0, action] = (1 - params.q_lrn_rate) * targetQ[0, action] + params.q_lrn_rate * newVal
+    targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
     #targetQ[0, action] = newVal
     #print("  targetQ", targetQ, maxQ1)
     #print("  new Q", a, allQ)
@@ -531,7 +531,7 @@ def Train(params, env, sess, qn):
             qn.PrintAllQ(params, env, sess)
             print()
             numAligned = env.Walk(startState, params, sess, qn, True)
-            print("epoch", epoch, "loss", losses[-1], "eps", params.eps)
+            print("epoch", epoch, "loss", losses[-1], "eps", params.eps, "alpha", params.alpha)
             print()
 
             #numAligned = env.GetNumberAligned(path)
@@ -543,9 +543,9 @@ def Train(params, env, sess, qn):
                 params.eps = max(0.1, params.eps)
                 #print("eps", params.eps)
                 
-                #params.q_lrn_rate * 0.999
-                #params.q_lrn_rate = max(0.1, params.q_lrn_rate)
-                #print("q_lrn_rate", params.q_lrn_rate)
+                params.alpha * 0.99
+                params.alpha = max(0.3, params.alpha)
+                #print("alpha", params.alpha)
                 
 
     # LAST BATCH
