@@ -93,8 +93,9 @@ class Qnetwork():
     def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
         visited = set()
+        unvisited = set()
 
-        childIds = env.GetChildIdsNP(curr, visited, params)
+        childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         #print("curr=", curr, "a=", a, "allQ=", allQ, childIds)
         print(curr, action, allQ, childIds)
@@ -204,7 +205,7 @@ class Env:
 
         return nextNodeId, rewardNode
 
-    def GetChildIdsNP(self, curr, visited, params):
+    def GetChildIdsNP(self, curr, visited, unvisited, params):
         currNode = self.nodesById[curr]
         #print("currNode", curr, currNode.Debug())
         childIds = currNode.GetChildIds(visited, params)
@@ -225,6 +226,8 @@ class Env:
         numAligned = 0
 
         visited = set()
+        unvisited = set()
+
         curr = start
         i = 0
         totReward = 0
@@ -234,7 +237,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            childIds = self.GetChildIdsNP(curr, visited, params)
+            childIds = self.GetChildIdsNP(curr, visited, unvisited, params)
             action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
             action = action[0]
             next, reward = self.GetNextState(action, childIds)
@@ -420,10 +423,10 @@ def UpdateQN(params, env, sess, qn, batch):
     #print("loss", loss)
     return loss, sumWeight
 
-def Neural(epoch, curr, params, env, sess, qn, visited):
+def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     # NEURAL
     #print("curr", curr, visited)
-    childIds = env.GetChildIdsNP(curr, visited, params)
+    childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("childIds", childIds)
 
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
@@ -440,9 +443,11 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 
     visited.add(next)
 
+    nextUnvisited = set()
+
     # Obtain the Q' values by feeding the new state through our network
     # print("  hh2", hh2)
-    nextChildIds = env.GetChildIdsNP(next, visited, params)
+    nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
     Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
     # print("  Q1", Q1)
     maxQ1 = np.max(Q1)
@@ -463,9 +468,10 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     visited = set()
+    unvisited = set()
 
     while (True):
-        transition = Neural(epoch, curr, params, env, sess, qn, visited)
+        transition = Neural(epoch, curr, params, env, sess, qn, visited, unvisited)
         path.append(transition)
         curr = transition.next
         #print("visited", visited)
