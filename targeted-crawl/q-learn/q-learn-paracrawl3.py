@@ -18,7 +18,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
-        self.alpha = 1
+        self.alpha = 1.0
         self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
@@ -241,7 +241,7 @@ class Env:
         curr = start
         i = 0
         totReward = 0
-        print(str(curr) + "->", end="")
+        mainStr = str(curr) + "->"
         debugStr = ""
 
         while True:
@@ -263,20 +263,22 @@ class Env:
                 numAligned += 1
 
             if printQ:
-                debugStr += "   " + str(action) + " " + str(allQ) + " " + str(childIds) + "\n"
+                debugStr += "   " + str(curr) + "->" + str(next) + " " \
+                         + str(action) + " " + str(allQ) + " " + str(childIds) + "\n"
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            print(str(next) + alignedStr + "->", end="")
+            mainStr += str(next) + alignedStr + "->"
             curr = next
 
             if next == 0: break
 
             i += 1
 
-        print(" ", totReward)
+        mainStr += " " + str(totReward)
 
         if printQ:
-            print(debugStr)
+            print(debugStr, end="")
+        print(mainStr)
 
         return numAligned
 
@@ -543,7 +545,7 @@ def Train(params, env, sess, qn):
                 params.eps = max(0.1, params.eps)
                 #print("eps", params.eps)
                 
-                params.alpha * 0.99
+                params.alpha *= 0.99
                 params.alpha = max(0.3, params.alpha)
                 #print("alpha", params.alpha)
                 
