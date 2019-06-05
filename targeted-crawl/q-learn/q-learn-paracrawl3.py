@@ -406,10 +406,11 @@ class Corpus:
 
     def AddStopTransition(self, env, params):
         # stop state
-        targetQ = np.zeros([1, params.NUM_ACTIONS])
-        childIds = env.GetStopChildIdsNP(params)
-        transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
-        self.transitions.append(transition)
+        for i in range(10):
+            targetQ = np.zeros([1, params.NUM_ACTIONS])
+            childIds = env.GetStopChildIdsNP(params)
+            transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
+            self.transitions.append(transition)
 
 ######################################################################################
 
@@ -528,7 +529,7 @@ def Train(params, env, sess, qn):
 
         if epoch > 0 and epoch % params.walk == 0:
             qn.PrintAllQ(params, env, sess)
-            #env.WalkAll(params, sess, qn)
+            print()
             numAligned = env.Walk(startState, params, sess, qn, True)
             print("epoch", epoch, "loss", losses[-1], "eps", params.eps)
             print()
@@ -587,11 +588,11 @@ def Main():
         startState = env.startNodeId
         env.Walk(startState, params, sess, qn, True)
 
-        #plt.plot(losses)
-        #plt.show()
+        plt.plot(losses)
+        plt.show()
 
-        #plt.plot(sumWeights)
-        #plt.show()
+        plt.plot(sumWeights)
+        plt.show()
 
     print("Finished")
 
