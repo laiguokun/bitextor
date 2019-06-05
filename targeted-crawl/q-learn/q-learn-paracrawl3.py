@@ -97,7 +97,7 @@ class Qnetwork():
 
         childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
-        #print("curr=", curr, "a=", a, "allQ=", allQ, childIds)
+        #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
         print(curr, action, allQ, childIds)
 
     def PrintAllQ(self, params, env, sess):
@@ -207,8 +207,9 @@ class Env:
 
     def GetChildIdsNP(self, curr, visited, unvisited, params):
         currNode = self.nodesById[curr]
-        #print("currNode", curr, currNode.Debug())
+        #print("   currNode", curr, currNode.Debug())
         childIds = currNode.GetChildIds(visited, params)
+        #print("   childIds", childIds)
 
         for childId in childIds:
             unvisited.add(childId)
@@ -217,8 +218,10 @@ class Env:
 
         i = 0
         for childId in unvisited:
-           ret[0, i] = childId
-           if i >= params.NUM_ACTIONS:
+            ret[0, i] = childId
+
+            i += 1
+            if i >= params.NUM_ACTIONS:
                break
 
         return ret
