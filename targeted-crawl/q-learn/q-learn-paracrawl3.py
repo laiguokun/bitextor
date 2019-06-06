@@ -92,11 +92,12 @@ class Qnetwork():
 
 class Qnets():
     def __init__(self, params, env):
-        self.q1 = Qnetwork(params, env)
-        self.q2 = Qnetwork(params, env)
-
+        self.q = []
+        self.q.append(Qnetwork(params, env))
+        self.q.append(Qnetwork(params, env))
+        
     def Predict(self, sess, input):
-        action, allQ = sess.run([self.q1.predict, self.q1.Qout], feed_dict={self.q1.input: input})
+        action, allQ = sess.run([self.q[0].predict, self.q[0].Qout], feed_dict={self.q[0].input: input})
         return action, allQ
 
     def PrintQ(self, curr, params, env, sess):
@@ -116,7 +117,7 @@ class Qnets():
             self.PrintQ(curr, params, env, sess)
 
     def Update(self, sess, input, targetQ):
-        _, loss, sumWeight = sess.run([self.q1.updateModel, self.q1.loss, self.q1.sumWeight], feed_dict={self.q1.input: input, self.q1.nextQ: targetQ})
+        _, loss, sumWeight = sess.run([self.q[0].updateModel, self.q[0].loss, self.q[0].sumWeight], feed_dict={self.q[0].input: input, self.q[0].nextQ: targetQ})
         return loss, sumWeight
 
 ######################################################################################
