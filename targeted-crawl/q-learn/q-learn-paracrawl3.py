@@ -115,6 +115,10 @@ class Qnets():
         for curr in range(env.ns):
             self.PrintQ(curr, params, env, sess)
 
+    def Update(self, sess, input, targetQ):
+        _, loss, sumWeight = sess.run([self.q1.updateModel, self.q1.loss, self.q1.sumWeight], feed_dict={self.q1.input: input, self.q1.nextQ: targetQ})
+        return loss, sumWeight
+
 ######################################################################################
 # helpers
 class MySQL:
@@ -442,9 +446,9 @@ def UpdateQN(params, env, sess, qn, batch):
     
         i += 1
 
-    _, loss, sumWeight = sess.run([qn.q1.updateModel, qn.q1.loss, qn.q1.sumWeight], feed_dict={qn.q1.input: childIds, qn.q1.nextQ: targetQ})
-
+    loss, sumWeight = qn.Update(sess, childIds, targetQ)
     #print("loss", loss)
+    
     return loss, sumWeight
 
 def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
