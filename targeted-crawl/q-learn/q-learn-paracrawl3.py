@@ -18,7 +18,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
-        self.alpha = 1.0
+        self.alpha = 0.7
         self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
@@ -543,13 +543,10 @@ def Train(params, env, sess, qn):
                 #eps = 1. / ((i/50) + 10)
                 params.eps *= .99
                 params.eps = max(0.1, params.eps)
-                #print("eps", params.eps)
                 
-                params.alpha *= 0.99
-                params.alpha = max(0.3, params.alpha)
-                #print("alpha", params.alpha)
+                #params.alpha *= 0.99
+                #params.alpha = max(0.3, params.alpha)
                 
-
     # LAST BATCH
             
     return losses, sumWeights
