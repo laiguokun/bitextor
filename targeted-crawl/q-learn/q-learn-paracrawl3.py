@@ -18,7 +18,7 @@ class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
-        self.alpha = 0.7
+        self.alpha = 1.0 #0.7
         self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
@@ -408,7 +408,7 @@ class Corpus:
 
     def AddStopTransition(self, env, params):
         # stop state
-        for i in range(10):
+        for i in range(5):
             targetQ = np.zeros([1, params.NUM_ACTIONS])
             childIds = env.GetStopChildIdsNP(params)
             transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
@@ -438,7 +438,7 @@ def UpdateQN(params, env, sess, qn, batch):
     return loss, sumWeight
 
 def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
-    # NEURAL
+    assert(curr != 0)
     #print("curr", curr, visited, unvisited)
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
@@ -451,22 +451,23 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     next, r = env.GetNextState(action, childIds)
     #print("   action", action, next)
 
+    visited.add(next)
+    unvisited.remove(next)
+    nextUnvisited = unvisited.copy()
+
     if next == 0:
         done = True
+
+        maxQ1 = 0.0
     else:
         done = False
 
-    visited.add(next)
-    unvisited.remove(next)
-
-    nextUnvisited = unvisited.copy()
-
-    # Obtain the Q' values by feeding the new state through our network
-    # print("  hh2", hh2)
-    nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
-    Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
-    # print("  Q1", Q1)
-    maxQ1 = np.max(Q1)
+        # Obtain the Q' values by feeding the new state through our network
+        # print("  hh2", hh2)
+        nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
+        Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
+        # print("  Q1", Q1)
+        maxQ1 = np.max(Q1)
 
     #targetQ = allQ
     targetQ = np.array(allQ, copy=True)
