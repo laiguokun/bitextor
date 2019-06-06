@@ -90,6 +90,15 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
+class Qnets():
+    def __init__(self, params, env):
+        self.q1 = Qnetwork(params, env)
+        self.q2 = Qnetwork(params, env)
+
+    def Predict(self, sess, input):
+        action, allQ = sess.run([self.q1.predict, self.q1.Qout], feed_dict={self.q1.input: input})
+        return action, allQ
+
     def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
         visited = set()
@@ -97,7 +106,7 @@ class Qnetwork():
         unvisited.add(0)
 
         childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
-        action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
+        action, allQ = self.Predict(sess, childIds)
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
         print(curr, action, allQ, childIds)
 
@@ -105,11 +114,6 @@ class Qnetwork():
         print("State         Q-values                          Next state")
         for curr in range(env.ns):
             self.PrintQ(curr, params, env, sess)
-
-class Qnets():
-    def __init__(self, params, env):
-        self.q1 = Qnetwork(params, env)
-        self.q2 = Qnetwork(params, env)
 
 ######################################################################################
 # helpers
@@ -254,7 +258,7 @@ class Env:
             # print("curr", curr)
             # print("hh", next, hh)
             childIds = self.GetChildIdsNP(curr, visited, unvisited, params)
-            action, allQ = sess.run([qn.q1.predict, qn.q1.Qout], feed_dict={qn.q1.input: childIds})
+            action, allQ = qn.Predict(sess, childIds)
             action = action[0]
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
@@ -449,7 +453,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
 
-    action, allQ = sess.run([qn.q1.predict, qn.q1.Qout], feed_dict={qn.q1.input: childIds})
+    action, allQ = qn.Predict(sess, childIds)
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
@@ -471,7 +475,8 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         # Obtain the Q' values by feeding the new state through our network
         # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
-        nextQ = sess.run(qn.q1.Qout, feed_dict={qn.q1.input: nextChildIds})
+        _, nextQ = qn.Predict(sess, nextChildIds)
+
         # print("  nextQ", nextQ)
         maxNextQ = np.max(nextQ)
 
@@ -537,7 +542,7 @@ def Train(params, env, sess, qn):
             corpus.transitions.clear()
 
         if epoch > 0 and epoch % params.walk == 0:
-            qn.q1.PrintAllQ(params, env, sess)
+            qn.PrintAllQ(params, env, sess)
             print()
             numAligned = env.Walk(startState, params, sess, qn, True)
             print("epoch", epoch, "loss", losses[-1], "eps", params.eps, "alpha", params.alpha)
@@ -581,7 +586,7 @@ def Main():
     with tf.Session() as sess:
         sess.run(init)
 
-        qn.q1.PrintAllQ(params, env, sess)
+        qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
         print()
 
