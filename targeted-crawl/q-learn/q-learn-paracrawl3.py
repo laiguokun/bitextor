@@ -18,8 +18,8 @@ class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
-        self.alpha = 1.0 #0.7
-        self.max_epochs = 50001
+        self.alpha = 0.7
+        self.max_epochs = 100001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -459,24 +459,24 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     if next == 0:
         done = True
 
-        maxQ1 = 0.0
+        maxNextQ = 0.0
     else:
         done = False
 
         # Obtain the Q' values by feeding the new state through our network
         # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
-        Q1 = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
-        # print("  Q1", Q1)
-        maxQ1 = np.max(Q1)
+        nextQ = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
+        # print("  nextQ", nextQ)
+        maxNextQ = np.max(nextQ)
 
     #targetQ = allQ
     targetQ = np.array(allQ, copy=True)
     #print("  targetQ", targetQ)
-    newVal = r + params.gamma * maxQ1
+    newVal = r + params.gamma * maxNextQ
     targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
     #targetQ[0, action] = newVal
-    #print("  targetQ", targetQ, maxQ1)
+    #print("  targetQ", targetQ, maxNextQ)
     #print("  new Q", a, allQ)
 
     transition = env.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
