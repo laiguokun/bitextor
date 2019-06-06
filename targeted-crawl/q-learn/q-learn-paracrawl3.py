@@ -27,13 +27,13 @@ class LearningParams:
         
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 15
+        self.NUM_ACTIONS = 30
 
 ######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
         # These lines establish the feed-forward part of the network used to choose actions
-        EMBED_DIM = 1500
+        EMBED_DIM = 3000
 
         INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
 
@@ -223,7 +223,8 @@ class Env:
 
             i += 1
             if i >= params.NUM_ACTIONS:
-               break
+                print("overloaded", len(unvisited), unvisited)
+                break
 
         return ret
 
