@@ -106,6 +106,11 @@ class Qnetwork():
         for curr in range(env.ns):
             self.PrintQ(curr, params, env, sess)
 
+class Qnets():
+    def __init__(self, params, env):
+        self.q1 = Qnetwork(params, env)
+        self.q2 = Qnetwork(params, env)
+
 ######################################################################################
 # helpers
 class MySQL:
@@ -249,7 +254,7 @@ class Env:
             # print("curr", curr)
             # print("hh", next, hh)
             childIds = self.GetChildIdsNP(curr, visited, unvisited, params)
-            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
+            action, allQ = sess.run([qn.q1.predict, qn.q1.Qout], feed_dict={qn.q1.input: childIds})
             action = action[0]
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
@@ -433,7 +438,7 @@ def UpdateQN(params, env, sess, qn, batch):
     
         i += 1
 
-    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
+    _, loss, sumWeight = sess.run([qn.q1.updateModel, qn.q1.loss, qn.q1.sumWeight], feed_dict={qn.q1.input: childIds, qn.q1.nextQ: targetQ})
 
     #print("loss", loss)
     return loss, sumWeight
@@ -444,7 +449,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
 
-    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
+    action, allQ = sess.run([qn.q1.predict, qn.q1.Qout], feed_dict={qn.q1.input: childIds})
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
@@ -466,7 +471,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         # Obtain the Q' values by feeding the new state through our network
         # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
-        nextQ = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
+        nextQ = sess.run(qn.q1.Qout, feed_dict={qn.q1.input: nextChildIds})
         # print("  nextQ", nextQ)
         maxNextQ = np.max(nextQ)
 
@@ -532,7 +537,7 @@ def Train(params, env, sess, qn):
             corpus.transitions.clear()
 
         if epoch > 0 and epoch % params.walk == 0:
-            qn.PrintAllQ(params, env, sess)
+            qn.q1.PrintAllQ(params, env, sess)
             print()
             numAligned = env.Walk(startState, params, sess, qn, True)
             print("epoch", epoch, "loss", losses[-1], "eps", params.eps, "alpha", params.alpha)
@@ -569,14 +574,14 @@ def Main():
     params = LearningParams()
 
     tf.reset_default_graph()
-    qn = Qnetwork(params, env)
+    qn = Qnets(params, env)
+
     init = tf.global_variables_initializer()
-    print("qn.Qout", qn.Qout)
 
     with tf.Session() as sess:
         sess.run(init)
 
-        qn.PrintAllQ(params, env, sess)
+        qn.q1.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
         print()
 
