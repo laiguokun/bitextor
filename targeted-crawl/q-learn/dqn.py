@@ -1,354 +1,628 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import random
+import pylab as plt
 import tensorflow as tf
-import matplotlib.pyplot as plt
-import scipy.misc
-import os
-import csv
-import itertools
-import tensorflow.contrib.slim as slim
+import random
+from collections import namedtuple
+import mysql.connector
 
-from helper import *
-from gridworld import gameEnv
+######################################################################################
+def StrNone(arg):
+    if arg is None:
+        return "None"
+    else:
+        return str(arg)
+######################################################################################
+class LearningParams:
+    def __init__(self):
+        self.gamma = 1 #0.99
+        self.lrn_rate = 0.1
+        self.alpha = 0.7
+        self.max_epochs = 100001
+        self.eps = 0.7
+        self.maxBatchSize = 64
+        self.minCorpusSize = 200
+        self.trainNumIter = 10
+        
+        self.debug = False
+        self.walk = 1000
+        self.NUM_ACTIONS = 30
 
 ######################################################################################
 class Qnetwork():
-    def __init__(self, h_size, rnn_cell, myScope):
-        # The network recieves a frame from the game, flattened into an array.
-        # It then resizes it and processes it through four convolutional layers.
-        self.scalarInput = tf.placeholder(shape=[None, 21168], dtype=tf.float32)
-        self.imageIn = tf.reshape(self.scalarInput, shape=[-1, 84, 84, 3])
-        self.conv1 = slim.convolution2d( \
-            inputs=self.imageIn, num_outputs=32, \
-            kernel_size=[8, 8], stride=[4, 4], padding='VALID', \
-            biases_initializer=None, scope=myScope + '_conv1')
-        self.conv2 = slim.convolution2d( \
-            inputs=self.conv1, num_outputs=64, \
-            kernel_size=[4, 4], stride=[2, 2], padding='VALID', \
-            biases_initializer=None, scope=myScope + '_conv2')
-        self.conv3 = slim.convolution2d( \
-            inputs=self.conv2, num_outputs=64, \
-            kernel_size=[3, 3], stride=[1, 1], padding='VALID', \
-            biases_initializer=None, scope=myScope + '_conv3')
-        self.conv4 = slim.convolution2d( \
-            inputs=self.conv3, num_outputs=h_size, \
-            kernel_size=[7, 7], stride=[1, 1], padding='VALID', \
-            biases_initializer=None, scope=myScope + '_conv4')
+    def __init__(self, params, env):
+        # These lines establish the feed-forward part of the network used to choose actions
+        EMBED_DIM = 3000
 
-        self.trainLength = tf.placeholder(dtype=tf.int32)
-        # We take the output from the final convolutional layer and send it to a recurrent layer.
-        # The input must be reshaped into [batch x trace x units] for rnn processing,
-        # and then returned to [batch x units] when sent through the upper levles.
-        self.batch_size = tf.placeholder(dtype=tf.int32, shape=[])
-        self.convFlat = tf.reshape(slim.flatten(self.conv4), [self.batch_size, self.trainLength, h_size])
-        self.state_in = rnn_cell.zero_state(self.batch_size, tf.float32)
-        self.rnn, self.rnn_state = tf.nn.dynamic_rnn( \
-            inputs=self.convFlat, cell=rnn_cell, dtype=tf.float32, initial_state=self.state_in, scope=myScope + '_rnn')
-        self.rnn = tf.reshape(self.rnn, shape=[-1, h_size])
-        # The output from the recurrent player is then split into separate Value and Advantage streams
-        self.streamA, self.streamV = tf.split(self.rnn, 2, 1)
-        self.AW = tf.Variable(tf.random_normal([h_size // 2, 4]))
-        self.VW = tf.Variable(tf.random_normal([h_size // 2, 1]))
-        self.Advantage = tf.matmul(self.streamA, self.AW)
-        self.Value = tf.matmul(self.streamV, self.VW)
+        INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
 
-        self.salience = tf.gradients(self.Advantage, self.imageIn)
-        # Then combine them together to get our final Q-values.
-        self.Qout = self.Value + tf.subtract(self.Advantage, tf.reduce_mean(self.Advantage, axis=1, keep_dims=True))
+        HIDDEN_DIM = 128
+
+        # EMBEDDINGS
+        self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
+
+        self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
+
+        self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
+        self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
+
+        # HIDDEN 1
+        self.hidden1 = self.embedding
+
+        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM, EMBED_DIM], 0, 0.01))
+        self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
+
+        #self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
+        #self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
+
+        self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
+        #self.hidden1 = tf.nn.relu(self.hidden1)
+
+        # HIDDEN 2
+        self.hidden2 = self.hidden1
+
+        self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
+
+        self.hidden2 = tf.matmul(self.hidden2, self.Whidden2)
+
+        self.BiasHidden2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
+
+        self.hidden2 = tf.add(self.hidden2, self.BiasHidden2)
+
+        # OUTPUT
+        self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, params.NUM_ACTIONS], 0, 0.01))
+
+        self.Qout = tf.matmul(self.hidden2, self.Wout)
+
         self.predict = tf.argmax(self.Qout, 1)
 
+        self.sumWeight = tf.reduce_sum(self.Wout) \
+                        + tf.reduce_sum(self.BiasHidden2) \
+                        + tf.reduce_sum(self.Whidden2) \
+                        + tf.reduce_sum(self.Whidden1)
+
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.targetQ = tf.placeholder(shape=[None], dtype=tf.float32)
-        self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
-        self.actions_onehot = tf.one_hot(self.actions, 4, dtype=tf.float32)
-
-        self.Q = tf.reduce_sum(tf.multiply(self.Qout, self.actions_onehot), axis=1)
-
-        self.td_error = tf.square(self.targetQ - self.Q)
-
-        # In order to only propogate accurate gradients through the network, we will mask the first
-        # half of the losses for each trace as per Lample & Chatlot 2016
-        self.maskA = tf.zeros([self.batch_size, self.trainLength // 2])
-        self.maskB = tf.ones([self.batch_size, self.trainLength // 2])
-        self.mask = tf.concat([self.maskA, self.maskB], 1)
-        self.mask = tf.reshape(self.mask, [-1])
-        self.loss = tf.reduce_mean(self.td_error * self.mask)
-
-        self.trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
+        self.nextQ = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
+        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
+        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
+        
         self.updateModel = self.trainer.minimize(self.loss)
 
-#####################################################################################
-class experience_buffer():
-    def __init__(self, buffer_size=1000):
-        self.buffer = []
-        self.buffer_size = buffer_size
+class Qnets():
+    def __init__(self, params, env):
+        self.q = []
+        self.q.append(Qnetwork(params, env))
+        self.q.append(Qnetwork(params, env))
+        
+    def Predict(self, sess, netId, input):
+        action, allQ = sess.run([self.q[netId].predict, self.q[netId].Qout], feed_dict={self.q[netId].input: input})
+        return action, allQ
 
-    def add(self, experience):
-        if len(self.buffer) + 1 >= self.buffer_size:
-            self.buffer[0:(1 + len(self.buffer)) - self.buffer_size] = []
-        self.buffer.append(experience)
+    def PredictBoth(self, sess, input):
+        _, allQ0 = self.Predict(sess, 0, input)
+        #_, allQ1 = self.Predict(sess, 1, input)
+        
+        #allQ = allQ0 + allQ1
+        allQ = allQ0
+        
+        #print("allQ", allQ0)
+        action = np.argmax(allQ)
+        #print("action", action)
 
-    def sample(self, batch_size, trace_length):
-        sampled_episodes = random.sample(self.buffer, batch_size)
-        sampledTraces = []
-        for episode in sampled_episodes:
-            point = np.random.randint(0, len(episode) + 1 - trace_length)
-            sampledTraces.append(episode[point:point + trace_length])
-        sampledTraces = np.array(sampledTraces)
-        return np.reshape(sampledTraces, [batch_size * trace_length, 5])
+        return action, allQ
 
-######################################################################################
-def Train(env):
-    # Setting the training parameters
-    batch_size = 4  # How many experience traces to use for each training step.
-    trace_length = 8  # How long each experience trace will be when training
-    update_freq = 5  # How often to perform a training step.
-    y = .99  # Discount factor on the target Q-values
-    startE = 1  # Starting chance of random action
-    endE = 0.1  # Final chance of random action
-    anneling_steps = 10000  # How many steps of training to reduce startE to endE.
-    num_episodes = 10000  # How many episodes of game environment to train network with.
-    pre_train_steps = 10000  # How many steps of random actions before training begins.
-    load_model = False  # Whether to load a saved model.
-    path = "./drqn"  # The path to save our model to.
-    h_size = 512  # The size of the final convolutional layer before splitting it into Advantage and Value streams.
-    max_epLength = 50  # The max allowed length of our episode.
-    time_per_step = 1  # Length of each step used in gif creation
-    summaryLength = 100  # Number of epidoes to periodically save for analysis
-    tau = 0.001
+    def PrintQ(self, curr, params, env, sess):
+        # print("hh", next, hh)
+        visited = set()
+        unvisited = set()
+        unvisited.add(0)
 
-    # TRAIN
-    tf.reset_default_graph()
-    # We define the cells for the primary and target q-networks
-    cell = tf.contrib.rnn.BasicLSTMCell(num_units=h_size, state_is_tuple=True)
-    cellT = tf.contrib.rnn.BasicLSTMCell(num_units=h_size, state_is_tuple=True)
-    mainQN = Qnetwork(h_size, cell, 'main')
-    targetQN = Qnetwork(h_size, cellT, 'target')
+        childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
+        action, allQ = self.PredictBoth(sess, childIds)
+        #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
+        print(curr, action, allQ, childIds)
 
-    init = tf.global_variables_initializer()
+    def PrintAllQ(self, params, env, sess):
+        print("State         Q-values                          Next state")
+        for curr in range(env.ns):
+            self.PrintQ(curr, params, env, sess)
 
-    saver = tf.train.Saver(max_to_keep=5)
-
-    trainables = tf.trainable_variables()
-
-    targetOps = updateTargetGraph(trainables, tau)
-
-    myBuffer = experience_buffer()
-
-    # Set the rate of random action decrease.
-    e = startE
-    stepDrop = (startE - endE) / anneling_steps
-
-    # create lists to contain total rewards and steps per episode
-    jList = []
-    rList = []
-    total_steps = 0
-
-    # Make a path for our model to be saved in.
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-    ##Write the first line of the master log-file for the Control Center
-    with open('./Center/log.csv', 'w') as myfile:
-        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-        wr.writerow(['Episode', 'Length', 'Reward', 'IMG', 'LOG', 'SAL'])
-
-    with tf.Session() as sess:
-        if load_model == True:
-            print ('Loading Model...')
-            ckpt = tf.train.get_checkpoint_state(path)
-            saver.restore(sess, ckpt.model_checkpoint_path)
-        sess.run(init)
-
-        updateTarget(targetOps, sess)  # Set the target network to be equal to the primary network.
-        for i in range(num_episodes):
-            episodeBuffer = []
-            # Reset environment and get first new observation
-            sP = env.reset()
-            s = processState(sP)
-            d = False
-            rAll = 0
-            j = 0
-            state = (np.zeros([1, h_size]), np.zeros([1, h_size]))  # Reset the recurrent layer's hidden state
-            # The Q-Network
-            while j < max_epLength:
-                j += 1
-                # Choose an action by greedily (with e chance of random action) from the Q-network
-                if np.random.rand(1) < e or total_steps < pre_train_steps:
-                    state1 = sess.run(mainQN.rnn_state, \
-                                      feed_dict={mainQN.scalarInput: [s / 255.0], mainQN.trainLength: 1,
-                                                 mainQN.state_in: state, mainQN.batch_size: 1})
-                    a = np.random.randint(0, 4)
-                else:
-                    a, state1 = sess.run([mainQN.predict, mainQN.rnn_state], \
-                                         feed_dict={mainQN.scalarInput: [s / 255.0], mainQN.trainLength: 1,
-                                                    mainQN.state_in: state, mainQN.batch_size: 1})
-                    a = a[0]
-                s1P, r, d = env.step(a)
-                s1 = processState(s1P)
-                total_steps += 1
-                episodeBuffer.append(np.reshape(np.array([s, a, r, s1, d]), [1, 5]))
-                if total_steps > pre_train_steps:
-                    if e > endE:
-                        e -= stepDrop
-
-                    if total_steps % (update_freq) == 0:
-                        updateTarget(targetOps, sess)
-                        # Reset the recurrent layer's hidden state
-                        state_train = (np.zeros([batch_size, h_size]), np.zeros([batch_size, h_size]))
-
-                        trainBatch = myBuffer.sample(batch_size, trace_length)  # Get a random batch of experiences.
-                        # Below we perform the Double-DQN update to the target Q-values
-                        Q1 = sess.run(mainQN.predict, feed_dict={ \
-                            mainQN.scalarInput: np.vstack(trainBatch[:, 3] / 255.0), \
-                            mainQN.trainLength: trace_length, mainQN.state_in: state_train,
-                            mainQN.batch_size: batch_size})
-                        Q2 = sess.run(targetQN.Qout, feed_dict={ \
-                            targetQN.scalarInput: np.vstack(trainBatch[:, 3] / 255.0), \
-                            targetQN.trainLength: trace_length, targetQN.state_in: state_train,
-                            targetQN.batch_size: batch_size})
-                        end_multiplier = -(trainBatch[:, 4] - 1)
-                        doubleQ = Q2[range(batch_size * trace_length), Q1]
-                        targetQ = trainBatch[:, 2] + (y * doubleQ * end_multiplier)
-                        # Update the network with our target values.
-                        sess.run(mainQN.updateModel, \
-                                 feed_dict={mainQN.scalarInput: np.vstack(trainBatch[:, 0] / 255.0),
-                                            mainQN.targetQ: targetQ, \
-                                            mainQN.actions: trainBatch[:, 1], mainQN.trainLength: trace_length, \
-                                            mainQN.state_in: state_train, mainQN.batch_size: batch_size})
-                rAll += r
-                s = s1
-                sP = s1P
-                state = state1
-                if d == True:
-                    break
-
-            # Add the episode to the experience buffer
-            bufferArray = np.array(episodeBuffer)
-            episodeBuffer = list(zip(bufferArray))
-            myBuffer.add(episodeBuffer)
-            jList.append(j)
-            rList.append(rAll)
-
-            # Periodically save the model.
-            if i % 1000 == 0 and i != 0:
-                saver.save(sess, path + '/model-' + str(i) + '.cptk')
-                print ("Saved Model")
-            if len(rList) % summaryLength == 0 and len(rList) != 0:
-                print (total_steps, np.mean(rList[-summaryLength:]), e)
-                saveToCenter(i, rList, jList, np.reshape(np.array(episodeBuffer), [len(episodeBuffer), 5]), \
-                             summaryLength, h_size, sess, mainQN, time_per_step)
-        saver.save(sess, path + '/model-' + str(i) + '.cptk')
+    def Update(self, sess, input, targetQ):
+        _, loss, sumWeight = sess.run([self.q[0].updateModel, self.q[0].loss, self.q[0].sumWeight], feed_dict={self.q[0].input: input, self.q[0].nextQ: targetQ})
+        return loss, sumWeight
 
 ######################################################################################
-def Test(env):
-    e = 0.01  # The chance of chosing a random action
-    num_episodes = 10000  # How many episodes of game environment to train network with.
-    load_model = True  # Whether to load a saved model.
-    path = "./drqn"  # The path to save/load our model to/from.
-    h_size = 512  # The size of the final convolutional layer before splitting it into Advantage and Value streams.
-    h_size = 512  # The size of the final convolutional layer before splitting it into Advantage and Value streams.
-    max_epLength = 50  # The max allowed length of our episode.
-    time_per_step = 1  # Length of each step used in gif creation
-    summaryLength = 100  # Number of epidoes to periodically save for analysis
+# helpers
+class MySQL:
+    def __init__(self):
+        # paracrawl
+        self.mydb = mysql.connector.connect(
+        host="localhost",
+        user="paracrawl_user",
+        passwd="paracrawl_password",
+        database="paracrawl",
+        charset='utf8'
+        )
+        self.mydb.autocommit = False
+        self.mycursor = self.mydb.cursor(buffered=True)
 
-    # TEST
-    tf.reset_default_graph()
-    cell = tf.contrib.rnn.BasicLSTMCell(num_units=h_size, state_is_tuple=True)
-    cellT = tf.contrib.rnn.BasicLSTMCell(num_units=h_size, state_is_tuple=True)
-    mainQN = Qnetwork(h_size, cell, 'main')
-    targetQN = Qnetwork(h_size, cellT, 'target')
+######################################################################################
+class Env:
+    def __init__(self, sqlconn, url):
+        self.Transition = namedtuple("Transition", "curr next done childIds targetQ")
 
-    init = tf.global_variables_initializer()
+        self.numAligned = 0
 
-    saver = tf.train.Saver(max_to_keep=2)
+        # all nodes with docs
+        sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
+        val = (url + "%",)
+        sqlconn.mycursor.execute(sql, val)
+        res = sqlconn.mycursor.fetchall()
+        assert (res is not None)
 
-    # create lists to contain total rewards and steps per episode
-    jList = []
-    rList = []
-    total_steps = 0
+        self.nodes = {} # indexed by URL id
+        self.nodesbyURL = {} # indexed by URL
+        self.nodesById = []
 
-    # Make a path for our model to be saved in.
-    if not os.path.exists(path):
-        os.makedirs(path)
+        # stop node
+        node = Node(sqlconn, 0, 0, 0, "", "STOP")
+        #self.nodes[node.urlId] = node
+        #self.nodesbyURL[node.url] = node
+        self.nodesById.append(node)
 
-    ##Write the first line of the master log-file for the Control Center
-    with open('./Center/log.csv', 'w') as myfile:
-        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-        wr.writerow(['Episode', 'Length', 'Reward', 'IMG', 'LOG', 'SAL'])
+        for rec in res:
+            #print("rec", rec[0], rec[1])
+            id = len(self.nodesById)
+            node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
+            self.nodes[node.urlId] = node
+            self.nodesbyURL[node.url] = node
+            self.nodesById.append(node)
 
-        # wr = csv.writer(open('./Center/log.csv', 'a'), quoting=csv.QUOTE_ALL)
-    with tf.Session() as sess:
-        if load_model == True:
-            print ('Loading Model...')
-            ckpt = tf.train.get_checkpoint_state(path)
-            saver.restore(sess, ckpt.model_checkpoint_path)
+            if node.aligned:
+                self.numAligned += 1
+        #print("nodes", len(self.nodes))
+        print("numAligned", self.numAligned)
+
+        # start node
+        id = len(self.nodesById)
+        rootNode = self.nodesbyURL[url]
+        assert(rootNode is not None)
+        startNode = Node(sqlconn, id, 0, 0, "", "START")
+        startNode.CreateLink("", "", rootNode)
+        #self.nodes[node.urlId] = startNode
+        #self.nodesbyURL[node.url] = startNode
+        self.nodesById.append(startNode)
+        self.startNodeId = startNode.id
+        #print("startNode", startNode.Debug())
+
+        self.ns = len(self.nodesById) # number of states
+
+        self.nodesWithDoc = self.nodes.copy()
+        print("nodesWithDoc", len(self.nodesWithDoc))
+
+        # links between nodes, possibly to nodes without doc
+        #for node in self.nodesWithDoc.values():
+        for node in self.nodesById:
+            node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL, self.nodesById)
+            print(node.Debug())
+        
+        print("all nodes", len(self.nodes))
+
+        # lang id
+        self.langIds = {}
+
+        # print out
+        #for node in self.nodes.values():
+        #    print("node", node.Debug())
+
+        #node = Node(sqlconn, url, True)
+        #print("node", node.docId, node.urlId)       
+
+
+    def GetNextState(self, action, childIds):
+        nextNodeId = childIds[0, action]
+        nextNode = self.nodesById[nextNodeId]
+        if nextNodeId == 0:
+            rewardNode = 0
+        elif nextNode.aligned:
+            rewardNode = 8.5
         else:
-            sess.run(init)
+            rewardNode = -1        
 
-        for i in range(num_episodes):
-            episodeBuffer = []
-            # Reset environment and get first new observation
-            sP = env.reset()
-            s = processState(sP)
-            d = False
-            rAll = 0
-            j = 0
-            state = (np.zeros([1, h_size]), np.zeros([1, h_size]))
-            # The Q-Network
-            while j < max_epLength:  # If the agent takes longer than 200 moves to reach either of the blocks, end the trial.
-                j += 1
-                # Choose an action by greedily (with e chance of random action) from the Q-network
-                if np.random.rand(1) < e:
-                    state1 = sess.run(mainQN.rnn_state, \
-                                      feed_dict={mainQN.scalarInput: [s / 255.0], mainQN.trainLength: 1,
-                                                 mainQN.state_in: state, mainQN.batch_size: 1})
-                    a = np.random.randint(0, 4)
-                else:
-                    a, state1 = sess.run([mainQN.predict, mainQN.rnn_state], \
-                                         feed_dict={mainQN.scalarInput: [s / 255.0], mainQN.trainLength: 1, \
-                                                    mainQN.state_in: state, mainQN.batch_size: 1})
-                    a = a[0]
-                s1P, r, d = env.step(a)
-                s1 = processState(s1P)
-                total_steps += 1
-                episodeBuffer.append(
-                    np.reshape(np.array([s, a, r, s1, d]), [1, 5]))  # Save the experience to our episode buffer.
-                rAll += r
-                s = s1
-                sP = s1P
-                state = state1
-                if d == True:
-                    break
+        return nextNodeId, rewardNode
 
-            bufferArray = np.array(episodeBuffer)
-            jList.append(j)
-            rList.append(rAll)
+    def GetChildIdsNP(self, curr, visited, unvisited, params):
+        currNode = self.nodesById[curr]
+        #print("   currNode", curr, currNode.Debug())
+        childIds = currNode.GetChildIds(visited, params)
+        #print("   childIds", childIds)
 
-            # Periodically save the model.
-            if len(rList) % summaryLength == 0 and len(rList) != 0:
-                print (total_steps, np.mean(rList[-summaryLength:]), e)
-                saveToCenter(i, rList, jList, np.reshape(np.array(episodeBuffer), [len(episodeBuffer), 5]), \
-                             summaryLength, h_size, sess, mainQN, time_per_step)
-    print ("Percent of succesful episodes: " + str(sum(rList) / num_episodes) + "%")
+        for childId in childIds:
+            unvisited.add(childId)
 
+        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+
+        i = 0
+        for childId in unvisited:
+            ret[0, i] = childId
+
+            i += 1
+            if i >= params.NUM_ACTIONS:
+                print("overloaded", len(unvisited), unvisited)
+                break
+
+        return ret
+
+    def GetStopChildIdsNP(self, params):
+        childIds = np.zeros([1, params.NUM_ACTIONS])
+        return childIds
+
+    def Walk(self, start, params, sess, qn, printQ):
+        numAligned = 0
+
+        visited = set()
+        unvisited = set()
+        unvisited.add(0)
+
+        curr = start
+        i = 0
+        totReward = 0
+        mainStr = str(curr) + "->"
+        debugStr = ""
+
+        while True:
+            # print("curr", curr)
+            # print("hh", next, hh)
+            childIds = self.GetChildIdsNP(curr, visited, unvisited, params)
+            action, allQ = qn.PredictBoth(sess, childIds)
+            next, reward = self.GetNextState(action, childIds)
+            totReward += reward
+            visited.add(next)
+            unvisited.remove(next)
+
+            nextNode = self.nodesById[next]
+            aligned = nextNode.aligned
+            alignedStr = ""
+            if aligned:
+                alignedStr = "*"
+                numAligned += 1
+
+            if printQ:
+                debugStr += "   " + str(curr) + "->" + str(next) + " " \
+                         + str(action) + " " + str(allQ) + " " + str(childIds) + "\n"
+
+            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+            mainStr += str(next) + alignedStr + "->"
+            curr = next
+
+            if next == 0: break
+
+            i += 1
+
+        mainStr += " " + str(totReward)
+
+        if printQ:
+            print(debugStr, end="")
+        print(mainStr)
+
+        return numAligned
+
+
+    def WalkAll(self, params, sess, qn):
+        for start in range(self.ns):
+            self.Walk(start, params, sess, qn, False)
+
+    def GetNumberAligned(self, path):
+        ret = 0
+        for transition in path:
+            next = transition.next
+            nextNode = self.nodesById[next]
+            if nextNode.aligned:
+                ret += 1
+        return ret
+
+######################################################################################
+
+class Node:
+    def __init__(self, sqlconn, id, urlId, docId, lang, url):
+        self.id = id
+        self.urlId = urlId
+        self.docId = docId
+        self.lang = lang
+        self.url = url
+        self.links = []
+        self.aligned = False
+
+        if self.docId is not None:
+            sql = "select * from document_align where document1 = %s or document2 = %s"
+            val = (self.docId,self.docId)
+            #print("sql", sql)
+            sqlconn.mycursor.execute(sql, val)
+            res = sqlconn.mycursor.fetchall()
+            #print("aligned",  self.url, self.docId, res)
+
+            if len(res) > 0:
+                self.aligned = True
+
+        #print(self.Debug())
+
+    def Debug(self):
+        strLinks = ""
+        for link in self.links:
+            #strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
+            strLinks += str(link.childNode.id) + " "
+
+        return " ".join([str(self.id), str(self.urlId), 
+                        StrNone(self.docId), StrNone(self.lang), 
+                        str(self.aligned), self.url,
+                        "links=", str(len(self.links)), ":", strLinks ] )
+
+    def CreateLinks(self, sqlconn, nodes, nodesbyURL, nodesById):
+        #sql = "select id, text, url_id from link where document_id = %s"
+        sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
+        val = (self.docId,)
+        #print("sql", sql)
+        sqlconn.mycursor.execute(sql, val)
+        res = sqlconn.mycursor.fetchall()
+        assert (res is not None)
+
+        for rec in res:
+            text = rec[1]
+            textLang = rec[2]
+            urlId = rec[3]
+            url = rec[4]
+            #print("urlid", self.docId, text, urlId)
+
+            if urlId in nodes:
+                childNode = nodes[urlId]
+                #print("child", self.docId, childNode.Debug())
+            else:
+                continue
+                #id = len(nodes)
+                #childNode = Node(sqlconn, id, urlId, None, None, url)
+                #nodes[childNode.urlId] = childNode
+                #nodesbyURL[childNode.url] = childNode
+                #nodesById.append(childNode)
+
+            self.CreateLink(text, textLang, childNode)
+
+    def CreateLink(self, text, textLang, childNode):
+            Link = namedtuple("Link", "text textLang parentNode childNode")
+            link = Link(text, textLang, self, childNode)
+            self.links.append(link)
+
+    def GetChildIds(self, visited, params):
+        childIds = []
+        for link in self.links:
+            childNode = link.childNode
+            childNodeId = childNode.id
+            #print("   ", childNode.Debug())
+            if childNodeId != self.id and childNodeId not in visited:
+                childIds.append(childNodeId)
+        #print("   childIds", childIds)
+
+        return childIds
+
+######################################################################################
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.transitions = []
+
+    def AddPath(self, path):
+        for transition in path:
+            self.transitions.append(transition)
+
+
+    def GetBatch(self, maxBatchSize):        
+        batch = self.transitions[0:maxBatchSize]
+        self.transitions = self.transitions[maxBatchSize:]
+
+        return batch
+
+    def GetBatchWithoutDelete(self, maxBatchSize):
+        batch = []
+
+        size = len(self.transitions)
+        for i in range(maxBatchSize):
+            idx = np.random.randint(0, size)
+            transition = self.transitions[idx]
+            batch.append(transition)
+
+        return batch
+
+    def AddStopTransition(self, env, params):
+        # stop state
+        for i in range(5):
+            targetQ = np.zeros([1, params.NUM_ACTIONS])
+            childIds = env.GetStopChildIdsNP(params)
+            transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
+            self.transitions.append(transition)
+
+######################################################################################
+
+def UpdateQN(params, env, sess, qn, batch):
+    batchSize = len(batch)
+    #print("batchSize", batchSize)
+    childIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+    targetQ = np.empty([batchSize, params.NUM_ACTIONS])
+
+    i = 0
+    for transition in batch:
+        curr = transition.curr
+        next = transition.next
+
+        childIds[i, :] = transition.childIds
+        targetQ[i, :] = transition.targetQ
+    
+        i += 1
+
+    loss, sumWeight = qn.Update(sess, childIds, targetQ)
+    #print("loss", loss)
+    
+    return loss, sumWeight
+
+def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
+    assert(curr != 0)
+    #print("curr", curr, visited, unvisited)
+    childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
+    #print("   childIds", childIds, unvisited)
+
+    action, allQ = qn.PredictBoth(sess, childIds)
+    if np.random.rand(1) < params.eps:
+        action = np.random.randint(0, params.NUM_ACTIONS)
+    
+    next, r = env.GetNextState(action, childIds)
+    #print("   action", action, next)
+
+    visited.add(next)
+    unvisited.remove(next)
+    nextUnvisited = unvisited.copy()
+
+    if next == 0:
+        done = True
+
+        maxNextQ = 0.0
+    else:
+        done = False
+
+        # Obtain the Q' values by feeding the new state through our network
+        # print("  hh2", hh2)
+        nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
+        _, nextQ = qn.Predict(sess, 0, nextChildIds)
+
+        # print("  nextQ", nextQ)
+        maxNextQ = np.max(nextQ)
+
+    #targetQ = allQ
+    targetQ = np.array(allQ, copy=True)
+    #print("  targetQ", targetQ)
+    newVal = r + params.gamma * maxNextQ
+    targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
+    #targetQ[0, action] = newVal
+    #print("  targetQ", targetQ, maxNextQ)
+    #print("  new Q", a, allQ)
+
+    transition = env.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
+
+    return transition
+
+def Trajectory(epoch, curr, params, env, sess, qn):
+    path = []
+    visited = set()
+    unvisited = set()
+    unvisited.add(0)
+
+    while (True):
+        transition = Neural(epoch, curr, params, env, sess, qn, visited, unvisited)
+        path.append(transition)
+        curr = transition.next
+        #print("visited", visited)
+
+        if transition.done: break
+    #print("path", path)
+    
+    return path
+
+def Train(params, env, sess, qn):
+    losses = []
+    sumWeights = []
+    corpus = Corpus(params)
+
+    for epoch in range(params.max_epochs):
+        #print("epoch", epoch)
+        #startState = np.random.randint(0, env.ns)  # random start state
+        #startState = 30
+        startState = env.startNodeId
+        #print("startState", startState)
+        
+        path = Trajectory(epoch, startState, params, env, sess, qn)
+        corpus.AddPath(path)
+
+        #while len(corpus.transitions) >= params.minCorpusSize:
+        #    #print("corpusSize", corpusSize)
+        #    batch = corpus.GetBatch(params.maxBatchSize)
+        #    loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
+        #    losses.append(loss)
+        #    sumWeights.append(sumWeight)
+        if len(corpus.transitions) >= params.minCorpusSize:
+            corpus.AddStopTransition(env, params)
+
+            for i in range(params.trainNumIter):
+                batch = corpus.GetBatchWithoutDelete(params.maxBatchSize)
+                loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
+                losses.append(loss)
+                sumWeights.append(sumWeight)
+            corpus.transitions.clear()
+
+        if epoch > 0 and epoch % params.walk == 0:
+            qn.PrintAllQ(params, env, sess)
+            print()
+            numAligned = env.Walk(startState, params, sess, qn, True)
+            print("epoch", epoch, "loss", losses[-1], "eps", params.eps, "alpha", params.alpha)
+            print()
+
+            #numAligned = env.GetNumberAligned(path)
+            #print("path", numAligned, env.numAligned)
+            if numAligned >= env.numAligned - 5:
+                #print("got them all!")
+                #eps = 1. / ((i/50) + 10)
+                params.eps *= .99
+                params.eps = max(0.1, params.eps)
+                
+                #params.alpha *= 0.99
+                #params.alpha = max(0.3, params.alpha)
+                
+    # LAST BATCH
+            
+    return losses, sumWeights
 
 ######################################################################################
 
 def Main():
     print("Starting")
+    np.random.seed()
+    np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
-    env = gameEnv(partial=False, size=9)
-    env = gameEnv(partial=True, size=9)
+    # =============================================================
+    sqlconn = MySQL()
+    #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
+    # =============================================================
+    env = Env(sqlconn, "www.vade-retro.fr/")
 
-    Train(env)
-    Test(env)
+    params = LearningParams()
+
+    tf.reset_default_graph()
+    qn = Qnets(params, env)
+
+    init = tf.global_variables_initializer()
+
+    with tf.Session() as sess:
+        sess.run(init)
+
+        qn.PrintAllQ(params, env, sess)
+        #env.WalkAll(params, sess, qn)
+        print()
+
+        losses, sumWeights = Train(params, env, sess, qn)
+        print("Trained")
+        
+        #qn.PrintAllQ(params, env, sess)
+        #env.WalkAll(params, sess, qn)
+
+        startState = env.startNodeId
+        env.Walk(startState, params, sess, qn, True)
+
+        plt.plot(losses)
+        plt.show()
+
+        plt.plot(sumWeights)
+        plt.show()
 
     print("Finished")
 
 
 if __name__ == "__main__":
     Main()
-

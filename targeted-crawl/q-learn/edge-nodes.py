@@ -90,16 +90,6 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-class Qnets():
-    def __init__(self, params, env):
-        self.q = []
-        self.q.append(Qnetwork(params, env))
-        self.q.append(Qnetwork(params, env))
-        
-    def Predict(self, sess, input):
-        action, allQ = sess.run([self.q[0].predict, self.q[0].Qout], feed_dict={self.q[0].input: input})
-        return action, allQ
-
     def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
         visited = set()
@@ -107,7 +97,7 @@ class Qnets():
         unvisited.add(0)
 
         childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
-        action, allQ = self.Predict(sess, childIds)
+        action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
         print(curr, action, allQ, childIds)
 
@@ -115,10 +105,6 @@ class Qnets():
         print("State         Q-values                          Next state")
         for curr in range(env.ns):
             self.PrintQ(curr, params, env, sess)
-
-    def Update(self, sess, input, targetQ):
-        _, loss, sumWeight = sess.run([self.q[0].updateModel, self.q[0].loss, self.q[0].sumWeight], feed_dict={self.q[0].input: input, self.q[0].nextQ: targetQ})
-        return loss, sumWeight
 
 ######################################################################################
 # helpers
@@ -263,7 +249,7 @@ class Env:
             # print("curr", curr)
             # print("hh", next, hh)
             childIds = self.GetChildIdsNP(curr, visited, unvisited, params)
-            action, allQ = qn.Predict(sess, childIds)
+            action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
             action = action[0]
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
@@ -447,9 +433,9 @@ def UpdateQN(params, env, sess, qn, batch):
     
         i += 1
 
-    loss, sumWeight = qn.Update(sess, childIds, targetQ)
+    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
+
     #print("loss", loss)
-    
     return loss, sumWeight
 
 def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
@@ -458,7 +444,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
 
-    action, allQ = qn.Predict(sess, childIds)
+    action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
@@ -480,8 +466,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         # Obtain the Q' values by feeding the new state through our network
         # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
-        _, nextQ = qn.Predict(sess, nextChildIds)
-
+        nextQ = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
         # print("  nextQ", nextQ)
         maxNextQ = np.max(nextQ)
 
@@ -584,9 +569,9 @@ def Main():
     params = LearningParams()
 
     tf.reset_default_graph()
-    qn = Qnets(params, env)
-
+    qn = Qnetwork(params, env)
     init = tf.global_variables_initializer()
+    print("qn.Qout", qn.Qout)
 
     with tf.Session() as sess:
         sess.run(init)
