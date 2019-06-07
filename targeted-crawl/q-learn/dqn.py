@@ -96,6 +96,10 @@ class Qnets():
         self.q.append(Qnetwork(params, env))
         self.q.append(Qnetwork(params, env))
         
+        self.corpora = []
+        self.corpora.append(Corpus(params))
+        self.corpora.append(Corpus(params))
+
     def Predict(self, sess, netId, input):
         action, allQ = sess.run([self.q[netId].predict, self.q[netId].Qout], feed_dict={self.q[netId].input: input})
         return action, allQ
@@ -132,6 +136,43 @@ class Qnets():
     def Update(self, sess, input, targetQ):
         _, loss, sumWeight = sess.run([self.q[0].updateModel, self.q[0].loss, self.q[0].sumWeight], feed_dict={self.q[0].input: input, self.q[0].nextQ: targetQ})
         return loss, sumWeight
+
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.transitions = []
+
+    def AddPath(self, path):
+        for transition in path:
+            self.transitions.append(transition)
+
+
+    def GetBatch(self, maxBatchSize):        
+        batch = self.transitions[0:maxBatchSize]
+        self.transitions = self.transitions[maxBatchSize:]
+
+        return batch
+
+    def GetBatchWithoutDelete(self, maxBatchSize):
+        batch = []
+
+        size = len(self.transitions)
+        for i in range(maxBatchSize):
+            idx = np.random.randint(0, size)
+            transition = self.transitions[idx]
+            batch.append(transition)
+
+        return batch
+
+    def AddStopTransition(self, env, params):
+        # stop state
+        for i in range(5):
+            targetQ = np.zeros([1, params.NUM_ACTIONS])
+            childIds = env.GetStopChildIdsNP(params)
+            transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
+            self.transitions.append(transition)
+
+######################################################################################
 
 ######################################################################################
 # helpers
@@ -406,42 +447,6 @@ class Node:
         return childIds
 
 ######################################################################################
-######################################################################################
-class Corpus:
-    def __init__(self, params):
-        self.transitions = []
-
-    def AddPath(self, path):
-        for transition in path:
-            self.transitions.append(transition)
-
-
-    def GetBatch(self, maxBatchSize):        
-        batch = self.transitions[0:maxBatchSize]
-        self.transitions = self.transitions[maxBatchSize:]
-
-        return batch
-
-    def GetBatchWithoutDelete(self, maxBatchSize):
-        batch = []
-
-        size = len(self.transitions)
-        for i in range(maxBatchSize):
-            idx = np.random.randint(0, size)
-            transition = self.transitions[idx]
-            batch.append(transition)
-
-        return batch
-
-    def AddStopTransition(self, env, params):
-        # stop state
-        for i in range(5):
-            targetQ = np.zeros([1, params.NUM_ACTIONS])
-            childIds = env.GetStopChildIdsNP(params)
-            transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
-            self.transitions.append(transition)
-
-######################################################################################
 
 def UpdateQN(params, env, sess, qn, batch):
     batchSize = len(batch)
@@ -529,7 +534,6 @@ def Trajectory(epoch, curr, params, env, sess, qn):
 def Train(params, env, sess, qn):
     losses = []
     sumWeights = []
-    corpus = Corpus(params)
 
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
@@ -539,7 +543,7 @@ def Train(params, env, sess, qn):
         #print("startState", startState)
         
         path = Trajectory(epoch, startState, params, env, sess, qn)
-        corpus.AddPath(path)
+        qn.corpora[0].AddPath(path)
 
         #while len(corpus.transitions) >= params.minCorpusSize:
         #    #print("corpusSize", corpusSize)
@@ -547,16 +551,16 @@ def Train(params, env, sess, qn):
         #    loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
         #    losses.append(loss)
         #    sumWeights.append(sumWeight)
-        if len(corpus.transitions) >= params.minCorpusSize:
-            corpus.AddStopTransition(env, params)
+        if len(qn.corpora[0].transitions) >= params.minCorpusSize:
+            qn.corpora[0].AddStopTransition(env, params)
 
             for i in range(params.trainNumIter):
-                batch = corpus.GetBatchWithoutDelete(params.maxBatchSize)
+                batch = qn.corpora[0].GetBatchWithoutDelete(params.maxBatchSize)
                 loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
                 losses.append(loss)
                 sumWeights.append(sumWeight)
-            corpus.transitions.clear()
-
+            qn.corpora[0].transitions.clear()
+        
         if epoch > 0 and epoch % params.walk == 0:
             qn.PrintAllQ(params, env, sess)
             print()
