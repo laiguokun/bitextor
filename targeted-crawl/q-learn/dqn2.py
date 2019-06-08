@@ -32,7 +32,6 @@ class LearningParams:
 ######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
-
         self.corpus = Corpus(params, self)
 
         # These lines establish the feed-forward part of the network used to choose actions
@@ -134,6 +133,8 @@ class Corpus:
     def __init__(self, params, qn):
         self.qn = qn
         self.transitions = []
+        self.losses = []
+        self.sumWeights = []
 
     def AddTransition(self, transition):
         self.transitions.append(transition)
@@ -168,15 +169,15 @@ class Corpus:
             transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
             self.transitions.append(transition)
 
-    def Train(self, sess, env, params, losses, sumWeights):
+    def Train(self, sess, env, params):
         if len(self.transitions) >= params.minCorpusSize:
             self.AddStopTransition(env, params)
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
                 loss, sumWeight = UpdateQN(params, env, sess, self.qn, batch)
-                losses.append(loss)
-                sumWeights.append(sumWeight)
+                self.losses.append(loss)
+                self.sumWeights.append(sumWeight)
             self.transitions.clear()
 
 ######################################################################################
@@ -551,9 +552,6 @@ def Trajectory(epoch, curr, params, env, sess, qns):
     #print("path", path)
     
 def Train(params, env, sess, qns):
-    losses = []
-    sumWeights = []
-
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         #startState = np.random.randint(0, env.ns)  # random start state
@@ -562,14 +560,14 @@ def Train(params, env, sess, qns):
         #print("startState", startState)
         
         Trajectory(epoch, startState, params, env, sess, qns)
-        qns.q[0].corpus.Train(sess, env, params, losses, sumWeights)
-        qns.q[1].corpus.Train(sess, env, params, losses, sumWeights)
+        qns.q[0].corpus.Train(sess, env, params)
+        qns.q[1].corpus.Train(sess, env, params)
 
         if epoch > 0 and epoch % params.walk == 0:
             qns.q[0].PrintAllQ(params, env, sess)
             print()
             numAligned = env.Walk(startState, params, sess, qns.q[0], True)
-            print("epoch", epoch, "loss", losses[-1], "eps", params.eps, "alpha", params.alpha)
+            print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
             print()
 
             #numAligned = env.GetNumberAligned(path)
@@ -585,8 +583,6 @@ def Train(params, env, sess, qns):
                 
     # LAST BATCH
             
-    return losses, sumWeights
-
 ######################################################################################
 
 def Main():
@@ -613,7 +609,7 @@ def Main():
         #env.WalkAll(params, sess, qn)
         print()
 
-        losses, sumWeights = Train(params, env, sess, qns)
+        Train(params, env, sess, qns)
         print("Trained")
         
         #qn.PrintAllQ(params, env, sess)
@@ -622,10 +618,12 @@ def Main():
         startState = env.startNodeId
         env.Walk(startState, params, sess, qns.q[0], True)
 
-        plt.plot(losses)
+        plt.plot(qns.q[0].corpus.losses)
+        plt.plot(qns.q[1].corpus.losses)
         plt.show()
 
-        plt.plot(sumWeights)
+        plt.plot(qns.q[0].corpus.sumWeights)
+        plt.plot(qns.q[1].corpus.sumWeights)
         plt.show()
 
     print("Finished")
