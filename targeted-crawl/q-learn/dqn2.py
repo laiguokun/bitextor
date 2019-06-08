@@ -33,7 +33,7 @@ class LearningParams:
 class Qnetwork():
     def __init__(self, params, env):
 
-        self.corpus = Corpus(params)
+        self.corpus = Corpus(params, self)
 
         # These lines establish the feed-forward part of the network used to choose actions
         EMBED_DIM = 3000
@@ -129,21 +129,10 @@ class Qnets():
         self.q.append(Qnetwork(params, env))
         self.q.append(Qnetwork(params, env))
 
-    def PrintAllQ(self, netId, params, env, sess):
-        self.q[netId].PrintAllQ(params, env, sess)
-
-    def Predict(self, netId, sess, input):
-        action, allQ = self.q[netId].Predict(sess, input)
-
-        return action, allQ
-
-    def Update(self, netId, sess, input, targetQ):
-        loss, sumWeight = self.q[netId].Update(sess, input, targetQ)
-        return loss, sumWeight
-
 ######################################################################################
 class Corpus:
-    def __init__(self, params):
+    def __init__(self, params, qn):
+        self.qn = qn
         self.transitions = []
 
     def AddTransition(self, transition):
@@ -179,13 +168,13 @@ class Corpus:
             transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
             self.transitions.append(transition)
 
-    def Train(self, sess, env, params, qn, losses, sumWeights):
+    def Train(self, sess, env, params, losses, sumWeights):
         if len(self.transitions) >= params.minCorpusSize:
             self.AddStopTransition(env, params)
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
+                loss, sumWeight = UpdateQN(params, env, sess, self.qn, batch)
                 losses.append(loss)
                 sumWeights.append(sumWeight)
             self.transitions.clear()
@@ -334,7 +323,7 @@ class Env:
             # print("hh", next, hh)
             childIds = self.GetChildIdsNP(curr, visited, unvisited, params)
 
-            action, allQ = qn.Predict(0, sess, childIds)
+            action, allQ = qn.Predict(sess, childIds)
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
             visited.add(next)
@@ -482,7 +471,7 @@ def UpdateQN(params, env, sess, qn, batch):
         i += 1
 
     #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
-    loss, sumWeight = qn.Update(0, sess, childIds, targetQ)
+    loss, sumWeight = qn.Update(sess, childIds, targetQ)
 
     #print("loss", loss)
     return loss, sumWeight
@@ -493,7 +482,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
 
-    action, allQ = qn.Predict(0, sess, childIds)
+    action, allQ = qn.Predict(sess, childIds)
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
     
@@ -515,7 +504,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
 
-        nextAction, nextQ = qn.Predict(0, sess, nextChildIds)        
+        nextAction, nextQ = qn.Predict(sess, nextChildIds)        
         #print("  nextAction", nextAction, nextQ)
 
         maxNextQ = np.max(nextQ)
@@ -537,16 +526,18 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
 
     return transition
 
-def Trajectory(epoch, curr, params, env, sess, qn):
+def Trajectory(epoch, curr, params, env, sess, qns):
     visited = set()
     unvisited = set()
     unvisited.add(0)
+
+    qn = qns.q[0]
 
     while (True):
         transition = Neural(epoch, curr, params, env, sess, qn, visited, unvisited)
         
         #path.append(transition)
-        qn.q[0].corpus.AddTransition(transition)
+        qn.corpus.AddTransition(transition)
 
         curr = transition.next
         #print("visited", visited)
@@ -554,7 +545,7 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         if transition.done: break
     #print("path", path)
     
-def Train(params, env, sess, qn):
+def Train(params, env, sess, qns):
     losses = []
     sumWeights = []
 
@@ -565,13 +556,13 @@ def Train(params, env, sess, qn):
         startState = env.startNodeId
         #print("startState", startState)
         
-        Trajectory(epoch, startState, params, env, sess, qn)
-        qn.q[0].corpus.Train(sess, env, params, qn, losses, sumWeights)
+        Trajectory(epoch, startState, params, env, sess, qns)
+        qns.q[0].corpus.Train(sess, env, params, losses, sumWeights)
 
         if epoch > 0 and epoch % params.walk == 0:
-            qn.PrintAllQ(0, params, env, sess)
+            qns.q[0].PrintAllQ(params, env, sess)
             print()
-            numAligned = env.Walk(startState, params, sess, qn, True)
+            numAligned = env.Walk(startState, params, sess, qns.q[0], True)
             print("epoch", epoch, "loss", losses[-1], "eps", params.eps, "alpha", params.alpha)
             print()
 
@@ -606,24 +597,24 @@ def Main():
     params = LearningParams()
 
     tf.reset_default_graph()
-    qn = Qnets(params, env)
+    qns = Qnets(params, env)
     init = tf.global_variables_initializer()
     
     with tf.Session() as sess:
         sess.run(init)
 
-        qn.PrintAllQ(0, params, env, sess)
+        qns.q[0].PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
         print()
 
-        losses, sumWeights = Train(params, env, sess, qn)
+        losses, sumWeights = Train(params, env, sess, qns)
         print("Trained")
         
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
         startState = env.startNodeId
-        env.Walk(startState, params, sess, qn, True)
+        env.Walk(startState, params, sess, qns.q[0], True)
 
         plt.plot(losses)
         plt.show()
