@@ -111,6 +111,8 @@ class Qnetwork():
 
     def Predict(self, sess, input):
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: input})
+        action = action[0]
+
         return action, allQ
 
     def Update(self, sess, input, targetQ):
@@ -267,10 +269,7 @@ class Env:
             # print("hh", next, hh)
             childIds = self.GetChildIdsNP(curr, visited, unvisited, params)
 
-            #action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
             action, allQ = qn.Predict(sess, childIds)
-
-            action = action[0]
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
             visited.add(next)
@@ -476,10 +475,7 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
 
-    #action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childIds})
     action, allQ = qn.Predict(sess, childIds)
-    
-    action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
     
