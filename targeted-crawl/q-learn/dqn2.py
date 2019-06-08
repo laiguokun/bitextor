@@ -476,13 +476,13 @@ def UpdateQN(params, env, sess, qn, batch):
     #print("loss", loss)
     return loss, sumWeight
 
-def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
+def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
     assert(curr != 0)
     #print("curr", curr, visited, unvisited)
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
 
-    action, allQ = qn.Predict(sess, childIds)
+    action, allQ = qnA.Predict(sess, childIds)
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
     
@@ -495,7 +495,6 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
 
     if next == 0:
         done = True
-
         maxNextQ = 0.0
     else:
         done = False
@@ -504,13 +503,13 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
 
-        nextAction, nextQ = qn.Predict(sess, nextChildIds)        
+        nextAction, nextQ = qnA.Predict(sess, nextChildIds)        
         #print("  nextAction", nextAction, nextQ)
 
-        maxNextQ = np.max(nextQ)
-
-        m = nextQ[0, nextAction]
-        assert(maxNextQ == m)
+        #maxNextQ = np.max(nextQ)
+        _, nextQB = qnB.Predict(sess, nextChildIds)        
+        maxNextQ = nextQB[0, nextAction]
+        #assert(maxNextQ == m)
 
 
     #targetQ = allQ
@@ -523,7 +522,6 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     #print("  new Q", a, allQ)
 
     transition = env.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
-
     return transition
 
 def Trajectory(epoch, curr, params, env, sess, qns):
@@ -531,13 +529,20 @@ def Trajectory(epoch, curr, params, env, sess, qns):
     unvisited = set()
     unvisited.add(0)
 
-    qn = qns.q[0]
+    tmp = np.random.rand(1)
+    #print(tmp)
+    if tmp > 0.5:
+        qnA = qns.q[0]
+        qnB = qns.q[1]
+    else:
+        qnA = qns.q[1]
+        qnB = qns.q[0]
 
     while (True):
-        transition = Neural(epoch, curr, params, env, sess, qn, visited, unvisited)
+        transition = Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited)
         
         #path.append(transition)
-        qn.corpus.AddTransition(transition)
+        qnA.corpus.AddTransition(transition)
 
         curr = transition.next
         #print("visited", visited)
@@ -558,6 +563,7 @@ def Train(params, env, sess, qns):
         
         Trajectory(epoch, startState, params, env, sess, qns)
         qns.q[0].corpus.Train(sess, env, params, losses, sumWeights)
+        qns.q[1].corpus.Train(sess, env, params, losses, sumWeights)
 
         if epoch > 0 and epoch % params.walk == 0:
             qns.q[0].PrintAllQ(params, env, sess)
