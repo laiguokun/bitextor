@@ -18,8 +18,8 @@ class LearningParams:
     def __init__(self):
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
-        self.alpha = 0.7
-        self.max_epochs = 50001
+        self.alpha = 1.0 # 0.7
+        self.max_epochs = 100001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -429,11 +429,22 @@ class Corpus:
 
     def AddStopTransition(self, env, params):
         # stop state
-        for i in range(5):
+        for i in range(10):
             targetQ = np.zeros([1, params.NUM_ACTIONS])
             childIds = env.GetStopChildIdsNP(params)
             transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
             self.transitions.append(transition)
+
+    def Train(self, sess, env, params, qn, losses, sumWeights):
+        if len(self.transitions) >= params.minCorpusSize:
+            self.AddStopTransition(env, params)
+
+            for i in range(params.trainNumIter):
+                batch = self.GetBatchWithoutDelete(params.maxBatchSize)
+                loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
+                losses.append(loss)
+                sumWeights.append(sumWeight)
+            self.transitions.clear()
 
 ######################################################################################
 
@@ -541,21 +552,7 @@ def Train(params, env, sess, qn):
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
-        #while len(corpus.transitions) >= params.minCorpusSize:
-        #    #print("corpusSize", corpusSize)
-        #    batch = corpus.GetBatch(params.maxBatchSize)
-        #    loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
-        #    losses.append(loss)
-        #    sumWeights.append(sumWeight)
-        if len(corpus.transitions) >= params.minCorpusSize:
-            corpus.AddStopTransition(env, params)
-
-            for i in range(params.trainNumIter):
-                batch = corpus.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
-                losses.append(loss)
-                sumWeights.append(sumWeight)
-            corpus.transitions.clear()
+        corpus.Train(sess, env, params, qn, losses, sumWeights)
 
         if epoch > 0 and epoch % params.walk == 0:
             qn.PrintAllQ(params, env, sess)
