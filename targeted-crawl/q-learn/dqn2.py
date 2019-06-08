@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 1001
+        self.max_epochs = 100001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -512,11 +512,14 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
         # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
 
-        #nextQ = sess.run(qn.Qout, feed_dict={qn.input: nextChildIds})
-        _, nextQ = qn.Predict(0, sess, nextChildIds)
-        
-        # print("  nextQ", nextQ)
+        nextAction, nextQ = qn.Predict(0, sess, nextChildIds)        
+        #print("  nextAction", nextAction, nextQ)
+
         maxNextQ = np.max(nextQ)
+
+        m = nextQ[0, nextAction]
+        assert(maxNextQ == m)
+
 
     #targetQ = allQ
     targetQ = np.array(allQ, copy=True)
