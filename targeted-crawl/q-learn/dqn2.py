@@ -146,9 +146,12 @@ class Corpus:
     def __init__(self, params):
         self.transitions = []
 
+    def AddTransition(self, transition):
+        self.transitions.append(transition)
+
     def AddPath(self, path):
         for transition in path:
-            self.transitions.append(transition)
+            self.AddTransition(transition)
 
 
     def GetBatch(self, maxBatchSize):        
@@ -535,22 +538,22 @@ def Neural(epoch, curr, params, env, sess, qn, visited, unvisited):
     return transition
 
 def Trajectory(epoch, curr, params, env, sess, qn):
-    path = []
     visited = set()
     unvisited = set()
     unvisited.add(0)
 
     while (True):
         transition = Neural(epoch, curr, params, env, sess, qn, visited, unvisited)
-        path.append(transition)
+        
+        #path.append(transition)
+        qn.q[0].corpus.AddTransition(transition)
+
         curr = transition.next
         #print("visited", visited)
 
         if transition.done: break
     #print("path", path)
     
-    return path
-
 def Train(params, env, sess, qn):
     losses = []
     sumWeights = []
@@ -562,8 +565,7 @@ def Train(params, env, sess, qn):
         startState = env.startNodeId
         #print("startState", startState)
         
-        path = Trajectory(epoch, startState, params, env, sess, qn)
-        qn.q[0].corpus.AddPath(path)
+        Trajectory(epoch, startState, params, env, sess, qn)
         qn.q[0].corpus.Train(sess, env, params, qn, losses, sumWeights)
 
         if epoch > 0 and epoch % params.walk == 0:
