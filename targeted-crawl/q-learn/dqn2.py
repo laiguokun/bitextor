@@ -530,16 +530,16 @@ def Trajectory(epoch, curr, params, env, sess, qns):
     unvisited = set()
     unvisited.add(0)
 
-    tmp = np.random.rand(1)
-    #print(tmp)
-    if tmp > 0.5:
-        qnA = qns.q[0]
-        qnB = qns.q[1]
-    else:
-        qnA = qns.q[1]
-        qnB = qns.q[0]
-
     while (True):
+        tmp = np.random.rand(1)
+        #print(tmp)
+        if tmp > 0.5:
+            qnA = qns.q[0]
+            qnB = qns.q[1]
+        else:
+            qnA = qns.q[1]
+            qnB = qns.q[0]
+
         transition = Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited)
         
         #path.append(transition)
