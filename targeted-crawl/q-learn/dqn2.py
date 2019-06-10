@@ -508,12 +508,12 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
         nextAction, nextQ = qnA.Predict(sess, nextChildIds)        
         #print("  nextAction", nextAction, nextQ)
 
-        #maxNextQ = np.max(nextQ)
-        _, nextQB = qnB.Predict(sess, nextChildIds)        
-        maxNextQ = nextQB[0, nextAction]
-        #assert(maxNextQ == m)
+        assert(qnB == None)
+        maxNextQ = np.max(nextQ)
 
-
+        #_, nextQB = qnB.Predict(sess, nextChildIds)        
+        #maxNextQ = nextQB[0, nextAction]
+        
     #targetQ = allQ
     targetQ = np.array(allQ, copy=True)
     #print("  targetQ", targetQ)
@@ -532,18 +532,18 @@ def Trajectory(epoch, curr, params, env, sess, qns):
     unvisited.add(0)
 
     while (True):
-        tmp = np.random.rand(1)
-        #print(tmp)
-        if tmp > 0.5:
-            qnA = qns.q[0]
-            qnB = qns.q[1]
-        else:
-            qnA = qns.q[1]
-            qnB = qns.q[0]
+        #tmp = np.random.rand(1)
+        #if tmp > 0.5:
+        #    qnA = qns.q[0]
+        #    qnB = qns.q[1]
+        #else:
+        #    qnA = qns.q[1]
+        #    qnB = qns.q[0]
+        qnA = qns.q[0]
+        qnB = None
 
         transition = Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited)
         
-        #path.append(transition)
         qnA.corpus.AddTransition(transition)
 
         curr = transition.next
