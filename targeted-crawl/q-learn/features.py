@@ -281,10 +281,10 @@ class Env:
     def GetChildIdsNP(self, curr, visited, unvisited, params):
         currNode = self.nodesById[curr]
         #print("   currNode", curr, currNode.Debug())
-        childIds = currNode.GetChildIds(visited, params)
-        #print("   childIds", childIds)
+        unvisitedLinks = currNode.GetLinks(visited, params)
 
-        for childId in childIds:
+        for link in unvisitedLinks:
+            childId = link.childNode.id
             unvisited.add(childId)
 
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
@@ -439,17 +439,6 @@ class Node:
     def CreateLink(self, text, textLang, childNode):
             link = self.Link(text, textLang, self, childNode)
             self.links.append(link)
-
-    def GetChildIds(self, visited, params):
-        childIds = []
-
-        unvisitedLinks = self.GetLinks(visited, params)
-        for link in unvisitedLinks:
-            childNode = link.childNode
-            childNodeId = childNode.id
-            childIds.append(childNodeId)
-
-        return childIds
 
     def GetLinks(self, visited, params):
         ret = []
