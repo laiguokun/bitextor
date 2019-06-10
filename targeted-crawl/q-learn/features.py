@@ -442,15 +442,26 @@ class Node:
 
     def GetChildIds(self, visited, params):
         childIds = []
+
+        unvisitedLinks = self.GetLinks(visited, params)
+        for link in unvisitedLinks:
+            childNode = link.childNode
+            childNodeId = childNode.id
+            childIds.append(childNodeId)
+
+        return childIds
+
+    def GetLinks(self, visited, params):
+        ret = []
         for link in self.links:
             childNode = link.childNode
             childNodeId = childNode.id
             #print("   ", childNode.Debug())
             if childNodeId != self.id and childNodeId not in visited:
-                childIds.append(childNodeId)
+                ret.append(link)
         #print("   childIds", childIds)
 
-        return childIds
+        return ret
 
 ######################################################################################
 
