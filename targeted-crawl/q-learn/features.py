@@ -482,7 +482,7 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
     childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
     #print("   childIds", childIds, unvisited)
 
-    action, allQ = qnA.Predict(sess, childIds)
+    action, Qs = qnA.Predict(sess, childIds)
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
     
@@ -501,26 +501,25 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
         done = False
 
         # Obtain the Q' values by feeding the new state through our network
-        # print("  hh2", hh2)
         nextChildIds = env.GetChildIdsNP(next, visited, nextUnvisited, params)
 
-        nextAction, nextQ = qnA.Predict(sess, nextChildIds)        
+        nextAction, nextQs = qnA.Predict(sess, nextChildIds)        
         #print("  nextAction", nextAction, nextQ)
 
-        assert(qnB == None)
-        maxNextQ = np.max(nextQ)
+        #assert(qnB == None)
+        #maxNextQ = np.max(nextQs)
 
-        #_, nextQB = qnB.Predict(sess, nextChildIds)        
-        #maxNextQ = nextQB[0, nextAction]
+        _, nextQB = qnB.Predict(sess, nextChildIds)        
+        maxNextQ = nextQB[0, nextAction]
         
-    #targetQ = allQ
-    targetQ = np.array(allQ, copy=True)
+    targetQ = Qs
+    #targetQ = np.array(Qs, copy=True)
     #print("  targetQ", targetQ)
     newVal = r + params.gamma * maxNextQ
     targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
     #targetQ[0, action] = newVal
     #print("  targetQ", targetQ, maxNextQ)
-    #print("  new Q", a, allQ)
+    #print("  new Q", a,Qs)
 
     transition = env.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
     return transition
@@ -531,15 +530,15 @@ def Trajectory(epoch, curr, params, env, sess, qns):
     unvisited.add(0)
 
     while (True):
-        #tmp = np.random.rand(1)
-        #if tmp > 0.5:
-        #    qnA = qns.q[0]
-        #    qnB = qns.q[1]
-        #else:
-        #    qnA = qns.q[1]
-        #    qnB = qns.q[0]
-        qnA = qns.q[0]
-        qnB = None
+        tmp = np.random.rand(1)
+        if tmp > 0.5:
+            qnA = qns.q[0]
+            qnB = qns.q[1]
+        else:
+            qnA = qns.q[1]
+            qnB = qns.q[0]
+        #qnA = qns.q[0]
+        #qnB = None
 
         transition = Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited)
         
