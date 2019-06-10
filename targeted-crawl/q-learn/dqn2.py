@@ -498,6 +498,7 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
         done = True
         maxNextQ = 0.0
     else:
+        assert(next != 0)
         done = False
 
         # Obtain the Q' values by feeding the new state through our network
