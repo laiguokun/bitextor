@@ -577,8 +577,8 @@ def Train(params, env, sess, qns):
                 params.eps *= .99
                 params.eps = max(0.1, params.eps)
                 
-                params.alpha *= 0.99
-                params.alpha = max(0.3, params.alpha)
+                #params.alpha *= 0.99
+                #params.alpha = max(0.3, params.alpha)
                 
     # LAST BATCH
             
