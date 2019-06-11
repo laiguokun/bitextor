@@ -281,9 +281,9 @@ class Env:
     def GetChildIdsNP(self, curr, visited, unvisited, params):
         currNode = self.nodesById[curr]
         #print("   currNode", curr, currNode.Debug())
-        unvisitedLinks = currNode.GetLinks(visited, params)
+        newLinks = currNode.GetLinks(visited, params)
 
-        for link in unvisitedLinks:
+        for link in newLinks:
             childId = link.childNode.id
             if childId not in unvisited:
                 unvisited[childId] = []
