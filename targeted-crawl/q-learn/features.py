@@ -96,8 +96,7 @@ class Qnetwork():
     def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
         visited = set()
-        unvisited = {}
-        unvisited[0] = []
+        unvisited = Candidates()
 
         childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
 
@@ -284,15 +283,12 @@ class Env:
         newLinks = currNode.GetLinks(visited, params)
 
         for link in newLinks:
-            childId = link.childNode.id
-            if childId not in unvisited:
-                unvisited[childId] = []
-            unvisited[childId].append(link)
+            unvisited.AddLink(link)
 
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
-        for childId, links in unvisited.items():
+        for childId, links in unvisited.dict.items():
             ret[0, i] = childId
 
             i += 1
@@ -310,8 +306,7 @@ class Env:
         numAligned = 0
 
         visited = set()
-        unvisited = {}
-        unvisited[0] = []
+        unvisited = Candidates()
 
         curr = start
         i = 0
@@ -328,7 +323,7 @@ class Env:
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
             visited.add(next)
-            del unvisited[next]
+            unvisited.RemoveLink(next)
 
             nextNode = self.nodesById[next]
             aligned = nextNode.aligned
@@ -378,15 +373,21 @@ class Candidates:
         self.dict = {} # nodeid -> link
         #self.vec = []
 
+        self.dict[0] = []
+
     def AddLink(self, link):
         childId = link.childNode.id
         if childId not in self.dict:
-            unvisited[childId] = []
+            self.dict[childId] = []
         self.dict[childId].append(link)
 
     def RemoveLink(self, childId):
         del self.dict[childId]
 
+    def copy(self):
+        ret = Candidates()
+        ret.dict = self.dict.copy()
+        return ret
 
 ######################################################################################
 
@@ -509,7 +510,7 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
     #print("   action", action, next)
 
     visited.add(next)
-    del unvisited[next]
+    unvisited.RemoveLink(next)
     nextUnvisited = unvisited.copy()
 
     if next == 0:
@@ -545,8 +546,7 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
 
 def Trajectory(epoch, curr, params, env, sess, qns):
     visited = set()
-    unvisited = {}
-    unvisited[0] = []
+    unvisited = Candidates()
 
     while (True):
         tmp = np.random.rand(1)
