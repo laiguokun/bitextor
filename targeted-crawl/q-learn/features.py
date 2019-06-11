@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 1001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -96,8 +96,8 @@ class Qnetwork():
     def PrintQ(self, curr, params, env, sess):
         # print("hh", next, hh)
         visited = set()
-        unvisited = set()
-        unvisited.add(0)
+        unvisited = {}
+        unvisited[0] = []
 
         childIds = env.GetChildIdsNP(curr, visited, unvisited, params)
 
@@ -285,7 +285,9 @@ class Env:
 
         for link in unvisitedLinks:
             childId = link.childNode.id
-            unvisited.add(childId)
+            if childId not in unvisited:
+                unvisited[childId] = []
+            unvisited[childId].append(link)
 
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
@@ -308,8 +310,8 @@ class Env:
         numAligned = 0
 
         visited = set()
-        unvisited = set()
-        unvisited.add(0)
+        unvisited = {}
+        unvisited[0] = []
 
         curr = start
         i = 0
@@ -326,7 +328,7 @@ class Env:
             next, reward = self.GetNextState(action, childIds)
             totReward += reward
             visited.add(next)
-            unvisited.remove(next)
+            del unvisited[next]
 
             nextNode = self.nodesById[next]
             aligned = nextNode.aligned
@@ -490,7 +492,7 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
     #print("   action", action, next)
 
     visited.add(next)
-    unvisited.remove(next)
+    del unvisited[next]
     nextUnvisited = unvisited.copy()
 
     if next == 0:
@@ -526,8 +528,8 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
 
 def Trajectory(epoch, curr, params, env, sess, qns):
     visited = set()
-    unvisited = set()
-    unvisited.add(0)
+    unvisited = {}
+    unvisited[0] = []
 
     while (True):
         tmp = np.random.rand(1)
@@ -548,7 +550,7 @@ def Trajectory(epoch, curr, params, env, sess, qns):
         #print("visited", visited)
 
         if transition.done: break
-    #print("path", path)
+    #print("unvisited", unvisited)
     
 def Train(params, env, sess, qns):
     for epoch in range(params.max_epochs):
