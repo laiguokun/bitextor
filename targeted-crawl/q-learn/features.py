@@ -292,7 +292,7 @@ class Env:
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
-        for childId in unvisited:
+        for childId, links in unvisited.items():
             ret[0, i] = childId
 
             i += 1
