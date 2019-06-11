@@ -373,6 +373,23 @@ class Env:
 
 ######################################################################################
 
+class Candidates:
+    def __init__(self):
+        self.dict = {} # nodeid -> link
+        #self.vec = []
+
+    def AddLink(self, link):
+        childId = link.childNode.id
+        if childId not in self.dict:
+            unvisited[childId] = []
+        self.dict[childId].append(link)
+
+    def RemoveLink(self, childId):
+        del self.dict[childId]
+
+
+######################################################################################
+
 class Node:
     def __init__(self, sqlconn, id, urlId, docId, lang, url):
         self.Link = namedtuple("Link", "text textLang parentNode childNode")
