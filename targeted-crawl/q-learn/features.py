@@ -288,8 +288,9 @@ class Env:
         #print("node", node.docId, node.urlId)       
 
 
-    def GetNextState(self, action, childIds):
-        nextNodeId = childIds[0, action]
+    def GetNextState(self, action, unvisited):
+        #nextNodeId = childIds[0, action]
+        nextNodeId = unvisited.GetNextState(action)
         nextNode = self.nodesById[nextNodeId]
         if nextNodeId == 0:
             rewardNode = 0
@@ -323,7 +324,7 @@ class Env:
             featuresNP = unvisited.GetFeaturesNP(params)
 
             action, allQ = qn.Predict(sess, featuresNP)
-            next, reward = self.GetNextState(action, featuresNP)
+            next, reward = self.GetNextState(action, unvisited)
             totReward += reward
             visited.add(next)
             unvisited.RemoveLink(next)
@@ -381,7 +382,7 @@ class Env:
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, params.NUM_ACTIONS)
         
-        next, r = self.GetNextState(action, featuresNP)
+        next, r = self.GetNextState(action, unvisited)
         #print("   action", action, next)
 
         visited.add(next)
@@ -508,6 +509,12 @@ class Candidates:
 
         return ret
 
+    def GetNextState(self, action):
+        if action >= len(self.vec):
+            ret = 0
+        else:
+            ret = self.vec[action]
+        return ret
 
 ######################################################################################
 
