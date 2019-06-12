@@ -16,7 +16,7 @@ def StrNone(arg):
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 1 #0.99
+        self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 10001
