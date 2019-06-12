@@ -369,6 +369,81 @@ class Env:
                 ret += 1
         return ret
 
+
+    def Neural(self, epoch, curr, params, sess, qnA, qnB, visited, unvisited):
+        assert(curr != 0)
+        #print("curr", curr, visited, unvisited)
+        unvisited.AddLinks(self, curr, visited, params)
+        childIds = unvisited.GetFeaturesNP(params)
+        #print("   childIds", childIds, unvisited)
+
+        action, Qs = qnA.Predict(sess, childIds)
+        if np.random.rand(1) < params.eps:
+            action = np.random.randint(0, params.NUM_ACTIONS)
+        
+        next, r = self.GetNextState(action, childIds)
+        #print("   action", action, next)
+
+        visited.add(next)
+        unvisited.RemoveLink(next)
+        nextUnvisited = unvisited.copy()
+
+        if next == 0:
+            done = True
+            maxNextQ = 0.0
+        else:
+            assert(next != 0)
+            done = False
+
+            # Obtain the Q' values by feeding the new state through our network
+            nextUnvisited.AddLinks(self, next, visited, params)
+            nextChildIds = nextUnvisited.GetFeaturesNP(params)
+            nextAction, nextQs = qnA.Predict(sess, nextChildIds)        
+            #print("  nextAction", nextAction, nextQ)
+
+            #assert(qnB == None)
+            #maxNextQ = np.max(nextQs)
+
+            _, nextQB = qnB.Predict(sess, nextChildIds)        
+            maxNextQ = nextQB[0, nextAction]
+            
+        targetQ = Qs
+        #targetQ = np.array(Qs, copy=True)
+        #print("  targetQ", targetQ)
+        newVal = r + params.gamma * maxNextQ
+        targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
+        #targetQ[0, action] = newVal
+        #print("  targetQ", targetQ, maxNextQ)
+        #print("  new Q", a,Qs)
+
+        transition = self.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
+        return transition
+
+    def Trajectory(self, epoch, curr, params, sess, qns):
+        visited = set()
+        unvisited = Candidates()
+
+        while (True):
+            tmp = np.random.rand(1)
+            if tmp > 0.5:
+                qnA = qns.q[0]
+                qnB = qns.q[1]
+            else:
+                qnA = qns.q[1]
+                qnB = qns.q[0]
+            #qnA = qns.q[0]
+            #qnB = None
+
+            transition = self.Neural(epoch, curr, params, sess, qnA, qnB, visited, unvisited)
+            
+            qnA.corpus.AddTransition(transition)
+
+            curr = transition.next
+            #print("visited", visited)
+
+            if transition.done: break
+        #print("unvisited", unvisited)
+        
 ######################################################################################
 
 class Candidates:
@@ -514,80 +589,6 @@ class Node:
 
 ######################################################################################
 
-def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
-    assert(curr != 0)
-    #print("curr", curr, visited, unvisited)
-    unvisited.AddLinks(env, curr, visited, params)
-    childIds = unvisited.GetFeaturesNP(params)
-    #print("   childIds", childIds, unvisited)
-
-    action, Qs = qnA.Predict(sess, childIds)
-    if np.random.rand(1) < params.eps:
-        action = np.random.randint(0, params.NUM_ACTIONS)
-    
-    next, r = env.GetNextState(action, childIds)
-    #print("   action", action, next)
-
-    visited.add(next)
-    unvisited.RemoveLink(next)
-    nextUnvisited = unvisited.copy()
-
-    if next == 0:
-        done = True
-        maxNextQ = 0.0
-    else:
-        assert(next != 0)
-        done = False
-
-        # Obtain the Q' values by feeding the new state through our network
-        nextUnvisited.AddLinks(env, next, visited, params)
-        nextChildIds = nextUnvisited.GetFeaturesNP(params)
-        nextAction, nextQs = qnA.Predict(sess, nextChildIds)        
-        #print("  nextAction", nextAction, nextQ)
-
-        #assert(qnB == None)
-        #maxNextQ = np.max(nextQs)
-
-        _, nextQB = qnB.Predict(sess, nextChildIds)        
-        maxNextQ = nextQB[0, nextAction]
-        
-    targetQ = Qs
-    #targetQ = np.array(Qs, copy=True)
-    #print("  targetQ", targetQ)
-    newVal = r + params.gamma * maxNextQ
-    targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
-    #targetQ[0, action] = newVal
-    #print("  targetQ", targetQ, maxNextQ)
-    #print("  new Q", a,Qs)
-
-    transition = env.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
-    return transition
-
-def Trajectory(epoch, curr, params, env, sess, qns):
-    visited = set()
-    unvisited = Candidates()
-
-    while (True):
-        tmp = np.random.rand(1)
-        if tmp > 0.5:
-            qnA = qns.q[0]
-            qnB = qns.q[1]
-        else:
-            qnA = qns.q[1]
-            qnB = qns.q[0]
-        #qnA = qns.q[0]
-        #qnB = None
-
-        transition = Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited)
-        
-        qnA.corpus.AddTransition(transition)
-
-        curr = transition.next
-        #print("visited", visited)
-
-        if transition.done: break
-    #print("unvisited", unvisited)
-    
 def Train(params, env, sess, qns):
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
@@ -596,7 +597,7 @@ def Train(params, env, sess, qns):
         startState = env.startNodeId
         #print("startState", startState)
         
-        Trajectory(epoch, startState, params, env, sess, qns)
+        env.Trajectory(epoch, startState, params, sess, qns)
         qns.q[0].corpus.Train(sess, env, params)
         qns.q[1].corpus.Train(sess, env, params)
 
