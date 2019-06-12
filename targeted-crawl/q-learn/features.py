@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 10001
+        self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -334,6 +334,8 @@ class Env:
             unvisited.AddLinks(self, curr, visited, params)
             featuresNP = unvisited.GetFeaturesNP(self, params)
 
+            if printQ: unvisitedStr = str(unvisited.vec)
+
             action, allQ = qn.Predict(sess, featuresNP)
             next, reward = self.GetNextState(action, unvisited)
             totReward += reward
@@ -349,7 +351,10 @@ class Env:
 
             if printQ:
                 debugStr += "   " + str(curr) + "->" + str(next) + " " \
-                         + str(action) + " " + str(allQ) + " " + str(featuresNP) + "\n"
+                         + str(action) + " " + str(allQ) + " " \
+                         + unvisitedStr + " " \
+                         + str(featuresNP) + " " \
+                         + "\n"
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
             mainStr += str(next) + alignedStr + "->"
@@ -634,8 +639,11 @@ def Train(params, env, sess, qns):
         qns.q[1].corpus.Train(sess, env, params)
 
         if epoch > 0 and epoch % params.walk == 0:
-            qns.q[0].PrintAllQ(params, env, sess)
+            #qns.q[0].PrintAllQ(params, env, sess)
+            qns.q[0].PrintQ(0, params, env, sess)
+            qns.q[0].PrintQ(31, params, env, sess)
             print()
+
             numAligned = env.Walk(startState, params, sess, qns.q[0], True)
             print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
             print()
