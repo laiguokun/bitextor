@@ -449,22 +449,27 @@ class Env:
 class Candidates:
     def __init__(self):
         self.dict = {} # nodeid -> link
-        #self.vec = []
+        self.vec = []
 
         self.dict[0] = []
+        self.vec.append(0)
 
     def AddLink(self, link):
         childId = link.childNode.id
         if childId not in self.dict:
             self.dict[childId] = []
+            self.vec.append(childId)
         self.dict[childId].append(link)
 
     def RemoveLink(self, childId):
         del self.dict[childId]
+        self.vec.remove(childId)                
 
     def copy(self):
         ret = Candidates()
         ret.dict = self.dict.copy()
+        ret.vec = self.vec.copy()
+
         return ret
 
     def AddLinks(self, env, curr, visited, params):
