@@ -384,6 +384,9 @@ class Env:
 
     def Neural(self, epoch, curr, params, sess, qnA, qnB, visited, unvisited):
         assert(curr != 0)
+        DEBUG = False
+        #if curr == 31: DEBUG = True
+
         #print("curr", curr, visited, unvisited)
         unvisited.AddLinks(self, curr, visited, params)
         featuresNP = unvisited.GetFeaturesNP(self, params)
@@ -391,10 +394,11 @@ class Env:
 
         action, Qs = qnA.Predict(sess, featuresNP)
         if np.random.rand(1) < params.eps:
+            if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
         
         next, r = self.GetNextState(action, unvisited)
-        #print("   action", action, next)
+        if DEBUG: print("   action", action, next, Qs)
 
         visited.add(next)
         unvisited.RemoveLink(next)
@@ -425,8 +429,7 @@ class Env:
         newVal = r + params.gamma * maxNextQ
         targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
         #targetQ[0, action] = newVal
-        #print("  targetQ", targetQ, maxNextQ)
-        #print("  new Q", a,Qs)
+        if DEBUG: print("   targetQ", targetQ)
 
         transition = self.Transition(curr, next, done, np.array(featuresNP, copy=True), np.array(targetQ, copy=True))
         return transition
