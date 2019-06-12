@@ -99,13 +99,13 @@ class Qnetwork():
         unvisited = Candidates()
 
         unvisited.AddLinks(env, curr, visited, params)
-        childIds = unvisited.GetFeaturesNP(params)
+        featuresNP = unvisited.GetFeaturesNP(params)
 
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
-        action, allQ = self.Predict(sess, childIds)
+        action, allQ = self.Predict(sess, featuresNP)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
-        print(curr, action, allQ, childIds)
+        print(curr, action, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
         print("State         Q-values                          Next state")
@@ -320,10 +320,10 @@ class Env:
             # print("curr", curr)
             # print("hh", next, hh)
             unvisited.AddLinks(self, curr, visited, params)
-            childIds = unvisited.GetFeaturesNP(params)
+            featuresNP = unvisited.GetFeaturesNP(params)
 
-            action, allQ = qn.Predict(sess, childIds)
-            next, reward = self.GetNextState(action, childIds)
+            action, allQ = qn.Predict(sess, featuresNP)
+            next, reward = self.GetNextState(action, featuresNP)
             totReward += reward
             visited.add(next)
             unvisited.RemoveLink(next)
@@ -337,7 +337,7 @@ class Env:
 
             if printQ:
                 debugStr += "   " + str(curr) + "->" + str(next) + " " \
-                         + str(action) + " " + str(allQ) + " " + str(childIds) + "\n"
+                         + str(action) + " " + str(allQ) + " " + str(featuresNP) + "\n"
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
             mainStr += str(next) + alignedStr + "->"
@@ -374,14 +374,14 @@ class Env:
         assert(curr != 0)
         #print("curr", curr, visited, unvisited)
         unvisited.AddLinks(self, curr, visited, params)
-        childIds = unvisited.GetFeaturesNP(params)
+        featuresNP = unvisited.GetFeaturesNP(params)
         #print("   childIds", childIds, unvisited)
 
-        action, Qs = qnA.Predict(sess, childIds)
+        action, Qs = qnA.Predict(sess, featuresNP)
         if np.random.rand(1) < params.eps:
             action = np.random.randint(0, params.NUM_ACTIONS)
         
-        next, r = self.GetNextState(action, childIds)
+        next, r = self.GetNextState(action, featuresNP)
         #print("   action", action, next)
 
         visited.add(next)
@@ -397,14 +397,14 @@ class Env:
 
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, next, visited, params)
-            nextChildIds = nextUnvisited.GetFeaturesNP(params)
-            nextAction, nextQs = qnA.Predict(sess, nextChildIds)        
+            nextFeaturesNP = nextUnvisited.GetFeaturesNP(params)
+            nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP)        
             #print("  nextAction", nextAction, nextQ)
 
             #assert(qnB == None)
             #maxNextQ = np.max(nextQs)
 
-            _, nextQB = qnB.Predict(sess, nextChildIds)        
+            _, nextQB = qnB.Predict(sess, nextFeaturesNP)        
             maxNextQ = nextQB[0, nextAction]
             
         targetQ = Qs
@@ -416,7 +416,7 @@ class Env:
         #print("  targetQ", targetQ, maxNextQ)
         #print("  new Q", a,Qs)
 
-        transition = self.Transition(curr, next, done, np.array(childIds, copy=True), np.array(targetQ, copy=True))
+        transition = self.Transition(curr, next, done, np.array(featuresNP, copy=True), np.array(targetQ, copy=True))
         return transition
 
     def Trajectory(self, epoch, curr, params, sess, qns):
