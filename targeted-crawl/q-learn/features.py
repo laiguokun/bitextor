@@ -166,7 +166,7 @@ class Corpus:
         # stop state
         for i in range(10):
             targetQ = np.zeros([1, params.NUM_ACTIONS])
-            childIds = env.GetStopChildIdsNP(params)
+            childIds = env.GetStopFeaturesNP(params)
             transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
             self.transitions.append(transition)
 
@@ -184,7 +184,7 @@ class Corpus:
     def UpdateQN(self, params, env, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
-        childIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+        features = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
         i = 0
@@ -192,13 +192,13 @@ class Corpus:
             curr = transition.curr
             next = transition.next
 
-            childIds[i, :] = transition.childIds
+            features[i, :] = transition.features
             targetQ[i, :] = transition.targetQ
         
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
-        loss, sumWeight = self.qn.Update(sess, childIds, targetQ)
+        loss, sumWeight = self.qn.Update(sess, features, targetQ)
 
         #print("loss", loss)
         return loss, sumWeight
@@ -221,7 +221,7 @@ class MySQL:
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
-        self.Transition = namedtuple("Transition", "curr next done childIds targetQ")
+        self.Transition = namedtuple("Transition", "curr next done features targetQ")
 
         self.numAligned = 0
 
@@ -301,9 +301,9 @@ class Env:
 
         return nextNodeId, rewardNode
 
-    def GetStopChildIdsNP(self, params):
-        childIds = np.zeros([1, params.NUM_ACTIONS])
-        return childIds
+    def GetStopFeaturesNP(self, params):
+        features = np.zeros([1, params.NUM_ACTIONS])
+        return features
 
     def Walk(self, start, params, sess, qn, printQ):
         numAligned = 0
@@ -405,8 +405,8 @@ class Env:
             #assert(qnB == None)
             #maxNextQ = np.max(nextQs)
 
-            _, nextQB = qnB.Predict(sess, nextFeaturesNP)        
-            maxNextQ = nextQB[0, nextAction]
+            _, nextQsB = qnB.Predict(sess, nextFeaturesNP)        
+            maxNextQ = nextQsB[0, nextAction]
             
         targetQ = Qs
         #targetQ = np.array(Qs, copy=True)
