@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 1 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 1001
+        self.max_epochs = 10001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -33,7 +33,6 @@ class LearningParams:
 class Qnetwork():
     def __init__(self, params, env):
         self.corpus = Corpus(params, self)
-        self.langIds = {}
 
         # These lines establish the feed-forward part of the network used to choose actions
         EMBED_DIM = 3000
@@ -99,7 +98,7 @@ class Qnetwork():
         unvisited = Candidates()
 
         unvisited.AddLinks(env, curr, visited, params)
-        featuresNP = unvisited.GetFeaturesNP(params)
+        featuresNP = unvisited.GetFeaturesNP(env, params)
 
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         action, allQ = self.Predict(sess, featuresNP)
@@ -222,6 +221,7 @@ class MySQL:
 class Env:
     def __init__(self, sqlconn, url):
         self.Transition = namedtuple("Transition", "curr next done features targetQ")
+        self.langIds = {}
 
         self.numAligned = 0
 
@@ -287,6 +287,17 @@ class Env:
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)       
 
+    def __del__(self):
+        print("langIds", self.langIds)
+
+    def GetLangId(self, lang):
+        if lang in self.langIds:
+            ret = self.langIds[lang]
+        else:
+            ret = len(self.langIds) + 1
+            self.langIds[lang] = ret
+        
+        return ret
 
     def GetNextState(self, action, unvisited):
         #nextNodeId = childIds[0, action]
@@ -321,7 +332,7 @@ class Env:
             # print("curr", curr)
             # print("hh", next, hh)
             unvisited.AddLinks(self, curr, visited, params)
-            featuresNP = unvisited.GetFeaturesNP(params)
+            featuresNP = unvisited.GetFeaturesNP(self, params)
 
             action, allQ = qn.Predict(sess, featuresNP)
             next, reward = self.GetNextState(action, unvisited)
@@ -375,7 +386,7 @@ class Env:
         assert(curr != 0)
         #print("curr", curr, visited, unvisited)
         unvisited.AddLinks(self, curr, visited, params)
-        featuresNP = unvisited.GetFeaturesNP(params)
+        featuresNP = unvisited.GetFeaturesNP(self, params)
         #print("   childIds", childIds, unvisited)
 
         action, Qs = qnA.Predict(sess, featuresNP)
@@ -398,7 +409,7 @@ class Env:
 
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, next, visited, params)
-            nextFeaturesNP = nextUnvisited.GetFeaturesNP(params)
+            nextFeaturesNP = nextUnvisited.GetFeaturesNP(self, params)
             nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP)        
             #print("  nextAction", nextAction, nextQ)
 
@@ -495,12 +506,18 @@ class Candidates:
         return ret
 
 
-    def GetFeaturesNP(self, params):
+    def GetFeaturesNP(self, env, params):
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
         for childId in self.vec:
-            ret[0, i] = childId
+            #ret[0, i] = childId
+            links = self.dict[childId]
+
+            if len(links) > 0:
+                link = links[0]
+                langId = env.GetLangId(link.textLang)
+                ret[0, i] = langId
 
             i += 1
             if i >= params.NUM_ACTIONS:
