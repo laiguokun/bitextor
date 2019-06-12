@@ -176,10 +176,32 @@ class Corpus:
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = UpdateQN(params, env, sess, self.qn, batch)
+                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
                 self.losses.append(loss)
                 self.sumWeights.append(sumWeight)
             self.transitions.clear()
+
+    def UpdateQN(self, params, env, sess, batch):
+        batchSize = len(batch)
+        #print("batchSize", batchSize)
+        childIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+        targetQ = np.empty([batchSize, params.NUM_ACTIONS])
+
+        i = 0
+        for transition in batch:
+            curr = transition.curr
+            next = transition.next
+
+            childIds[i, :] = transition.childIds
+            targetQ[i, :] = transition.targetQ
+        
+            i += 1
+
+        #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
+        loss, sumWeight = self.qn.Update(sess, childIds, targetQ)
+
+        #print("loss", loss)
+        return loss, sumWeight
 
 ######################################################################################
 # helpers
@@ -491,28 +513,6 @@ class Node:
         return ret
 
 ######################################################################################
-
-def UpdateQN(params, env, sess, qn, batch):
-    batchSize = len(batch)
-    #print("batchSize", batchSize)
-    childIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
-    targetQ = np.empty([batchSize, params.NUM_ACTIONS])
-
-    i = 0
-    for transition in batch:
-        curr = transition.curr
-        next = transition.next
-
-        childIds[i, :] = transition.childIds
-        targetQ[i, :] = transition.targetQ
-    
-        i += 1
-
-    #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
-    loss, sumWeight = qn.Update(sess, childIds, targetQ)
-
-    #print("loss", loss)
-    return loss, sumWeight
 
 def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
     assert(curr != 0)
