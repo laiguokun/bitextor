@@ -498,7 +498,7 @@ class Candidates:
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
-        for childId, links in self.dict.items():
+        for childId in self.vec:
             ret[0, i] = childId
 
             i += 1
