@@ -98,7 +98,8 @@ class Qnetwork():
         visited = set()
         unvisited = Candidates()
 
-        childIds = unvisited.GetChildIdsNP(env, curr, visited, params)
+        unvisited.AddLinks(env, curr, visited, params)
+        childIds = unvisited.GetFeaturesNP(params)
 
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         action, allQ = self.Predict(sess, childIds)
@@ -296,7 +297,8 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            childIds = unvisited.GetChildIdsNP(self, curr, visited, params)
+            unvisited.AddLinks(self, curr, visited, params)
+            childIds = unvisited.GetFeaturesNP(params)
 
             action, allQ = qn.Predict(sess, childIds)
             next, reward = self.GetNextState(action, childIds)
@@ -368,7 +370,7 @@ class Candidates:
         ret.dict = self.dict.copy()
         return ret
 
-    def GetChildIdsNP(self, env, curr, visited, params):
+    def AddLinks(self, env, curr, visited, params):
         currNode = env.nodesById[curr]
         #print("   currNode", curr, currNode.Debug())
         newLinks = currNode.GetLinks(visited, params)
@@ -376,6 +378,21 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
+        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+
+        i = 0
+        for childId, links in self.dict.items():
+            ret[0, i] = childId
+
+            i += 1
+            if i >= params.NUM_ACTIONS:
+                #print("overloaded", len(self.dict), self.dict)
+                break
+
+        return ret
+
+
+    def GetFeaturesNP(self, params):
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
@@ -500,7 +517,8 @@ def UpdateQN(params, env, sess, qn, batch):
 def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
     assert(curr != 0)
     #print("curr", curr, visited, unvisited)
-    childIds = unvisited.GetChildIdsNP(env, curr, visited, params)
+    unvisited.AddLinks(env, curr, visited, params)
+    childIds = unvisited.GetFeaturesNP(params)
     #print("   childIds", childIds, unvisited)
 
     action, Qs = qnA.Predict(sess, childIds)
@@ -522,8 +540,8 @@ def Neural(epoch, curr, params, env, sess, qnA, qnB, visited, unvisited):
         done = False
 
         # Obtain the Q' values by feeding the new state through our network
-        nextChildIds = nextUnvisited.GetChildIdsNP(env, next, visited, params)
-
+        nextUnvisited.AddLinks(env, next, visited, params)
+        nextChildIds = nextUnvisited.GetFeaturesNP(params)
         nextAction, nextQs = qnA.Predict(sess, nextChildIds)        
         #print("  nextAction", nextAction, nextQ)
 
