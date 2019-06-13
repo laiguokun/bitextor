@@ -240,6 +240,7 @@ class Env:
         self.nodes = {} # indexed by URL id
         self.nodesById = []
         self.url2urlId = {}
+        self.urlId2nodeId = {}
 
         # stop node = 1st node in the vec
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
@@ -254,6 +255,7 @@ class Env:
             self.nodes[node.urlId] = node
             self.nodesById.append(node)
             self.url2urlId[node.url] = node.urlId
+            self.urlId2nodeId[node.urlId] = id
 
             if node.aligned > 0:
                 self.numAligned += 1
@@ -307,6 +309,17 @@ class Env:
             return self.url2urlId[url]
 
         raise Exception("URL not found:" + url)
+
+    def GetNodeIdFromURLId(self, urlId):
+        if urlId in self.urlId2nodeId:
+            return self.urlId2nodeId[urlId]
+
+        raise Exception("URL id not found:" + urlId)
+
+    def GetNodeIdFromURL(self, url):
+        urlId = self.GetURLIdFromURL(url)
+        nodeId = self.GetNodeIdFromURLId(urlId)
+        return nodeId
 
     def GetNextState(self, action, unvisited):
         #nextNodeId = childIds[0, action]
