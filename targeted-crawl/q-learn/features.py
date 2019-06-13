@@ -237,20 +237,20 @@ class Env:
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
-        self.nodesById = []
+        self.nodes = []
         self.url2urlId = {}
         self.urlId2nodeId = {}
 
         # stop node = 1st node in the vec
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodesbyURL[node.url] = node
-        self.nodesById.append(node)
+        self.nodes.append(node)
 
         for rec in res:
             #print("rec", rec[0], rec[1])
-            id = len(self.nodesById)
+            id = len(self.nodes)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
-            self.nodesById.append(node)
+            self.nodes.append(node)
             self.url2urlId[node.url] = node.urlId
             self.urlId2nodeId[node.urlId] = id
 
@@ -259,30 +259,30 @@ class Env:
         print("numAligned", self.numAligned)
 
         # start node = last node in the vec
-        id = len(self.nodesById)
+        id = len(self.nodes)
         startNode = Node(sqlconn, id, 0, 0, None, "START")
 
         # start node has 1 child
         nodeId = self.GetNodeIdFromURL(url)
-        rootNode = self.nodesById[nodeId]
+        rootNode = self.nodes[nodeId]
         assert(rootNode is not None)
         startNode.CreateLink("", None, rootNode)
 
-        self.nodesById.append(startNode)
+        self.nodes.append(startNode)
         self.startNodeId = startNode.id
         #print("startNode", startNode.Debug())
 
-        self.ns = len(self.nodesById) # number of states
+        self.ns = len(self.nodes) # number of states
 
         # links between nodes, possibly to nodes without doc
-        for node in self.nodesById:
+        for node in self.nodes:
             node.CreateLinks(sqlconn, self)
             print(node.Debug())
         
-        print("all nodes", len(self.nodesById))
+        print("all nodes", len(self.nodes))
 
         # print out
-        #for node in self.nodesById:
+        #for node in self.nodes:
         #    print("node", node.Debug())
 
         #node = Node(sqlconn, url, True)
@@ -320,7 +320,7 @@ class Env:
     def GetNextState(self, action, unvisited):
         #nextNodeId = childIds[0, action]
         nextNodeId = unvisited.GetNextState(action)
-        nextNode = self.nodesById[nextNodeId]
+        nextNode = self.nodes[nextNodeId]
         if nextNodeId == 0:
             rewardNode = 0
         elif nextNode.aligned > 0:
@@ -357,7 +357,7 @@ class Env:
             unvisited.RemoveLink(next)
 
             alignedStr = ""
-            nextNode = self.nodesById[next]
+            nextNode = self.nodes[next]
             if nextNode.aligned > 0:
                 alignedStr = "*"
                 numAligned += 1
@@ -394,7 +394,7 @@ class Env:
         ret = 0
         for transition in path:
             next = transition.next
-            nextNode = self.nodesById[next]
+            nextNode = self.nodes[next]
             if nextNode.aligned > 0:
                 ret += 1
         return ret
@@ -551,7 +551,7 @@ class Node:
 
             if urlId in env.urlId2nodeId:
                 nodeId = env.GetNodeIdFromURLId(urlId)
-                childNode = env.nodesById[nodeId]
+                childNode = env.nodes[nodeId]
                 #print("child", self.docId, childNode.Debug())
             else:
                 continue
@@ -559,7 +559,7 @@ class Node:
                 #childNode = Node(sqlconn, id, urlId, None, None, url)
                 #nodes[childNode.urlId] = childNode
                 #nodesbyURL[childNode.url] = childNode
-                #nodesById.append(childNode)
+                #nodes.append(childNode)
 
             self.CreateLink(text, textLang, childNode)
 
@@ -608,7 +608,7 @@ class Candidates:
         return ret
 
     def AddLinks(self, env, curr, visited, params):
-        currNode = env.nodesById[curr]
+        currNode = env.nodes[curr]
         #print("   currNode", curr, currNode.Debug())
         newLinks = currNode.GetLinks(visited, params)
 
