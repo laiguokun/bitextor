@@ -241,7 +241,7 @@ class Env:
         self.nodesById = []
         self.url2urlId = {}
 
-        # stop node
+        # stop node = 1st node in the vec
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodes[node.urlId] = node
         #self.nodesbyURL[node.url] = node
@@ -260,25 +260,23 @@ class Env:
         #print("nodes", len(self.nodes))
         print("numAligned", self.numAligned)
 
-        # start node
+        # start node = last node in the vec
         id = len(self.nodesById)
+        startNode = Node(sqlconn, id, 0, 0, None, "START")
+
+        # start node has 1 child
         urlId = self.GetURLIdFromURL(url)
         rootNode = self.nodes[urlId]
         assert(rootNode is not None)
-        startNode = Node(sqlconn, id, 0, 0, None, "START")
         startNode.CreateLink("", None, rootNode)
-        #self.nodes[node.urlId] = startNode
+
         self.nodesById.append(startNode)
         self.startNodeId = startNode.id
         #print("startNode", startNode.Debug())
 
         self.ns = len(self.nodesById) # number of states
 
-        self.nodesWithDoc = self.nodes.copy()
-        print("nodesWithDoc", len(self.nodesWithDoc))
-
         # links between nodes, possibly to nodes without doc
-        #for node in self.nodesWithDoc.values():
         for node in self.nodesById:
             node.CreateLinks(sqlconn, self.nodes, self.nodesById)
             print(node.Debug())
