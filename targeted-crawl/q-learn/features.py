@@ -255,7 +255,7 @@ class Env:
             self.nodesbyURL[node.url] = node
             self.nodesById.append(node)
 
-            if node.aligned:
+            if node.aligned > 0:
                 self.numAligned += 1
         #print("nodes", len(self.nodes))
         print("numAligned", self.numAligned)
@@ -310,7 +310,7 @@ class Env:
         nextNode = self.nodesById[nextNodeId]
         if nextNodeId == 0:
             rewardNode = 0
-        elif nextNode.aligned:
+        elif nextNode.aligned > 0:
             rewardNode = 8.5
         else:
             rewardNode = -1        
@@ -343,10 +343,9 @@ class Env:
             visited.add(next)
             unvisited.RemoveLink(next)
 
-            nextNode = self.nodesById[next]
-            aligned = nextNode.aligned
             alignedStr = ""
-            if aligned:
+            nextNode = self.nodesById[next]
+            if nextNode.aligned > 0:
                 alignedStr = "*"
                 numAligned += 1
 
@@ -383,7 +382,7 @@ class Env:
         for transition in path:
             next = transition.next
             nextNode = self.nodesById[next]
-            if nextNode.aligned:
+            if nextNode.aligned > 0:
                 ret += 1
         return ret
 
@@ -489,10 +488,10 @@ class Node:
         self.lang = lang
         self.url = url
         self.links = []
-        self.aligned = False
+        self.aligned = 0
 
         if self.docId is not None:
-            sql = "select * from document_align where document1 = %s or document2 = %s"
+            sql = "select document1, document2 from document_align where document1 = %s or document2 = %s"
             val = (self.docId,self.docId)
             #print("sql", sql)
             sqlconn.mycursor.execute(sql, val)
@@ -500,7 +499,13 @@ class Node:
             #print("aligned",  self.url, self.docId, res)
 
             if len(res) > 0:
-                self.aligned = True
+                rec = res[0]
+                if self.docId == rec[0]:
+                    self.aligned = rec[1]
+                elif self.docId == rec[1]:
+                    self.aligned = rec[0]
+                else:
+                    assert(True)
 
         #print(self.Debug())
 
