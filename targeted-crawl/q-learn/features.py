@@ -161,17 +161,21 @@ class Corpus:
 
         return batch
 
+    def GetStopFeaturesNP(self, params):
+        features = np.zeros([1, params.NUM_ACTIONS])
+        return features
+
     def AddStopTransition(self, env, params):
         # stop state
         for i in range(10):
             targetQ = np.zeros([1, params.NUM_ACTIONS])
-            childIds = env.GetStopFeaturesNP(params)
+            childIds = self.GetStopFeaturesNP(params)
             transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
             self.transitions.append(transition)
 
     def Train(self, sess, env, params):
         if len(self.transitions) >= params.minCorpusSize:
-            self.AddStopTransition(env, params)
+            #self.AddStopTransition(env, params)
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
@@ -312,10 +316,6 @@ class Env:
 
         return nextNodeId, rewardNode
 
-    def GetStopFeaturesNP(self, params):
-        features = np.zeros([1, params.NUM_ACTIONS])
-        return features
-
     def Walk(self, start, params, sess, qn, printQ):
         numAligned = 0
 
@@ -389,21 +389,22 @@ class Env:
 
     def Neural(self, epoch, curr, params, sess, qnA, qnB, visited, unvisited):
         assert(curr != 0)
-        DEBUG = False
+        #DEBUG = False
         #if curr == 31: DEBUG = True
 
         #print("curr", curr, visited, unvisited)
         unvisited.AddLinks(self, curr, visited, params)
         featuresNP = unvisited.GetFeaturesNP(self, params)
+        nextStates = unvisited.GetNextStates(params)
         #print("   childIds", childIds, unvisited)
 
         action, Qs = qnA.Predict(sess, featuresNP)
         if np.random.rand(1) < params.eps:
-            if DEBUG: print("   random")
+            #if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
         
         next, r = self.GetNextState(action, unvisited)
-        if DEBUG: print("   action", action, next, Qs)
+        #if DEBUG: print("   action", action, next, Qs)
 
         visited.add(next)
         unvisited.RemoveLink(next)
@@ -434,7 +435,10 @@ class Env:
         newVal = r + params.gamma * maxNextQ
         targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
         #targetQ[0, action] = newVal
-        if DEBUG: print("   targetQ", targetQ)
+        self.ZeroOutStop(targetQ, nextStates)
+
+        #if DEBUG: print("   nextStates", nextStates)
+        #if DEBUG: print("   targetQ", targetQ)
 
         transition = self.Transition(curr, next, done, np.array(featuresNP, copy=True), np.array(targetQ, copy=True))
         return transition
@@ -464,6 +468,14 @@ class Env:
             if transition.done: break
         #print("unvisited", unvisited)
         
+    def ZeroOutStop(self, targetQ, nextStates):
+        assert(targetQ.shape == nextStates.shape)
+
+        i = 0
+        for i in range(nextStates.shape[1]):
+            if nextStates[0, i] == 0:
+                targetQ[0, i] = 0
+
 ######################################################################################
 
 class Candidates:
@@ -539,6 +551,19 @@ class Candidates:
             ret = 0
         else:
             ret = self.vec[action]
+        return ret
+
+    def GetNextStates(self, params):
+        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+
+        i = 0
+        for childId in self.vec:
+            ret[0, i] = childId
+            i += 1
+            if i >= params.NUM_ACTIONS:
+                break
+
+
         return ret
 
 ######################################################################################
