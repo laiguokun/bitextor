@@ -6,6 +6,7 @@ import tensorflow as tf
 import random
 from collections import namedtuple
 import mysql.connector
+import time
 
 ######################################################################################
 def StrNone(arg):
@@ -478,6 +479,89 @@ class Env:
 
 ######################################################################################
 
+class Node:
+    def __init__(self, sqlconn, id, urlId, docId, lang, url):
+        self.Link = namedtuple("Link", "text textLang parentNode childNode")
+
+        self.id = id
+        self.urlId = urlId
+        self.docId = docId
+        self.lang = lang
+        self.url = url
+        self.links = []
+        self.aligned = False
+
+        if self.docId is not None:
+            sql = "select * from document_align where document1 = %s or document2 = %s"
+            val = (self.docId,self.docId)
+            #print("sql", sql)
+            sqlconn.mycursor.execute(sql, val)
+            res = sqlconn.mycursor.fetchall()
+            #print("aligned",  self.url, self.docId, res)
+
+            if len(res) > 0:
+                self.aligned = True
+
+        #print(self.Debug())
+
+    def Debug(self):
+        strLinks = ""
+        for link in self.links:
+            #strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
+            strLinks += str(link.childNode.id) + " "
+
+        return " ".join([str(self.id), str(self.urlId), 
+                        StrNone(self.docId), StrNone(self.lang), 
+                        str(self.aligned), self.url,
+                        "links=", str(len(self.links)), ":", strLinks ] )
+
+    def CreateLinks(self, sqlconn, nodes, nodesbyURL, nodesById):
+        #sql = "select id, text, url_id from link where document_id = %s"
+        sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
+        val = (self.docId,)
+        #print("sql", sql)
+        sqlconn.mycursor.execute(sql, val)
+        res = sqlconn.mycursor.fetchall()
+        assert (res is not None)
+
+        for rec in res:
+            text = rec[1]
+            textLang = rec[2]
+            urlId = rec[3]
+            url = rec[4]
+            #print("urlid", self.docId, text, urlId)
+
+            if urlId in nodes:
+                childNode = nodes[urlId]
+                #print("child", self.docId, childNode.Debug())
+            else:
+                continue
+                #id = len(nodes)
+                #childNode = Node(sqlconn, id, urlId, None, None, url)
+                #nodes[childNode.urlId] = childNode
+                #nodesbyURL[childNode.url] = childNode
+                #nodesById.append(childNode)
+
+            self.CreateLink(text, textLang, childNode)
+
+    def CreateLink(self, text, textLang, childNode):            
+        link = self.Link(text, textLang, self, childNode)
+        self.links.append(link)
+
+    def GetLinks(self, visited, params):
+        ret = []
+        for link in self.links:
+            childNode = link.childNode
+            childNodeId = childNode.id
+            #print("   ", childNode.Debug())
+            if childNodeId != self.id and childNodeId not in visited:
+                ret.append(link)
+        #print("   childIds", childIds)
+
+        return ret
+
+######################################################################################
+
 class Candidates:
     def __init__(self):
         self.dict = {} # nodeid -> link
@@ -563,89 +647,6 @@ class Candidates:
             if i >= params.NUM_ACTIONS:
                 break
 
-
-        return ret
-
-######################################################################################
-
-class Node:
-    def __init__(self, sqlconn, id, urlId, docId, lang, url):
-        self.Link = namedtuple("Link", "text textLang parentNode childNode")
-
-        self.id = id
-        self.urlId = urlId
-        self.docId = docId
-        self.lang = lang
-        self.url = url
-        self.links = []
-        self.aligned = False
-
-        if self.docId is not None:
-            sql = "select * from document_align where document1 = %s or document2 = %s"
-            val = (self.docId,self.docId)
-            #print("sql", sql)
-            sqlconn.mycursor.execute(sql, val)
-            res = sqlconn.mycursor.fetchall()
-            #print("aligned",  self.url, self.docId, res)
-
-            if len(res) > 0:
-                self.aligned = True
-
-        #print(self.Debug())
-
-    def Debug(self):
-        strLinks = ""
-        for link in self.links:
-            #strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
-            strLinks += str(link.childNode.id) + " "
-
-        return " ".join([str(self.id), str(self.urlId), 
-                        StrNone(self.docId), StrNone(self.lang), 
-                        str(self.aligned), self.url,
-                        "links=", str(len(self.links)), ":", strLinks ] )
-
-    def CreateLinks(self, sqlconn, nodes, nodesbyURL, nodesById):
-        #sql = "select id, text, url_id from link where document_id = %s"
-        sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
-        val = (self.docId,)
-        #print("sql", sql)
-        sqlconn.mycursor.execute(sql, val)
-        res = sqlconn.mycursor.fetchall()
-        assert (res is not None)
-
-        for rec in res:
-            text = rec[1]
-            textLang = rec[2]
-            urlId = rec[3]
-            url = rec[4]
-            #print("urlid", self.docId, text, urlId)
-
-            if urlId in nodes:
-                childNode = nodes[urlId]
-                #print("child", self.docId, childNode.Debug())
-            else:
-                continue
-                #id = len(nodes)
-                #childNode = Node(sqlconn, id, urlId, None, None, url)
-                #nodes[childNode.urlId] = childNode
-                #nodesbyURL[childNode.url] = childNode
-                #nodesById.append(childNode)
-
-            self.CreateLink(text, textLang, childNode)
-
-    def CreateLink(self, text, textLang, childNode):            
-        link = self.Link(text, textLang, self, childNode)
-        self.links.append(link)
-
-    def GetLinks(self, visited, params):
-        ret = []
-        for link in self.links:
-            childNode = link.childNode
-            childNodeId = childNode.id
-            #print("   ", childNode.Debug())
-            if childNodeId != self.id and childNodeId not in visited:
-                ret.append(link)
-        #print("   childIds", childIds)
 
         return ret
 
