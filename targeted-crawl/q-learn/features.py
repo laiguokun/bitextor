@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 1001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -241,7 +241,7 @@ class Env:
         self.nodesById = []
 
         # stop node
-        node = Node(sqlconn, 0, 0, 0, "", "STOP")
+        node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodes[node.urlId] = node
         #self.nodesbyURL[node.url] = node
         self.nodesById.append(node)
@@ -263,8 +263,8 @@ class Env:
         id = len(self.nodesById)
         rootNode = self.nodesbyURL[url]
         assert(rootNode is not None)
-        startNode = Node(sqlconn, id, 0, 0, "", "START")
-        startNode.CreateLink("", "", rootNode)
+        startNode = Node(sqlconn, id, 0, 0, None, "START")
+        startNode.CreateLink("", None, rootNode)
         #self.nodes[node.urlId] = startNode
         #self.nodesbyURL[node.url] = startNode
         self.nodesById.append(startNode)
@@ -633,9 +633,9 @@ class Node:
 
             self.CreateLink(text, textLang, childNode)
 
-    def CreateLink(self, text, textLang, childNode):
-            link = self.Link(text, textLang, self, childNode)
-            self.links.append(link)
+    def CreateLink(self, text, textLang, childNode):            
+        link = self.Link(text, textLang, self, childNode)
+        self.links.append(link)
 
     def GetLinks(self, visited, params):
         ret = []
