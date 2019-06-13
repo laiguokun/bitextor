@@ -276,8 +276,6 @@ class Env:
 
         for node in self.nodes:
             node.CreateLinks(sqlconn, self)
-            node.CreateAlign(sqlconn)
-
             print(node.Debug())
         
 
@@ -518,6 +516,8 @@ class Node:
         self.url = url
         self.links = []
         self.aligned = 0
+
+        self.CreateAlign(sqlconn)
 
     def CreateAlign(self, sqlconn):
         if self.docId is not None:
