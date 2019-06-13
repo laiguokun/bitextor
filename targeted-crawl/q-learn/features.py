@@ -231,6 +231,7 @@ class Env:
         self.nodes = []
         self.url2urlId = {}
         self.urlId2nodeId = {}
+        self.docId2nodeId = {}
 
         # stop node = 1st node in the vec
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
@@ -251,6 +252,7 @@ class Env:
             self.nodes.append(node)
             self.url2urlId[node.url] = node.urlId
             self.urlId2nodeId[node.urlId] = id
+            self.docId2nodeId[node.docId] = id
 
             if node.aligned > 0:
                 self.numAligned += 1
@@ -272,11 +274,13 @@ class Env:
 
         self.ns = len(self.nodes) # number of states
 
-        # links between nodes, possibly to nodes without doc
         for node in self.nodes:
             node.CreateLinks(sqlconn, self)
+            node.CreateAlign(sqlconn)
+
             print(node.Debug())
         
+
         print("all nodes", len(self.nodes))
 
         # print out
@@ -314,6 +318,12 @@ class Env:
         urlId = self.GetURLIdFromURL(url)
         nodeId = self.GetNodeIdFromURLId(urlId)
         return nodeId
+
+    def GetNodeIdFromDocId(self, docId):
+        if docId in self.docId2nodeId:
+            return self.docId2nodeId[docId]
+
+        raise Exception("Doc id not found:" + docId)
 
     def GetNextState(self, action, unvisited):
         #nextNodeId = childIds[0, action]
@@ -501,6 +511,7 @@ class Node:
         self.links = []
         self.aligned = 0
 
+    def CreateAlign(self, sqlconn):
         if self.docId is not None:
             sql = "select document1, document2 from document_align where document1 = %s or document2 = %s"
             val = (self.docId,self.docId)
