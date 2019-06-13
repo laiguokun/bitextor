@@ -238,8 +238,8 @@ class Env:
         assert (res is not None)
 
         self.nodes = {} # indexed by URL id
-        self.nodesbyURL = {} # indexed by URL
         self.nodesById = []
+        self.url2urlId = {}
 
         # stop node
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
@@ -252,8 +252,8 @@ class Env:
             id = len(self.nodesById)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
-            self.nodesbyURL[node.url] = node
             self.nodesById.append(node)
+            self.url2urlId[node.url] = node.urlId
 
             if node.aligned > 0:
                 self.numAligned += 1
@@ -262,12 +262,12 @@ class Env:
 
         # start node
         id = len(self.nodesById)
-        rootNode = self.nodesbyURL[url]
+        urlId = self.GetURLIdFromURL(url)
+        rootNode = self.nodes[urlId]
         assert(rootNode is not None)
         startNode = Node(sqlconn, id, 0, 0, None, "START")
         startNode.CreateLink("", None, rootNode)
         #self.nodes[node.urlId] = startNode
-        #self.nodesbyURL[node.url] = startNode
         self.nodesById.append(startNode)
         self.startNodeId = startNode.id
         #print("startNode", startNode.Debug())
@@ -280,7 +280,7 @@ class Env:
         # links between nodes, possibly to nodes without doc
         #for node in self.nodesWithDoc.values():
         for node in self.nodesById:
-            node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL, self.nodesById)
+            node.CreateLinks(sqlconn, self.nodes, self.nodesById)
             print(node.Debug())
         
         print("all nodes", len(self.nodes))
@@ -303,6 +303,12 @@ class Env:
             self.langIds[lang] = ret
         
         return ret
+
+    def GetURLIdFromURL(self, url):
+        if url in self.url2urlId:
+            return self.url2urlId[url]
+
+        raise Exception("URL not found:" + url)
 
     def GetNextState(self, action, unvisited):
         #nextNodeId = childIds[0, action]
@@ -520,7 +526,7 @@ class Node:
                         str(self.aligned), self.url,
                         "links=", str(len(self.links)), ":", strLinks ] )
 
-    def CreateLinks(self, sqlconn, nodes, nodesbyURL, nodesById):
+    def CreateLinks(self, sqlconn, nodes, nodesById):
         #sql = "select id, text, url_id from link where document_id = %s"
         sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
