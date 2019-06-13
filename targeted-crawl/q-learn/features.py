@@ -227,16 +227,7 @@ class Env:
     def __init__(self, sqlconn, url):
         self.Transition = namedtuple("Transition", "curr next done features targetQ")
         self.langIds = {}
-
         self.numAligned = 0
-
-        # all nodes with docs
-        sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
-        val = (url + "%",)
-        sqlconn.mycursor.execute(sql, val)
-        res = sqlconn.mycursor.fetchall()
-        assert (res is not None)
-
         self.nodes = []
         self.url2urlId = {}
         self.urlId2nodeId = {}
@@ -245,6 +236,13 @@ class Env:
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodesbyURL[node.url] = node
         self.nodes.append(node)
+
+        # all nodes with docs
+        sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
+        val = (url + "%",)
+        sqlconn.mycursor.execute(sql, val)
+        res = sqlconn.mycursor.fetchall()
+        assert (res is not None)
 
         for rec in res:
             #print("rec", rec[0], rec[1])
