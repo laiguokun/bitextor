@@ -231,7 +231,7 @@ class Env:
         self.nodes = []
         self.url2urlId = {}
         self.urlId2nodeId = {}
-        self.docId2nodeId = {}
+        self.docId2nodeIds = {}
 
         # stop node = 1st node in the vec
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
@@ -252,7 +252,7 @@ class Env:
             self.nodes.append(node)
             self.url2urlId[node.url] = node.urlId
             self.urlId2nodeId[node.urlId] = id
-            self.docId2nodeId[node.docId] = id
+            self.AddDocId(node.docId, id)
 
             if node.aligned > 0:
                 self.numAligned += 1
@@ -319,9 +319,17 @@ class Env:
         nodeId = self.GetNodeIdFromURLId(urlId)
         return nodeId
 
-    def GetNodeIdFromDocId(self, docId):
-        if docId in self.docId2nodeId:
-            return self.docId2nodeId[docId]
+    def AddDocId(self, docId, nodeId):
+        if docId in self.docId2nodeIds:
+            self.docId2nodeIds[docId].append(nodeId)
+        else:
+            vec = []
+            vec.append(nodeId)
+            self.docId2nodeIds[docId] = vec
+
+    def GetNodeIdsFromDocId(self, docId):
+        if docId in self.docId2nodeIds:
+            return self.docId2nodeIds[docId]
 
         raise Exception("Doc id not found:" + docId)
 
