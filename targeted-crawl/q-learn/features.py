@@ -192,8 +192,8 @@ class Corpus:
 
         i = 0
         for transition in batch:
-            curr = transition.curr
-            next = transition.next
+            #curr = transition.curr
+            #next = transition.next
 
             features[i, :] = transition.features
             targetQ[i, :] = transition.targetQ
