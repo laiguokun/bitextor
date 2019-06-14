@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 1001
+        self.max_epochs = 20001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -202,7 +202,9 @@ class Corpus:
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
+        timer.Start("UpdateQN.1")
         loss, sumWeight = self.qn.Update(sess, features, targetQ)
+        timer.Pause("UpdateQN.1")
 
         #print("loss", loss)
         return loss, sumWeight
@@ -437,6 +439,7 @@ class Env:
 
 
     def Neural(self, epoch, curr, params, sess, qnA, qnB, visited, unvisited, docsVisited):
+        timer.Start("Neural.1")
         assert(curr != 0)
         #DEBUG = False
         #if curr == 31: DEBUG = True
@@ -446,20 +449,28 @@ class Env:
         featuresNP = unvisited.GetFeaturesNP(self, params)
         nextStates = unvisited.GetNextStates(params)
         #print("   childIds", childIds, unvisited)
+        timer.Pause("Neural.1")
 
+        timer.Start("Neural.2")
         action, Qs = qnA.Predict(sess, featuresNP)
         if np.random.rand(1) < params.eps:
             #if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
+        timer.Pause("Neural.2")
         
+        timer.Start("Neural.3")
         next, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
         #if DEBUG: print("   action", action, next, Qs)
+        timer.Pause("Neural.3")
 
+        timer.Start("Neural.4")
         visited.add(next)
         unvisited.RemoveLink(next)
         nextUnvisited = unvisited.copy()
         docsVisited.add(nextDocId)
+        timer.Pause("Neural.4")
 
+        timer.Start("Neural.5")
         if next == 0:
             done = True
             maxNextQ = 0.0
@@ -478,7 +489,9 @@ class Env:
 
             _, nextQsB = qnB.Predict(sess, nextFeaturesNP)        
             maxNextQ = nextQsB[0, nextAction]
+        timer.Pause("Neural.5")
             
+        timer.Start("Neural.6")
         targetQ = Qs
         #targetQ = np.array(Qs, copy=True)
         #print("  targetQ", targetQ)
@@ -491,6 +504,8 @@ class Env:
         #if DEBUG: print("   targetQ", targetQ)
 
         transition = self.Transition(curr, next, done, np.array(featuresNP, copy=True), np.array(targetQ, copy=True))
+        timer.Pause("Neural.6")
+
         return transition
 
     def Trajectory(self, epoch, curr, params, sess, qns):
@@ -724,9 +739,12 @@ def Train(params, env, sess, qns):
         
         timer.Start("Trajectory")
         env.Trajectory(epoch, startState, params, sess, qns)
+        timer.Pause("Trajectory")
+
+        timer.Start("Update")
         qns.q[0].corpus.Train(sess, env, params)
         qns.q[1].corpus.Train(sess, env, params)
-        timer.Pause("Trajectory")
+        timer.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
             timer.Start("debug")
@@ -760,7 +778,9 @@ class Timer:
         self.cumm = {}
 
     def __del__(self):
-        print("cumm", self.cumm)
+        print("cumm:")
+        for key, val in self.cumm.items():
+            print(key, "\t", val)
 
     def Start(self, str):
         self.starts[str] = time.time()
