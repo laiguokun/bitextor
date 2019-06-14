@@ -818,7 +818,8 @@ def Main():
     qns = Qnets(params, env)
     init = tf.global_variables_initializer()
 
-    with tf.device('/device:GPU:0'):
+    with tf.device('/cpu:0'):
+    #with tf.device('/device:GPU:0'):
         #with tf.Session() as sess:
         with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
             sess.run(init)
