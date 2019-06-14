@@ -372,6 +372,7 @@ class Env:
         i = 0
         totReward = 0
         mainStr = str(curr) + "->"
+        rewardStr = "0.0->"
         debugStr = ""
 
         while True:
@@ -403,18 +404,20 @@ class Env:
                          + "\n"
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            mainStr += str(next) + alignedStr + "(" + str(reward) + ")->"
+            mainStr += str(next) + alignedStr + "->"
+            rewardStr += str(reward) + "->"
             curr = next
 
             if next == 0: break
 
             i += 1
 
-        mainStr += " " + str(totReward)
+        rewardStr += " " + str(totReward)
 
         if printQ:
             print(debugStr, end="")
         print(mainStr)
+        print(rewardStr)
 
         return numAligned
 
