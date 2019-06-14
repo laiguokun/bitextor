@@ -778,7 +778,7 @@ class Timer:
         self.cumm = {}
 
     def __del__(self):
-        print("cumm:")
+        print("Timers:")
         for key, val in self.cumm.items():
             print(key, "\t", val)
 
@@ -805,7 +805,6 @@ def Main():
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
     global timer
-    timer.Start("init")
 
     # =============================================================
     sqlconn = MySQL()
@@ -821,7 +820,6 @@ def Main():
 
     with tf.Session() as sess:
         sess.run(init)
-        timer.Pause("init")
 
         qns.q[0].PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
@@ -834,10 +832,10 @@ def Main():
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
-        timer.Start("print")
         startState = env.startNodeId
         env.Walk(startState, params, sess, qns.q[0], True)
-        timer.Pause("print")
+
+        del timer
 
         plt.plot(qns.q[0].corpus.losses)
         plt.plot(qns.q[1].corpus.losses)
@@ -848,8 +846,6 @@ def Main():
         #plt.show()
 
     print("Finished")
-
-    del timer
 
 if __name__ == "__main__":
     Main()
