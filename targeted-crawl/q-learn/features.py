@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 100001
+        self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -372,7 +372,9 @@ class Env:
         
         curr = start
         i = 0
-        totReward = 0
+        totReward = 0.0
+        totDiscountedReward = 0.0
+        discount = 1.0
         mainStr = str(curr) + "->"
         rewardStr = "  ->"
         debugStr = ""
@@ -388,6 +390,7 @@ class Env:
             action, allQ = qn.Predict(sess, featuresNP)
             next, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
             totReward += reward
+            totDiscountedReward += discount * reward
             visited.add(next)
             unvisited.RemoveLink(next)
             docsVisited.add(nextDocId)
@@ -409,19 +412,21 @@ class Env:
             mainStr += str(next) + alignedStr + "->"
             rewardStr += str(reward) + "->"
             curr = next
+            discount *= params.gamma
 
             if next == 0: break
 
             i += 1
 
-        rewardStr += " " + str(totReward)
+        rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
 
         if printQ:
             print(debugStr, end="")
         print(mainStr)
         print(rewardStr)
 
-        return numAligned
+        return numAligned, totReward, totDiscountedReward
+
 
 
     def WalkAll(self, params, sess, qn):
@@ -729,6 +734,8 @@ class Candidates:
 
 def Train(params, env, sess, qns):
     global timer
+    totRewards = []
+    totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
@@ -753,7 +760,9 @@ def Train(params, env, sess, qns):
             qns.q[0].PrintQ(31, params, env, sess)
             print()
 
-            numAligned = env.Walk(startState, params, sess, qns.q[0], True)
+            numAligned, totReward, totDiscountedReward = env.Walk(startState, params, sess, qns.q[0], True)
+            totRewards.append(totReward)
+            totDiscountedRewards.append(totDiscountedReward)
             print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
             print()
 
@@ -769,7 +778,7 @@ def Train(params, env, sess, qns):
                 #params.alpha = max(0.3, params.alpha)
             timer.Pause("debug")
 
-    # LAST BATCH
+    return totRewards, totDiscountedRewards
             
 ######################################################################################
 class Timer:
@@ -829,7 +838,7 @@ def Main():
             print()
 
             timer.Start("Train")
-            Train(params, env, sess, qns)
+            totRewards, totDiscountedRewards = Train(params, env, sess, qns)
             timer.Pause("Train")
             
             #qn.PrintAllQ(params, env, sess)
@@ -839,6 +848,10 @@ def Main():
             env.Walk(startState, params, sess, qns.q[0], True)
 
             del timer
+
+            plt.plot(totRewards)
+            plt.plot(totDiscountedRewards)
+            plt.show()
 
             plt.plot(qns.q[0].corpus.losses)
             plt.plot(qns.q[1].corpus.losses)
