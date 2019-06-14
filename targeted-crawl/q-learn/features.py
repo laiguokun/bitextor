@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 10001
+        self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -732,7 +732,6 @@ class Candidates:
 ######################################################################################
 
 def Train(params, env, sess, qns):
-    global timer
     totRewards = []
     totDiscountedRewards = []
 
