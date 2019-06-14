@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 100001
+        self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -364,14 +364,13 @@ class Env:
         return nextNodeId, docId, reward
 
     def Walk(self, start, params, sess, qn, printQ):
-        numAligned = 0
-
         visited = set()
         unvisited = Candidates()
         docsVisited = set()
         
         curr = start
         i = 0
+        numAligned = 0
         totReward = 0.0
         totDiscountedReward = 0.0
         discount = 1.0
@@ -413,11 +412,11 @@ class Env:
             rewardStr += str(reward) + "->"
             curr = next
             discount *= params.gamma
+            i += 1
 
             if next == 0: break
 
-            i += 1
-
+        mainStr += " " + str(i) + "/" + str(numAligned)
         rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
 
         if printQ:
