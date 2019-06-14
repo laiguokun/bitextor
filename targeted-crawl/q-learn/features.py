@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 20001
+        self.max_epochs = 1001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -713,6 +713,8 @@ class Candidates:
 ######################################################################################
 
 def Train(params, env, sess, qns):
+    global timer
+
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         #startState = np.random.randint(0, env.ns)  # random start state
@@ -720,11 +722,14 @@ def Train(params, env, sess, qns):
         startState = env.startNodeId
         #print("startState", startState)
         
+        timer.Start("Trajectory")
         env.Trajectory(epoch, startState, params, sess, qns)
         qns.q[0].corpus.Train(sess, env, params)
         qns.q[1].corpus.Train(sess, env, params)
+        timer.Pause("Trajectory")
 
         if epoch > 0 and epoch % params.walk == 0:
+            timer.Start("debug")
             #qns.q[0].PrintAllQ(params, env, sess)
             qns.q[0].PrintQ(0, params, env, sess)
             qns.q[0].PrintQ(31, params, env, sess)
@@ -744,15 +749,43 @@ def Train(params, env, sess, qns):
                 
                 #params.alpha *= 0.99
                 #params.alpha = max(0.3, params.alpha)
-                
+            timer.Pause("debug")
+
     # LAST BATCH
             
 ######################################################################################
+class Timer:
+    def __init__(self):
+        self.starts = {}
+        self.cumm = {}
 
+    def __del__(self):
+        print("cumm", self.cumm)
+
+    def Start(self, str):
+        self.starts[str] = time.time()
+
+    def Pause(self, str):
+        now = time.time()
+        then = self.starts[str]
+
+        if str in self.cumm:
+            self.cumm[str] += now - then
+        else:
+            self.cumm[str] = now - then
+        
+
+######################################################################################
+ 
+timer = Timer()
+ 
 def Main():
     print("Starting")
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
+
+    global timer
+    timer.Start("init")
 
     # =============================================================
     sqlconn = MySQL()
@@ -765,22 +798,26 @@ def Main():
     tf.reset_default_graph()
     qns = Qnets(params, env)
     init = tf.global_variables_initializer()
-    
+
     with tf.Session() as sess:
         sess.run(init)
+        timer.Pause("init")
 
         qns.q[0].PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
         print()
 
+        timer.Start("Train")
         Train(params, env, sess, qns)
-        print("Trained")
+        timer.Pause("Train")
         
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
+        timer.Start("print")
         startState = env.startNodeId
         env.Walk(startState, params, sess, qns.q[0], True)
+        timer.Pause("print")
 
         plt.plot(qns.q[0].corpus.losses)
         plt.plot(qns.q[1].corpus.losses)
@@ -792,6 +829,7 @@ def Main():
 
     print("Finished")
 
+    del timer
 
 if __name__ == "__main__":
     Main()
