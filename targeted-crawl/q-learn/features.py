@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 5001
+        self.max_epochs = 100001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -36,7 +36,7 @@ class Qnetwork():
         self.corpus = Corpus(params, self)
 
         # These lines establish the feed-forward part of the network used to choose actions
-        EMBED_DIM = 3000
+        EMBED_DIM = 900
 
         INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
 
@@ -374,7 +374,7 @@ class Env:
         i = 0
         totReward = 0
         mainStr = str(curr) + "->"
-        rewardStr = "0.0->"
+        rewardStr = "  ->"
         debugStr = ""
 
         while True:
@@ -818,10 +818,10 @@ def Main():
     qns = Qnets(params, env)
     init = tf.global_variables_initializer()
 
-    with tf.device('/cpu:0'):
-    #with tf.device('/device:GPU:0'):
-        #with tf.Session() as sess:
-        with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+    #with tf.device('/cpu:0'):
+    with tf.device('/device:GPU:0'):
+        with tf.Session() as sess:
+        #with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
             sess.run(init)
 
             qns.q[0].PrintAllQ(params, env, sess)
@@ -842,11 +842,11 @@ def Main():
 
             plt.plot(qns.q[0].corpus.losses)
             plt.plot(qns.q[1].corpus.losses)
-            #plt.show()
+            plt.show()
 
             plt.plot(qns.q[0].corpus.sumWeights)
             plt.plot(qns.q[1].corpus.sumWeights)
-            #plt.show()
+            plt.show()
 
     print("Finished")
 
