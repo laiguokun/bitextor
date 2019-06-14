@@ -752,7 +752,6 @@ def Train(params, env, sess, qns):
         timer.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            timer.Start("debug")
             #qns.q[0].PrintAllQ(params, env, sess)
             qns.q[0].PrintQ(0, params, env, sess)
             qns.q[0].PrintQ(31, params, env, sess)
@@ -774,7 +773,6 @@ def Train(params, env, sess, qns):
                 
                 #params.alpha *= 0.99
                 #params.alpha = max(0.3, params.alpha)
-            timer.Pause("debug")
 
     return totRewards, totDiscountedRewards
             
