@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 10001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -826,39 +826,37 @@ def Main():
     qns = Qnets(params, env)
     init = tf.global_variables_initializer()
 
-    #with tf.device('/cpu:0'):
-    with tf.device('/device:GPU:0'):
-        with tf.Session() as sess:
-        #with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
-            sess.run(init)
+    with tf.Session() as sess:
+    #with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+        sess.run(init)
 
-            qns.q[0].PrintAllQ(params, env, sess)
-            #env.WalkAll(params, sess, qn)
-            print()
+        qns.q[0].PrintAllQ(params, env, sess)
+        #env.WalkAll(params, sess, qn)
+        print()
 
-            timer.Start("Train")
-            totRewards, totDiscountedRewards = Train(params, env, sess, qns)
-            timer.Pause("Train")
-            
-            #qn.PrintAllQ(params, env, sess)
-            #env.WalkAll(params, sess, qn)
+        timer.Start("Train")
+        totRewards, totDiscountedRewards = Train(params, env, sess, qns)
+        timer.Pause("Train")
+        
+        #qn.PrintAllQ(params, env, sess)
+        #env.WalkAll(params, sess, qn)
 
-            startState = env.startNodeId
-            env.Walk(startState, params, sess, qns.q[0], True)
+        startState = env.startNodeId
+        env.Walk(startState, params, sess, qns.q[0], True)
 
-            del timer
+        del timer
 
-            plt.plot(totRewards)
-            plt.plot(totDiscountedRewards)
-            plt.show()
+        plt.plot(totRewards)
+        plt.plot(totDiscountedRewards)
+        plt.show()
 
-            plt.plot(qns.q[0].corpus.losses)
-            plt.plot(qns.q[1].corpus.losses)
-            plt.show()
+        plt.plot(qns.q[0].corpus.losses)
+        plt.plot(qns.q[1].corpus.losses)
+        plt.show()
 
-            plt.plot(qns.q[0].corpus.sumWeights)
-            plt.plot(qns.q[1].corpus.sumWeights)
-            plt.show()
+        plt.plot(qns.q[0].corpus.sumWeights)
+        plt.plot(qns.q[1].corpus.sumWeights)
+        plt.show()
 
     print("Finished")
 
