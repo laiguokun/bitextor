@@ -339,9 +339,9 @@ class Env:
         docId = nextNode.docId
         if nextNodeId == 0:
             #print("   stop")
-            rewardNode = 0.0
+            reward = 0.0
         elif nextNode.aligned > 0:
-            rewardNode = -1.0
+            reward = -1.0
 
             # has this doc been crawled?
             if docId not in docsVisited:
@@ -349,17 +349,17 @@ class Env:
                 nodeIds = self.GetNodeIdsFromDocId(nextNode.aligned)
                 for nodeId in nodeIds:
                     if nodeId in visited:
-                        rewardNode = 17.0
+                        reward = 17.0
                         break
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
-            #print("   rewardNode", rewardNode)
+            #print("   reward", reward)
             #print()
         else:
             #print("   non-rewarding")
-            rewardNode = -1.0       
+            reward = -1.0       
 
-        return nextNodeId, docId, rewardNode
+        return nextNodeId, docId, reward
 
     def Walk(self, start, params, sess, qn, printQ):
         numAligned = 0
@@ -403,7 +403,7 @@ class Env:
                          + "\n"
 
             #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            mainStr += str(next) + alignedStr + "->"
+            mainStr += str(next) + alignedStr + "(" + str(reward) + ")->"
             curr = next
 
             if next == 0: break
