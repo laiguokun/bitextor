@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 1001
+        self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -319,11 +319,11 @@ class Env:
 
     def AddDocId(self, docId, nodeId):
         if docId in self.docId2nodeIds:
-            self.docId2nodeIds[docId].append(nodeId)
+            self.docId2nodeIds[docId].add(nodeId)
         else:
-            vec = []
-            vec.append(nodeId)
-            self.docId2nodeIds[docId] = vec
+            nodeIds = set()
+            nodeIds.add(nodeId)
+            self.docId2nodeIds[docId] = nodeIds
 
     def GetNodeIdsFromDocId(self, docId):
         if docId in self.docId2nodeIds:
@@ -331,15 +331,28 @@ class Env:
 
         raise Exception("Doc id not found:" + docId)
 
-    def GetNextState(self, action, unvisited):
+    def GetNextState(self, action, visited, unvisited):
         #nextNodeId = childIds[0, action]
         nextNodeId = unvisited.GetNextState(action)
+        #print("   nextNodeId", nextNodeId)
         nextNode = self.nodes[nextNodeId]
         if nextNodeId == 0:
+            #print("   stop")
             rewardNode = 0
         elif nextNode.aligned > 0:
-            rewardNode = 8.5
+            rewardNode = 0
+            # has the other doc been crawled?
+            nodeIds = self.GetNodeIdsFromDocId(nextNode.aligned)
+            for nodeId in nodeIds:
+                if nodeId in visited:
+                    rewardNode = 17.0
+                    break
+            #print("   visited", visited)
+            #print("   nodeIds", nodeIds)
+            #print("   rewardNode", rewardNode)
+            #print()
         else:
+            #print("   non-rewarding")
             rewardNode = -1        
 
         return nextNodeId, rewardNode
@@ -365,7 +378,7 @@ class Env:
             if printQ: unvisitedStr = str(unvisited.vec)
 
             action, allQ = qn.Predict(sess, featuresNP)
-            next, reward = self.GetNextState(action, unvisited)
+            next, reward = self.GetNextState(action, visited, unvisited)
             totReward += reward
             visited.add(next)
             unvisited.RemoveLink(next)
@@ -419,7 +432,7 @@ class Env:
         #DEBUG = False
         #if curr == 31: DEBUG = True
 
-        #print("curr", curr, visited, unvisited)
+        #print("curr", curr)
         unvisited.AddLinks(self, curr, visited, params)
         featuresNP = unvisited.GetFeaturesNP(self, params)
         nextStates = unvisited.GetNextStates(params)
@@ -430,7 +443,7 @@ class Env:
             #if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
         
-        next, r = self.GetNextState(action, unvisited)
+        next, r = self.GetNextState(action, visited, unvisited)
         #if DEBUG: print("   action", action, next, Qs)
 
         visited.add(next)
@@ -760,11 +773,11 @@ def Main():
 
         plt.plot(qns.q[0].corpus.losses)
         plt.plot(qns.q[1].corpus.losses)
-        plt.show()
+        #plt.show()
 
         plt.plot(qns.q[0].corpus.sumWeights)
         plt.plot(qns.q[1].corpus.sumWeights)
-        plt.show()
+        #plt.show()
 
     print("Finished")
 
