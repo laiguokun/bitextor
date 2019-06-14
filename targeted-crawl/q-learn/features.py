@@ -20,7 +20,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 20001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -331,38 +331,43 @@ class Env:
 
         raise Exception("Doc id not found:" + docId)
 
-    def GetNextState(self, action, visited, unvisited):
+    def GetNextState(self, action, visited, unvisited, docsVisited):
         #nextNodeId = childIds[0, action]
         nextNodeId = unvisited.GetNextState(action)
         #print("   nextNodeId", nextNodeId)
         nextNode = self.nodes[nextNodeId]
+        docId = nextNode.docId
         if nextNodeId == 0:
             #print("   stop")
-            rewardNode = 0
+            rewardNode = 0.0
         elif nextNode.aligned > 0:
-            rewardNode = 0
-            # has the other doc been crawled?
-            nodeIds = self.GetNodeIdsFromDocId(nextNode.aligned)
-            for nodeId in nodeIds:
-                if nodeId in visited:
-                    rewardNode = 17.0
-                    break
+            rewardNode = -1.0
+
+            # has this doc been crawled?
+            if docId not in docsVisited:
+                # has the other doc been crawled?
+                nodeIds = self.GetNodeIdsFromDocId(nextNode.aligned)
+                for nodeId in nodeIds:
+                    if nodeId in visited:
+                        rewardNode = 17.0
+                        break
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
             #print("   rewardNode", rewardNode)
             #print()
         else:
             #print("   non-rewarding")
-            rewardNode = -1        
+            rewardNode = -1.0       
 
-        return nextNodeId, rewardNode
+        return nextNodeId, docId, rewardNode
 
     def Walk(self, start, params, sess, qn, printQ):
         numAligned = 0
 
         visited = set()
         unvisited = Candidates()
-
+        docsVisited = set()
+        
         curr = start
         i = 0
         totReward = 0
@@ -378,10 +383,11 @@ class Env:
             if printQ: unvisitedStr = str(unvisited.vec)
 
             action, allQ = qn.Predict(sess, featuresNP)
-            next, reward = self.GetNextState(action, visited, unvisited)
+            next, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
             totReward += reward
             visited.add(next)
             unvisited.RemoveLink(next)
+            docsVisited.add(nextDocId)
 
             alignedStr = ""
             nextNode = self.nodes[next]
@@ -427,7 +433,7 @@ class Env:
         return ret
 
 
-    def Neural(self, epoch, curr, params, sess, qnA, qnB, visited, unvisited):
+    def Neural(self, epoch, curr, params, sess, qnA, qnB, visited, unvisited, docsVisited):
         assert(curr != 0)
         #DEBUG = False
         #if curr == 31: DEBUG = True
@@ -443,12 +449,13 @@ class Env:
             #if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
         
-        next, r = self.GetNextState(action, visited, unvisited)
+        next, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
         #if DEBUG: print("   action", action, next, Qs)
 
         visited.add(next)
         unvisited.RemoveLink(next)
         nextUnvisited = unvisited.copy()
+        docsVisited.add(nextDocId)
 
         if next == 0:
             done = True
@@ -486,6 +493,7 @@ class Env:
     def Trajectory(self, epoch, curr, params, sess, qns):
         visited = set()
         unvisited = Candidates()
+        docsVisited = set()
 
         while (True):
             tmp = np.random.rand(1)
@@ -498,7 +506,7 @@ class Env:
             #qnA = qns.q[0]
             #qnB = None
 
-            transition = self.Neural(epoch, curr, params, sess, qnA, qnB, visited, unvisited)
+            transition = self.Neural(epoch, curr, params, sess, qnA, qnB, visited, unvisited, docsVisited)
             
             qnA.corpus.AddTransition(transition)
 
