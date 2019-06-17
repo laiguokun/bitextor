@@ -9,6 +9,29 @@ import mysql.connector
 import time
 
 ######################################################################################
+class Timer:
+    def __init__(self):
+        self.starts = {}
+        self.cumm = {}
+
+    def __del__(self):
+        print("Timers:")
+        for key, val in self.cumm.items():
+            print(key, "\t", val)
+
+    def Start(self, str):
+        self.starts[str] = time.time()
+
+    def Pause(self, str):
+        now = time.time()
+        then = self.starts[str]
+
+        if str in self.cumm:
+            self.cumm[str] += now - then
+        else:
+            self.cumm[str] = now - then
+        
+######################################################################################
 def StrNone(arg):
     if arg is None:
         return "None"
@@ -762,30 +785,6 @@ def Train(params, env, sess, qns):
 
     return totRewards, totDiscountedRewards
             
-######################################################################################
-class Timer:
-    def __init__(self):
-        self.starts = {}
-        self.cumm = {}
-
-    def __del__(self):
-        print("Timers:")
-        for key, val in self.cumm.items():
-            print(key, "\t", val)
-
-    def Start(self, str):
-        self.starts[str] = time.time()
-
-    def Pause(self, str):
-        now = time.time()
-        then = self.starts[str]
-
-        if str in self.cumm:
-            self.cumm[str] += now - then
-        else:
-            self.cumm[str] = now - then
-        
-
 ######################################################################################
  
 timer = Timer()
