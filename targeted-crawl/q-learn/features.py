@@ -61,8 +61,9 @@ class Qnetwork():
         # These lines establish the feed-forward part of the network used to choose actions
         EMBED_DIM = 900
 
-        INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
-
+        INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS * 2
+        print("INPUT_DIM", INPUT_DIM)
+        
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
@@ -699,7 +700,7 @@ class Candidates:
             self.AddLink(link)
 
     def GetFeaturesNP(self, env, params):
-        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+        ret = np.zeros([2, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
         for childId in self.vec:
@@ -708,13 +709,23 @@ class Candidates:
             links = self.dict[childId]
             if len(links) > 0:
                 link = links[0]
-                langId = env.GetLangId(link.textLang)
-                ret[0, i] = langId
+                linkLangId = env.GetLangId(link.textLang)
+                ret[0, i] = linkLangId
+
+                parentNode = link.parentNode
+                parentLangId = env.GetLangId(parentNode.lang)
+                #print("parentNode", parentNode.lang, parentLangId, parentNode.Debug())
+                ret[1, i] = parentLangId
 
             i += 1
             if i >= params.NUM_ACTIONS:
                 #print("overloaded", len(self.dict), self.dict)
                 break
+
+        print("BEFORE", ret)
+        ret = ret.reshape([1, params.NUM_ACTIONS * 2])
+        print("AFTER", ret)
+        print()
 
         return ret
 
