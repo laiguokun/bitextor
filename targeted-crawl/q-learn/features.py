@@ -52,7 +52,7 @@ class LearningParams:
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 30
-        self.FEATURES_PER_ACTION = 2
+        self.FEATURES_PER_ACTION = 3
 
 ######################################################################################
 class Qnetwork():
@@ -125,7 +125,7 @@ class Qnetwork():
         unvisited = Candidates()
 
         unvisited.AddLinks(env, curr, visited, params)
-        featuresNP = unvisited.GetFeaturesNP(env, params)
+        featuresNP = unvisited.GetFeaturesNP(env, params, visited)
 
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         action, allQ = self.Predict(sess, featuresNP)
@@ -409,7 +409,7 @@ class Env:
             # print("curr", curr)
             # print("hh", next, hh)
             unvisited.AddLinks(self, curr, visited, params)
-            featuresNP = unvisited.GetFeaturesNP(self, params)
+            featuresNP = unvisited.GetFeaturesNP(self, params, visited)
 
             if printQ: unvisitedStr = str(unvisited.vec)
 
@@ -477,7 +477,7 @@ class Env:
 
         #print("curr", curr)
         unvisited.AddLinks(self, curr, visited, params)
-        featuresNP = unvisited.GetFeaturesNP(self, params)
+        featuresNP = unvisited.GetFeaturesNP(self, params, visited)
         nextStates = unvisited.GetNextStates(params)
         #print("   childIds", childIds, unvisited)
         timer.Pause("Neural.1")
@@ -511,7 +511,7 @@ class Env:
 
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, next, visited, params)
-            nextFeaturesNP = nextUnvisited.GetFeaturesNP(self, params)
+            nextFeaturesNP = nextUnvisited.GetFeaturesNP(self, params, visited)
             nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP)        
             #print("  nextAction", nextAction, nextQ)
 
@@ -702,7 +702,7 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
-    def GetFeaturesNP(self, env, params):
+    def GetFeaturesNP(self, env, params, visited):
         ret = np.zeros([params.FEATURES_PER_ACTION, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
