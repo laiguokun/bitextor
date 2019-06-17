@@ -52,6 +52,7 @@ class LearningParams:
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 30
+        self.FEATURES_PER_ACTION = 2
 
 ######################################################################################
 class Qnetwork():
@@ -60,7 +61,7 @@ class Qnetwork():
 
         # These lines establish the feed-forward part of the network used to choose actions
         INPUT_DIM = 20
-        EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * 2
+        EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * params.FEATURES_PER_ACTION
         #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
         HIDDEN_DIM = 128
@@ -69,7 +70,7 @@ class Qnetwork():
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
         #print("self.embeddings", self.embeddings)
 
-        self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS * 2], dtype=tf.int32)
+        self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=tf.int32)
         #print("self.input", self.input)
 
         self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
@@ -214,7 +215,7 @@ class Corpus:
     def UpdateQN(self, params, env, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
-        features = np.empty([batchSize, params.NUM_ACTIONS * 2], dtype=np.int)
+        features = np.empty([batchSize, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
         i = 0
@@ -702,7 +703,7 @@ class Candidates:
             self.AddLink(link)
 
     def GetFeaturesNP(self, env, params):
-        ret = np.zeros([2, params.NUM_ACTIONS], dtype=np.int)
+        ret = np.zeros([params.FEATURES_PER_ACTION, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
         for childId in self.vec:
@@ -725,7 +726,7 @@ class Candidates:
                 break
 
         #print("BEFORE", ret)
-        ret = ret.reshape([1, params.NUM_ACTIONS * 2])
+        ret = ret.reshape([1, params.NUM_ACTIONS * params.FEATURES_PER_ACTION])
         #print("AFTER", ret)
         #print()
 
