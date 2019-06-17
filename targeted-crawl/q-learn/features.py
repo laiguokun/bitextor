@@ -703,13 +703,13 @@ class Candidates:
 
         i = 0
         for childId in self.vec:
-            ret[0, i] = childId
+            #ret[0, i] = childId
 
-            #links = self.dict[childId]
-            #if len(links) > 0:
-            #    link = links[0]
-            #    langId = env.GetLangId(link.textLang)
-            #    ret[0, i] = langId
+            links = self.dict[childId]
+            if len(links) > 0:
+                link = links[0]
+                langId = env.GetLangId(link.textLang)
+                ret[0, i] = langId
 
             i += 1
             if i >= params.NUM_ACTIONS:
