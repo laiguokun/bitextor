@@ -59,10 +59,9 @@ class Qnetwork():
         self.corpus = Corpus(params, self)
 
         # These lines establish the feed-forward part of the network used to choose actions
-        EMBED_DIM = 900
-
-        INPUT_DIM = EMBED_DIM // params.NUM_ACTIONS
-        print("INPUT_DIM", INPUT_DIM)
+        INPUT_DIM = 20
+        EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS
+        print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
         HIDDEN_DIM = 128
 
