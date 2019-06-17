@@ -60,15 +60,17 @@ class Qnetwork():
 
         # These lines establish the feed-forward part of the network used to choose actions
         INPUT_DIM = 20
-        EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS
-        print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
+        EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * 2
+        #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
+        #print("self.embeddings", self.embeddings)
 
-        self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
+        self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS * 2], dtype=tf.int32)
+        #print("self.input", self.input)
 
         self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
         self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
@@ -136,6 +138,7 @@ class Qnetwork():
             self.PrintQ(curr, params, env, sess)
 
     def Predict(self, sess, input):
+        #print("input",input.shape)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: input})
         action = action[0]
         
@@ -211,7 +214,7 @@ class Corpus:
     def UpdateQN(self, params, env, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
-        features = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
+        features = np.empty([batchSize, params.NUM_ACTIONS * 2], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
         i = 0
@@ -699,7 +702,7 @@ class Candidates:
             self.AddLink(link)
 
     def GetFeaturesNP(self, env, params):
-        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+        ret = np.zeros([2, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
         for childId in self.vec:
@@ -714,7 +717,7 @@ class Candidates:
                 parentNode = link.parentNode
                 parentLangId = env.GetLangId(parentNode.lang)
                 #print("parentNode", parentNode.lang, parentLangId, parentNode.Debug())
-                #ret[1, i] = parentLangId
+                ret[1, i] = parentLangId
 
             i += 1
             if i >= params.NUM_ACTIONS:
@@ -722,7 +725,7 @@ class Candidates:
                 break
 
         #print("BEFORE", ret)
-        #ret = ret.reshape([1, params.NUM_ACTIONS * 2])
+        ret = ret.reshape([1, params.NUM_ACTIONS * 2])
         #print("AFTER", ret)
         #print()
 
