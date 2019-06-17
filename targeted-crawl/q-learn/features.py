@@ -675,20 +675,6 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
-        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
-
-        i = 0
-        for childId, links in self.dict.items():
-            ret[0, i] = childId
-
-            i += 1
-            if i >= params.NUM_ACTIONS:
-                #print("overloaded", len(self.dict), self.dict)
-                break
-
-        return ret
-
-
     def GetFeaturesNP(self, env, params):
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
