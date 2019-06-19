@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import numpy as np
 import pylab as plt
 import tensorflow as tf
@@ -43,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 500001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -386,7 +387,7 @@ class Env:
             #print()
         else:
             #print("   non-rewarding")
-            reward = -1.0       
+            reward = -1.0
 
         return nextNodeId, docId, reward
 
@@ -785,6 +786,7 @@ def Train(params, env, sess, qns):
             totDiscountedRewards.append(totDiscountedReward)
             print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
             print()
+            sys.stdout.flush()
 
             #numAligned = env.GetNumberAligned(path)
             #print("path", numAligned, env.numAligned)
