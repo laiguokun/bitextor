@@ -44,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 5001
+        self.max_epochs = 10001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -198,17 +198,8 @@ class Corpus:
         features = np.zeros([1, params.NUM_ACTIONS])
         return features
 
-    def AddStopTransition(self, env, params):
-        # stop state
-        for i in range(10):
-            targetQ = np.zeros([1, params.NUM_ACTIONS])
-            childIds = self.GetStopFeaturesNP(params)
-            transition = env.Transition(0, 0, True, np.array(childIds, copy=True), np.array(targetQ, copy=True))
-            self.transitions.append(transition)
-
     def Train(self, sess, env, params):
         if len(self.transitions) >= params.minCorpusSize:
-            #self.AddStopTransition(env, params)
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
@@ -231,6 +222,7 @@ class Corpus:
 
             features[i, :] = transition.features
             targetQ[i, :] = transition.targetQ
+            siblings[i, :] = transition.siblings
         
             i += 1
 
@@ -260,7 +252,7 @@ class MySQL:
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
-        self.Transition = namedtuple("Transition", "curr next done features targetQ")
+        self.Transition = namedtuple("Transition", "curr next done features siblings targetQ")
         self.langIds = {}
         self.numAligned = 0
         self.nodes = []
@@ -540,7 +532,7 @@ class Env:
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
 
-        transition = self.Transition(curr, next, done, np.array(featuresNP, copy=True), np.array(targetQ, copy=True))
+        transition = self.Transition(curr, next, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
         timer.Pause("Neural.6")
 
         return transition
