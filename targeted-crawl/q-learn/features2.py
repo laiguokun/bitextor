@@ -90,7 +90,7 @@ class Qnetwork():
         #self.hidden1 = tf.nn.relu(self.hidden1)
 
         # SIBLINGS
-        self.siblings = tf.placeholder(shape=[None, 1], dtype=tf.int32)
+        self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
 
         # HIDDEN 2
         self.hidden2 = tf.concat([self.hidden1], 0)
