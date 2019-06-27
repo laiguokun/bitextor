@@ -150,7 +150,7 @@ class Qnetwork():
         
         return action, allQ
 
-    def Update(self, sess, input, targetQ, siblings):
+    def Update(self, sess, input, siblings, targetQ):
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], feed_dict={self.input: input, self.siblings: siblings, self.nextQ: targetQ})
         return loss, sumWeight
 
@@ -221,6 +221,7 @@ class Corpus:
         batchSize = len(batch)
         #print("batchSize", batchSize)
         features = np.empty([batchSize, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=np.int)
+        siblings = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
         i = 0
@@ -235,7 +236,7 @@ class Corpus:
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         timer.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, features, targetQ)
+        loss, sumWeight = self.qn.Update(sess, features, siblings, targetQ)
         timer.Pause("UpdateQN.1")
 
         #print("loss", loss)
