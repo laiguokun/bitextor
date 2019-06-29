@@ -711,14 +711,18 @@ class Candidates:
             links = self.dict[childId]
             if len(links) > 0:
                 link = links[0]
+                #print("link", link)
                 linkLangId = env.GetLangId(link.textLang)
                 ret[0, i] = linkLangId
 
                 parentNode = link.parentNode
                 parentLangId = env.GetLangId(parentNode.lang)
-                #print("parentNode", parentNode.lang, parentLangId, parentNode.Debug())
+                #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
                 ret[1, i] = parentLangId
 
+                numMatchedSiblings = self.GetMatchedSiblings(childId, parentNode)
+                siblings[0, i] = numMatchedSiblings
+                
             i += 1
             if i >= params.NUM_ACTIONS:
                 #print("overloaded", len(self.dict), self.dict)
@@ -730,6 +734,23 @@ class Candidates:
         #print()
 
         return ret, siblings
+
+    def GetMatchedSiblings(self, childId, parentNode):
+        numSiblings = 0
+        numMatches = 0
+
+        #print("parentNode", parentNode.id, childId)
+        for link in parentNode.links:
+            sibling = link.childNode
+            if sibling.id != childId:
+                #print("   link", sibling.id)
+                numSiblings += 1
+
+                if link.childNode.aligned > 0:
+                    numMatches += 1
+        #print("   ", numSiblings, numMatches)
+
+        return numMatches
 
     def GetNextState(self, action):
         if action >= len(self.vec):
