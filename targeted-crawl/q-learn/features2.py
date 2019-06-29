@@ -44,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 10001
+        self.max_epochs = 100001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -720,7 +720,7 @@ class Candidates:
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
                 ret[1, i] = parentLangId
 
-                numMatchedSiblings = self.GetMatchedSiblings(childId, parentNode)
+                numMatchedSiblings = self.GetMatchedSiblings(childId, parentNode, visited)
                 siblings[0, i] = numMatchedSiblings
                 
             i += 1
@@ -735,7 +735,7 @@ class Candidates:
 
         return ret, siblings
 
-    def GetMatchedSiblings(self, childId, parentNode):
+    def GetMatchedSiblings(self, childId, parentNode, visited):
         numSiblings = 0
         numMatches = 0
 
@@ -743,12 +743,15 @@ class Candidates:
         for link in parentNode.links:
             sibling = link.childNode
             if sibling.id != childId:
-                #print("   link", sibling.id)
+                print("   link", sibling.id, sibling.aligned)
                 numSiblings += 1
 
-                if link.childNode.aligned > 0:
+                if sibling.aligned > 0 and sibling.id in visited and sibling.aligned in visited:
                     numMatches += 1
-        #print("   ", numSiblings, numMatches)
+    
+        if numMatches > 0:
+            print("   ", numSiblings, numMatches)
+            sfsdfds
 
         return numMatches
 
