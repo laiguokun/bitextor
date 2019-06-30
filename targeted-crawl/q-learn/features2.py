@@ -260,7 +260,6 @@ class Env:
         self.numAligned = 0
         self.nodes2 = {}
         self.url2urlId = {}
-        self.urlId2nodeId = {}
         self.docId2nodeIds = {}
         self.docId2URLIds = {}
 
@@ -268,7 +267,6 @@ class Env:
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodesbyURL[node.url] = node
         self.nodes2[0] = node
-        self.urlId2nodeId[0] = 0
 
         # all nodes with docs
         sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
@@ -283,7 +281,6 @@ class Env:
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes2[node.urlId] = node
             self.url2urlId[node.url] = node.urlId
-            self.urlId2nodeId[node.urlId] = id
             self.AddDocId(node.docId, id, node.urlId)
 
             if node.alignedDoc > 0:
@@ -293,7 +290,6 @@ class Env:
         # start node = last node in the vec
         id = len(self.nodes2)
         startNode = Node(sqlconn, id, sys.maxsize, 0, None, "START")
-        self.urlId2nodeId[startNode.urlId] = id
 
         # start node has 1 child
         urlId = self.GetURLIdFromURL(url)
@@ -337,12 +333,6 @@ class Env:
             return self.url2urlId[url]
 
         raise Exception("URL not found:" + url)
-
-    def GetNodeIdFromURLId(self, urlId):
-        if urlId in self.urlId2nodeId:
-            return self.urlId2nodeId[urlId]
-
-        raise Exception("URL id not found:" + str(urlId))
 
     def GetNodeIdFromURL(self, url):
         urlId = self.GetURLIdFromURL(url)
@@ -650,7 +640,7 @@ class Node:
             url = rec[4]
             #print("urlid", self.docId, text, urlId)
 
-            if urlId in env.urlId2nodeId:
+            if urlId in env.nodes2:
                 childNode = env.nodes2[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
