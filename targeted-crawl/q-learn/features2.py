@@ -255,7 +255,7 @@ class MySQL:
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
-        self.Transition = namedtuple("Transition", "curr currURLId next done features siblings targetQ")
+        self.Transition = namedtuple("Transition", "curr currURLId next nextURLId done features siblings targetQ")
         self.langIds = {}
         self.numAligned = 0
         self.nodes = []
@@ -499,6 +499,7 @@ class Env:
         
         timer.Start("Neural.3")
         next, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
+        nextNode = self.nodes[next]
         #if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
 
@@ -518,7 +519,6 @@ class Env:
             done = False
 
             # Obtain the Q' values by feeding the new state through our network
-            nextNode = self.nodes[next]
             nextUnvisited.AddLinks(self, nextNode.urlId, visited, params)
             nextFeaturesNP, nextSiblings = nextUnvisited.GetFeaturesNP(self, params, visited)
             nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings)        
@@ -543,7 +543,7 @@ class Env:
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
 
-        transition = self.Transition(curr, currURLId, next, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
+        transition = self.Transition(curr, currURLId, next, nextNode.urlId, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
         timer.Pause("Neural.6")
 
         return transition
