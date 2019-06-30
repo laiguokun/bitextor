@@ -309,12 +309,12 @@ class Env:
         self.startNodeId = startNode.id
         #print("startNode", startNode.Debug())
 
-        for node in self.nodes:
+        for node in self.nodes2.values():
             node.CreateLinks(sqlconn, self)
             print(node.Debug())
         
 
-        print("all nodes", len(self.nodes))
+        print("all nodes", len(self.nodes2))
 
         # print out
         #for node in self.nodes:
@@ -463,7 +463,7 @@ class Env:
 
 
     def WalkAll(self, params, sess, qn):
-        for node in self.nodes:
+        for node in self.nodes2.values():
             nodeId = node.id
             self.Walk(nodeId, params, sess, qn, False)
 
@@ -647,8 +647,7 @@ class Node:
             #print("urlid", self.docId, text, urlId)
 
             if urlId in env.urlId2nodeId:
-                nodeId = env.GetNodeIdFromURLId(urlId)
-                childNode = env.nodes[nodeId]
+                childNode = env.nodes2[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
                 continue
@@ -705,8 +704,7 @@ class Candidates:
         return ret
 
     def AddLinks(self, env, urlId, visited, params):
-        nodeId = env.GetNodeIdFromURLId(urlId)
-        currNode = env.nodes[nodeId]
+        currNode = env.nodes2[urlId]
         #print("   currNode", curr, currNode.Debug())
         newLinks = currNode.GetLinks(visited, params)
 
