@@ -289,7 +289,7 @@ class Env:
             self.urlId2nodeId[node.urlId] = id
             self.AddDocId(node.docId, id, node.urlId)
 
-            if node.aligned > 0:
+            if node.alignedDoc > 0:
                 self.numAligned += 1
         print("numAligned", self.numAligned)
 
@@ -387,13 +387,13 @@ class Env:
         if nextNodeId == 0:
             #print("   stop")
             reward = 0.0
-        elif nextNode.aligned > 0:
+        elif nextNode.alignedDoc > 0:
             reward = -1.0
 
             # has this doc been crawled?
             if docId not in docsVisited:
                 # has the other doc been crawled?
-                urlIds = self.GetURLIdsFromDocId(nextNode.aligned)
+                urlIds = self.GetURLIdsFromDocId(nextNode.alignedDoc)
                 for urlId in urlIds:
                     if urlId in visited:
                         reward = 17.0
@@ -442,7 +442,7 @@ class Env:
 
             alignedStr = ""
             nextNode = self.nodes[next]
-            if nextNode.aligned > 0:
+            if nextNode.alignedDoc > 0:
                 alignedStr = "*"
                 numAligned += 1
 
@@ -484,7 +484,7 @@ class Env:
         for transition in path:
             next = transition.next
             nextNode = self.nodes[next]
-            if nextNode.aligned > 0:
+            if nextNode.alignedDoc > 0:
                 ret += 1
         return ret
 
@@ -603,7 +603,7 @@ class Node:
         self.lang = lang
         self.url = url
         self.links = []
-        self.aligned = 0
+        self.alignedDoc = 0
 
         self.CreateAlign(sqlconn)
 
@@ -614,14 +614,14 @@ class Node:
             #print("sql", sql)
             sqlconn.mycursor.execute(sql, val)
             res = sqlconn.mycursor.fetchall()
-            #print("aligned",  self.url, self.docId, res)
+            #print("alignedDoc",  self.url, self.docId, res)
 
             if len(res) > 0:
                 rec = res[0]
                 if self.docId == rec[0]:
-                    self.aligned = rec[1]
+                    self.alignedDoc = rec[1]
                 elif self.docId == rec[1]:
-                    self.aligned = rec[0]
+                    self.alignedDoc = rec[0]
                 else:
                     assert(True)
 
@@ -635,7 +635,7 @@ class Node:
 
         return " ".join([str(self.id), str(self.urlId), 
                         StrNone(self.docId), StrNone(self.lang), 
-                        str(self.aligned), self.url,
+                        str(self.alignedDoc), self.url,
                         "links=", str(len(self.links)), ":", strLinks ] )
 
     def CreateLinks(self, sqlconn, env):
@@ -768,10 +768,10 @@ class Candidates:
         for link in parentNode.links:
             sibling = link.childNode
             if sibling.id != childId:
-                #print("   link", sibling.id, sibling.aligned)
+                #print("   link", sibling.id, sibling.alignedDoc)
                 numSiblings += 1
 
-                if sibling.aligned > 0 and sibling.id in visited and sibling.aligned in visited:
+                if sibling.alignedDoc > 0 and sibling.id in visited and sibling.alignedDoc in visited:
                     numMatches += 1
     
         if numMatches > 0:
