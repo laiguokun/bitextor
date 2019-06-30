@@ -298,7 +298,7 @@ class Env:
 
         self.nodes2[startNode.urlId] = startNode
 
-        self.startNodeId = startNode.id
+        self.startNodeId = startNode.urlId
         #print("startNode", startNode.Debug())
 
         for node in self.nodes2.values():
@@ -571,7 +571,6 @@ class Node:
     def __init__(self, sqlconn, id, urlId, docId, lang, url):
         self.Link = namedtuple("Link", "text textLang parentNode childNode")
 
-        self.id = id
         self.urlId = urlId
         self.docId = docId
         self.lang = lang
@@ -605,11 +604,10 @@ class Node:
         strLinks = ""
         for link in self.links:
             #strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
-            strLinks += str(link.childNode.id) + " "
+            strLinks += str(link.childNode.urlId) + " "
 
-        return " ".join([str(self.id), str(self.urlId), 
-                        StrNone(self.docId), StrNone(self.lang), 
-                        str(self.alignedDoc), self.url,
+        return " ".join([str(self.urlId), StrNone(self.docId), 
+                        StrNone(self.lang), str(self.alignedDoc), self.url,
                         "links=", str(len(self.links)), ":", strLinks ] )
 
     def CreateLinks(self, sqlconn, env):
@@ -651,7 +649,7 @@ class Node:
             childNode = link.childNode
             childURLId = childNode.urlId
             #print("   ", childNode.Debug())
-            if childURLId != self.id and childURLId not in visited:
+            if childURLId != self.urlId and childURLId not in visited:
                 ret.append(link)
         #print("   childIds", childIds)
 
@@ -736,11 +734,11 @@ class Candidates:
         #print("parentNode", parentNode.id, urlId)
         for link in parentNode.links:
             sibling = link.childNode
-            if sibling.id != urlId:
+            if sibling.urlId != urlId:
                 #print("   link", sibling.id, sibling.alignedDoc)
                 numSiblings += 1
 
-                if sibling.alignedDoc > 0 and sibling.id in visited and sibling.alignedDoc in visited:
+                if sibling.alignedDoc > 0 and sibling.urlId in visited and sibling.alignedDoc in visited:
                     numMatches += 1
     
         if numMatches > 0:
