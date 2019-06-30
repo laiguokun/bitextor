@@ -260,7 +260,6 @@ class Env:
         self.numAligned = 0
         self.nodes2 = {}
         self.url2urlId = {}
-        self.docId2nodeIds = {}
         self.docId2URLIds = {}
 
         # stop node = 1st node in the vec
@@ -340,29 +339,18 @@ class Env:
         return nodeId
 
     def AddDocId(self, docId, nodeId, urlId):
-        if docId in self.docId2nodeIds:
-            self.docId2nodeIds[docId].add(nodeId)
+        if docId in self.docId2URLIds:
             self.docId2URLIds[docId].add(urlId)
         else:
-            nodeIds = set()
-            nodeIds.add(nodeId)
-            self.docId2nodeIds[docId] = nodeIds
-
             urlIds = set()
             urlIds.add(urlId)
             self.docId2URLIds[docId] = urlIds
-
-    def GetNodeIdsFromDocId(self, docId):
-        if docId in self.docId2nodeIds:
-            return self.docId2nodeIds[docId]
-
-        raise Exception("GetNodeIdsFromDocId: Doc id not found:" + docId)
 
     def GetURLIdsFromDocId(self, docId):
         if docId in self.docId2URLIds:
             return self.docId2URLIds[docId]
 
-        raise Exception("GetURLIdsFromDocId: Doc id not found:" + docId)
+        raise Exception("Doc id not found:" + docId)
 
     def GetNextState(self, action, visited, unvisited, docsVisited):
         #nextNodeId = childIds[0, action]
