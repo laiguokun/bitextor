@@ -128,7 +128,7 @@ class Qnetwork():
     def PrintQ(self, urlId, params, env, sess):
         #print("hh", urlId, env.nodes2)
         visited = set()
-        unvisited = Candidates()
+        unvisited = Candidates(env)
 
         node = env.nodes2[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
@@ -398,7 +398,7 @@ class Env:
 
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
-        unvisited = Candidates()
+        unvisited = Candidates(self)
         docsVisited = set()
         
         curr = start
@@ -547,7 +547,7 @@ class Env:
 
     def Trajectory(self, epoch, currURLId, params, sess, qns):
         visited = set()
-        unvisited = Candidates()
+        unvisited = Candidates(self)
         docsVisited = set()
 
         while (True):
@@ -674,9 +674,11 @@ class Node:
 ######################################################################################
 
 class Candidates:
-    def __init__(self):
+    def __init__(self, env):
+        self.env = env
         self.dict = {} # nodeid -> link
         self.vec = []
+        self.urlIds = []
 
         self.dict[0] = []
         self.vec.append(0)
@@ -686,6 +688,7 @@ class Candidates:
         if childId not in self.dict:
             self.dict[childId] = []
             self.vec.append(childId)
+            self.urlIds.append(link.childNode.urlId)
         self.dict[childId].append(link)
 
     def RemoveLink(self, childId):
@@ -693,9 +696,10 @@ class Candidates:
         self.vec.remove(childId)                
 
     def copy(self):
-        ret = Candidates()
+        ret = Candidates(self.env)
         ret.dict = self.dict.copy()
         ret.vec = self.vec.copy()
+        ret.urlIds = self.urlIds.copy()
 
         return ret
 
