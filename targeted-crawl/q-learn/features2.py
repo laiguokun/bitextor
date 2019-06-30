@@ -44,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 100001
+        self.max_epochs = 5001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -130,7 +130,8 @@ class Qnetwork():
         visited = set()
         unvisited = Candidates()
 
-        unvisited.AddLinks(env, curr, visited, params)
+        node = env.nodes[curr]
+        unvisited.AddLinks(env, node.urlId, visited, params)
         featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
 
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
@@ -266,6 +267,7 @@ class Env:
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodesbyURL[node.url] = node
         self.nodes.append(node)
+        self.urlId2nodeId[0] = 0
 
         # all nodes with docs
         sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
@@ -289,7 +291,8 @@ class Env:
 
         # start node = last node in the vec
         id = len(self.nodes)
-        startNode = Node(sqlconn, id, 0, 0, None, "START")
+        startNode = Node(sqlconn, id, id, 0, None, "START")
+        self.urlId2nodeId[id] = id
 
         # start node has 1 child
         nodeId = self.GetNodeIdFromURL(url)
@@ -337,7 +340,7 @@ class Env:
         if urlId in self.urlId2nodeId:
             return self.urlId2nodeId[urlId]
 
-        raise Exception("URL id not found:" + urlId)
+        raise Exception("URL id not found:" + str(urlId))
 
     def GetNodeIdFromURL(self, url):
         urlId = self.GetURLIdFromURL(url)
@@ -406,7 +409,8 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            unvisited.AddLinks(self, curr, visited, params)
+            currNode = self.nodes[curr]
+            unvisited.AddLinks(self, currNode.urlId, visited, params)
             featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
 
             if printQ: unvisitedStr = str(unvisited.vec)
@@ -475,7 +479,8 @@ class Env:
         #if curr == 31: DEBUG = True
 
         #print("curr", curr)
-        unvisited.AddLinks(self, curr, visited, params)
+        currNode = self.nodes[curr]
+        unvisited.AddLinks(self, currNode.urlId, visited, params)
         featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
         nextStates = unvisited.GetNextStates(params)
         #print("   childIds", childIds, unvisited)
@@ -509,7 +514,8 @@ class Env:
             done = False
 
             # Obtain the Q' values by feeding the new state through our network
-            nextUnvisited.AddLinks(self, next, visited, params)
+            nextNode = self.nodes[next]
+            nextUnvisited.AddLinks(self, nextNode.urlId, visited, params)
             nextFeaturesNP, nextSiblings = nextUnvisited.GetFeaturesNP(self, params, visited)
             nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings)        
             #print("  nextAction", nextAction, nextQ)
@@ -693,8 +699,9 @@ class Candidates:
 
         return ret
 
-    def AddLinks(self, env, curr, visited, params):
-        currNode = env.nodes[curr]
+    def AddLinks(self, env, urlId, visited, params):
+        nodeId = env.GetNodeIdFromURLId(urlId)
+        currNode = env.nodes[nodeId]
         #print("   currNode", curr, currNode.Debug())
         newLinks = currNode.GetLinks(visited, params)
 
