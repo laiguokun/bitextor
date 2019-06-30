@@ -393,9 +393,9 @@ class Env:
             # has this doc been crawled?
             if docId not in docsVisited:
                 # has the other doc been crawled?
-                nodeIds = self.GetNodeIdsFromDocId(nextNode.aligned)
-                for nodeId in nodeIds:
-                    if nodeId in visited:
+                urlIds = self.GetURLIdsFromDocId(nextNode.aligned)
+                for urlId in urlIds:
+                    if urlId in visited:
                         reward = 17.0
                         break
             #print("   visited", visited)
@@ -436,7 +436,7 @@ class Env:
             next, nextURLId, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
             totReward += reward
             totDiscountedReward += discount * reward
-            visited.add(next)
+            visited.add(nextURLId)
             unvisited.RemoveLink(next, nextURLId)
             docsVisited.add(nextDocId)
 
@@ -513,7 +513,7 @@ class Env:
         timer.Pause("Neural.3")
 
         timer.Start("Neural.4")
-        visited.add(next)
+        visited.add(nextURLId)
         unvisited.RemoveLink(next, nextURLId)
         nextUnvisited = unvisited.copy()
         docsVisited.add(nextDocId)
@@ -675,9 +675,9 @@ class Node:
         ret = []
         for link in self.links:
             childNode = link.childNode
-            childNodeId = childNode.id
+            childURLId = childNode.urlId
             #print("   ", childNode.Debug())
-            if childNodeId != self.id and childNodeId not in visited:
+            if childURLId != self.id and childURLId not in visited:
                 ret.append(link)
         #print("   childIds", childIds)
 
