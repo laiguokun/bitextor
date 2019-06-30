@@ -68,7 +68,7 @@ class Qnetwork():
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
-        ns = len(env.nodes2)
+        ns = len(env.nodes)
         self.embeddings = tf.Variable(tf.random_uniform([ns, INPUT_DIM], 0, 0.01))
         #print("self.embeddings", self.embeddings)
 
@@ -126,11 +126,11 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PrintQ(self, urlId, params, env, sess):
-        #print("hh", urlId, env.nodes2)
+        #print("hh", urlId, env.nodes)
         visited = set()
         unvisited = Candidates(env)
 
-        node = env.nodes2[urlId]
+        node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
         featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
 
@@ -142,7 +142,7 @@ class Qnetwork():
 
     def PrintAllQ(self, params, env, sess):
         print("State         Q-values                          Next state")
-        for node in env.nodes2.values():
+        for node in env.nodes.values():
             urlId = node.urlId
             self.PrintQ(urlId, params, env, sess)
 
@@ -258,14 +258,14 @@ class Env:
         self.Transition = namedtuple("Transition", "currURLId nextURLId done features siblings targetQ")
         self.langIds = {}
         self.numAligned = 0
-        self.nodes2 = {}
+        self.nodes = {}
         self.url2urlId = {}
         self.docId2URLIds = {}
 
         # stop node = 1st node in the vec
-        node = Node(sqlconn, 0, 0, 0, None, "STOP")
+        node = Node(sqlconn, 0, 0, None, "STOP")
         #self.nodesbyURL[node.url] = node
-        self.nodes2[0] = node
+        self.nodes[0] = node
 
         # all nodes with docs
         sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
@@ -276,9 +276,8 @@ class Env:
 
         for rec in res:
             #print("rec", rec[0], rec[1])
-            id = len(self.nodes2)
-            node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
-            self.nodes2[node.urlId] = node
+            node = Node(sqlconn, rec[0], rec[1], rec[2], rec[3])
+            self.nodes[node.urlId] = node
             self.url2urlId[node.url] = node.urlId
             self.AddDocId(node.docId, id, node.urlId)
 
@@ -287,26 +286,23 @@ class Env:
         print("numAligned", self.numAligned)
 
         # start node = last node in the vec
-        id = len(self.nodes2)
-        startNode = Node(sqlconn, id, sys.maxsize, 0, None, "START")
+        startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
         # start node has 1 child
         urlId = self.GetURLIdFromURL(url)
-        rootNode = self.nodes2[urlId]
+        rootNode = self.nodes[urlId]
         assert(rootNode is not None)
         startNode.CreateLink("", None, rootNode)
 
-        self.nodes2[startNode.urlId] = startNode
-
-        self.startNodeId = startNode.urlId
+        self.nodes[startNode.urlId] = startNode
         #print("startNode", startNode.Debug())
 
-        for node in self.nodes2.values():
+        for node in self.nodes.values():
             node.CreateLinks(sqlconn, self)
             print(node.Debug())
         
 
-        print("all nodes", len(self.nodes2))
+        print("all nodes", len(self.nodes))
 
         # print out
         #for node in self.nodes:
@@ -356,7 +352,7 @@ class Env:
         #nextNodeId = childIds[0, action]
         nextURLId = unvisited.GetNextState(action)
         #print("   nextNodeId", nextNodeId)
-        nextNode = self.nodes2[nextURLId]
+        nextNode = self.nodes[nextURLId]
         docId = nextNode.docId
         if nextURLId == 0:
             #print("   stop")
@@ -400,7 +396,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            currNode = self.nodes2[curr]
+            currNode = self.nodes[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
             featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
 
@@ -415,7 +411,7 @@ class Env:
             docsVisited.add(nextDocId)
 
             alignedStr = ""
-            nextNode = self.nodes2[nextURLId]
+            nextNode = self.nodes[nextURLId]
             if nextNode.alignedDoc > 0:
                 alignedStr = "*"
                 numAligned += 1
@@ -449,7 +445,7 @@ class Env:
 
 
     def WalkAll(self, params, sess, qn):
-        for node in self.nodes2.values():
+        for node in self.nodes.values():
             nodeId = node.id
             self.Walk(nodeId, params, sess, qn, False)
 
@@ -457,7 +453,7 @@ class Env:
         ret = 0
         for transition in path:
             next = transition.nextURLId
-            nextNode = self.nodes2[next]
+            nextNode = self.nodes[next]
             if nextNode.alignedDoc > 0:
                 ret += 1
         return ret
@@ -482,7 +478,7 @@ class Env:
         
         timer.Start("Neural.3")
         nextURLId, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
-        nextNode = self.nodes2[nextURLId]
+        nextNode = self.nodes[nextURLId]
         #if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
 
@@ -568,7 +564,7 @@ class Env:
 ######################################################################################
 
 class Node:
-    def __init__(self, sqlconn, id, urlId, docId, lang, url):
+    def __init__(self, sqlconn, urlId, docId, lang, url):
         self.Link = namedtuple("Link", "text textLang parentNode childNode")
 
         self.urlId = urlId
@@ -626,8 +622,8 @@ class Node:
             url = rec[4]
             #print("urlid", self.docId, text, urlId)
 
-            if urlId in env.nodes2:
-                childNode = env.nodes2[urlId]
+            if urlId in env.nodes:
+                childNode = env.nodes[urlId]
                 #print("child", self.docId, childNode.Debug())
             else:
                 continue
@@ -685,7 +681,7 @@ class Candidates:
         return ret
 
     def AddLinks(self, env, urlId, visited, params):
-        currNode = env.nodes2[urlId]
+        currNode = env.nodes[urlId]
         #print("   currNode", curr, currNode.Debug())
         newLinks = currNode.GetLinks(visited, params)
 
@@ -777,8 +773,6 @@ def Train(params, env, sess, qns):
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         #startState = 30
-        startState = env.startNodeId
-        #print("startState", startState)
         
         timer.Start("Trajectory")
         env.Trajectory(epoch, sys.maxsize, params, sess, qns)
