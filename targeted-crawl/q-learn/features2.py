@@ -380,11 +380,11 @@ class Env:
 
     def GetNextState(self, action, visited, unvisited, docsVisited):
         #nextNodeId = childIds[0, action]
-        nextNodeId, nextURLId = unvisited.GetNextState(action)
+        nextURLId = unvisited.GetNextState(action)
         #print("   nextNodeId", nextNodeId)
-        nextNode = self.nodes[nextNodeId]
+        nextNode = self.nodes2[nextURLId]
         docId = nextNode.docId
-        if nextNodeId == 0:
+        if nextURLId == 0:
             #print("   stop")
             reward = 0.0
         elif nextNode.alignedDoc > 0:
@@ -406,7 +406,7 @@ class Env:
             #print("   non-rewarding")
             reward = -1.0
 
-        return nextNodeId, nextURLId, docId, reward
+        return nextURLId, docId, reward
 
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
@@ -430,37 +430,37 @@ class Env:
             unvisited.AddLinks(self, currNode.urlId, visited, params)
             featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
 
-            if printQ: unvisitedStr = str(unvisited.vec)
+            if printQ: unvisitedStr = str(unvisited.urlIds)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings)
-            next, nextURLId, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
+            nextURLId, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
             totReward += reward
             totDiscountedReward += discount * reward
             visited.add(nextURLId)
-            unvisited.RemoveLink(next, nextURLId)
+            unvisited.RemoveLink(nextURLId)
             docsVisited.add(nextDocId)
 
             alignedStr = ""
-            nextNode = self.nodes[next]
+            nextNode = self.nodes2[nextURLId]
             if nextNode.alignedDoc > 0:
                 alignedStr = "*"
                 numAligned += 1
 
             if printQ:
-                debugStr += "   " + str(curr) + "->" + str(next) + " " \
+                debugStr += "   " + str(curr) + "->" + str(nextURLId) + " " \
                          + str(action) + " " + str(allQ) + " " \
                          + unvisitedStr + " " \
                          + str(featuresNP) + " " \
                          + "\n"
 
-            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-            mainStr += str(next) + alignedStr + "->"
+            #print("(" + str(action) + ")", str(nextURLId) + "(" + str(reward) + ") -> ", end="")
+            mainStr += str(nextURLId) + alignedStr + "->"
             rewardStr += str(reward) + "->"
-            curr = next
+            curr = nextURLId
             discount *= params.gamma
             i += 1
 
-            if next == 0: break
+            if nextURLId == 0: break
 
         mainStr += " " + str(i) + "/" + str(numAligned)
         rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
@@ -507,24 +507,24 @@ class Env:
         timer.Pause("Neural.2")
         
         timer.Start("Neural.3")
-        next, nextURLId, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
-        nextNode = self.nodes[next]
+        nextURLId, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
+        nextNode = self.nodes2[nextURLId]
         #if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
 
         timer.Start("Neural.4")
         visited.add(nextURLId)
-        unvisited.RemoveLink(next, nextURLId)
+        unvisited.RemoveLink(nextURLId)
         nextUnvisited = unvisited.copy()
         docsVisited.add(nextDocId)
         timer.Pause("Neural.4")
 
         timer.Start("Neural.5")
-        if next == 0:
+        if nextURLId == 0:
             done = True
             maxNextQ = 0.0
         else:
-            assert(next != 0)
+            assert(nextURLId != 0)
             done = False
 
             # Obtain the Q' values by feeding the new state through our network
@@ -689,30 +689,25 @@ class Candidates:
     def __init__(self, env):
         self.env = env
         self.dict = {} # nodeid -> link
-        self.vec = []
         self.urlIds = []
 
         self.dict[0] = []
-        self.vec.append(0)
         self.urlIds.append(0)
 
     def AddLink(self, link):
-        childId = link.childNode.id
-        if childId not in self.dict:
-            self.dict[childId] = []
-            self.vec.append(childId)
+        urlLId = link.childNode.urlId
+        if urlLId not in self.dict:
+            self.dict[urlLId] = []
             self.urlIds.append(link.childNode.urlId)
-        self.dict[childId].append(link)
+        self.dict[urlLId].append(link)
 
-    def RemoveLink(self, childId, nextURLId):
-        del self.dict[childId]
-        self.vec.remove(childId)     
+    def RemoveLink(self, nextURLId):
+        del self.dict[nextURLId]
         self.urlIds.remove(nextURLId)
 
     def copy(self):
         ret = Candidates(self.env)
         ret.dict = self.dict.copy()
-        ret.vec = self.vec.copy()
         ret.urlIds = self.urlIds.copy()
 
         return ret
@@ -730,10 +725,10 @@ class Candidates:
         siblings = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
-        for childId in self.vec:
+        for urlId in self.urlIds:
             #ret[0, i] = childId
 
-            links = self.dict[childId]
+            links = self.dict[urlId]
             if len(links) > 0:
                 link = links[0]
                 #print("link", link)
@@ -745,7 +740,7 @@ class Candidates:
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
                 ret[1, i] = parentLangId
 
-                numMatchedSiblings = self.GetMatchedSiblings(childId, parentNode, visited)
+                numMatchedSiblings = self.GetMatchedSiblings(urlId, parentNode, visited)
                 siblings[0, i] = numMatchedSiblings
                 
             i += 1
@@ -760,14 +755,14 @@ class Candidates:
 
         return ret, siblings
 
-    def GetMatchedSiblings(self, childId, parentNode, visited):
+    def GetMatchedSiblings(self, urlId, parentNode, visited):
         numSiblings = 0
         numMatches = 0
 
-        #print("parentNode", parentNode.id, childId)
+        #print("parentNode", parentNode.id, urlId)
         for link in parentNode.links:
             sibling = link.childNode
-            if sibling.id != childId:
+            if sibling.id != urlId:
                 #print("   link", sibling.id, sibling.alignedDoc)
                 numSiblings += 1
 
@@ -781,19 +776,19 @@ class Candidates:
         return numMatches
 
     def GetNextState(self, action):
-        if action >= len(self.vec):
-            ret = (0, 0)
+        if action >= len(self.urlIds):
+            ret = 0
         else:
-            #print("action", action, len(self.vec), len(self.urlIds), self.vec, self.urlIds)
-            ret = (self.vec[action], self.urlIds[action])
+            #print("action", action, len(self.urlIds), self.urlIds)
+            ret = self.urlIds[action]
         return ret
 
     def GetNextStates(self, params):
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
-        for childId in self.vec:
-            ret[0, i] = childId
+        for urlId in self.urlIds:
+            ret[0, i] = urlId
             i += 1
             if i >= params.NUM_ACTIONS:
                 break
