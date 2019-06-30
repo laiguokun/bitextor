@@ -259,6 +259,7 @@ class Env:
         self.langIds = {}
         self.numAligned = 0
         self.nodes = []
+        self.nodes2 = {}
         self.url2urlId = {}
         self.urlId2nodeId = {}
         self.docId2nodeIds = {}
@@ -267,6 +268,7 @@ class Env:
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodesbyURL[node.url] = node
         self.nodes.append(node)
+        self.nodes2[0] = node
         self.urlId2nodeId[0] = 0
 
         # all nodes with docs
@@ -278,9 +280,10 @@ class Env:
 
         for rec in res:
             #print("rec", rec[0], rec[1])
-            id = len(self.nodes)
+            id = len(self.nodes2)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes.append(node)
+            self.nodes2[id] = node
             self.url2urlId[node.url] = node.urlId
             self.urlId2nodeId[node.urlId] = id
             self.AddDocId(node.docId, id)
@@ -290,9 +293,9 @@ class Env:
         print("numAligned", self.numAligned)
 
         # start node = last node in the vec
-        id = len(self.nodes)
-        startNode = Node(sqlconn, id, id, 0, None, "START")
-        self.urlId2nodeId[id] = id
+        id = len(self.nodes2)
+        startNode = Node(sqlconn, id, sys.maxsize, 0, None, "START")
+        self.urlId2nodeId[sys.maxsize] = id
 
         # start node has 1 child
         nodeId = self.GetNodeIdFromURL(url)
@@ -301,6 +304,8 @@ class Env:
         startNode.CreateLink("", None, rootNode)
 
         self.nodes.append(startNode)
+        self.nodes2[id] = startNode
+
         self.startNodeId = startNode.id
         #print("startNode", startNode.Debug())
 
