@@ -425,7 +425,7 @@ class Env:
             totReward += reward
             totDiscountedReward += discount * reward
             visited.add(next)
-            unvisited.RemoveLink(next)
+            unvisited.RemoveLink(next, nextURLId)
             docsVisited.add(nextDocId)
 
             alignedStr = ""
@@ -502,7 +502,7 @@ class Env:
 
         timer.Start("Neural.4")
         visited.add(next)
-        unvisited.RemoveLink(next)
+        unvisited.RemoveLink(next, nextURLId)
         nextUnvisited = unvisited.copy()
         docsVisited.add(nextDocId)
         timer.Pause("Neural.4")
@@ -692,9 +692,10 @@ class Candidates:
             self.urlIds.append(link.childNode.urlId)
         self.dict[childId].append(link)
 
-    def RemoveLink(self, childId):
+    def RemoveLink(self, childId, nextURLId):
         del self.dict[childId]
-        self.vec.remove(childId)                
+        self.vec.remove(childId)     
+        self.urlIds.remove(nextURLId)
 
     def copy(self):
         ret = Candidates(self.env)
