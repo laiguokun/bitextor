@@ -279,7 +279,7 @@ class Env:
             node = Node(sqlconn, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
             self.url2urlId[node.url] = node.urlId
-            self.AddDocId(node.docId, id, node.urlId)
+            self.AddDocId(node.docId, node.urlId)
 
             if node.alignedDoc > 0:
                 self.numAligned += 1
@@ -329,7 +329,7 @@ class Env:
 
         raise Exception("URL not found:" + url)
 
-    def AddDocId(self, docId, nodeId, urlId):
+    def AddDocId(self, docId, urlId):
         if docId in self.docId2URLIds:
             self.docId2URLIds[docId].add(urlId)
         else:
@@ -441,8 +441,7 @@ class Env:
 
     def WalkAll(self, params, sess, qn):
         for node in self.nodes.values():
-            nodeId = node.id
-            self.Walk(nodeId, params, sess, qn, False)
+            self.Walk(node.urlId, params, sess, qn, False)
 
     def GetNumberAligned(self, path):
         ret = 0
@@ -594,7 +593,6 @@ class Node:
     def Debug(self):
         strLinks = ""
         for link in self.links:
-            #strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
             strLinks += str(link.childNode.urlId) + " "
 
         return " ".join([str(self.urlId), StrNone(self.docId), 
@@ -622,8 +620,7 @@ class Node:
                 #print("child", self.docId, childNode.Debug())
             else:
                 continue
-                #id = len(nodes)
-                #childNode = Node(sqlconn, id, urlId, None, None, url)
+                #childNode = Node(sqlconn, urlId, None, None, url)
                 #nodes[childNode.urlId] = childNode
                 #nodesbyURL[childNode.url] = childNode
                 #nodes.append(childNode)
@@ -721,11 +718,11 @@ class Candidates:
         numSiblings = 0
         numMatches = 0
 
-        #print("parentNode", parentNode.id, urlId)
+        #print("parentNode", urlId)
         for link in parentNode.links:
             sibling = link.childNode
             if sibling.urlId != urlId:
-                #print("   link", sibling.id, sibling.alignedDoc)
+                #print("   link", sibling.urlId, sibling.alignedDoc)
                 numSiblings += 1
 
                 if sibling.alignedDoc > 0 and sibling.urlId in visited and sibling.alignedDoc in visited:
