@@ -255,7 +255,7 @@ class MySQL:
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
-        self.Transition = namedtuple("Transition", "curr next done features siblings targetQ")
+        self.Transition = namedtuple("Transition", "curr currURLId next done features siblings targetQ")
         self.langIds = {}
         self.numAligned = 0
         self.nodes = []
@@ -477,15 +477,14 @@ class Env:
         return ret
 
 
-    def Neural(self, epoch, curr, params, sess, qnA, qnB, visited, unvisited, docsVisited):
+    def Neural(self, epoch, curr, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
         timer.Start("Neural.1")
         assert(curr != 0)
         #DEBUG = False
         #if curr == 31: DEBUG = True
 
         #print("curr", curr)
-        currNode = self.nodes[curr]
-        unvisited.AddLinks(self, currNode.urlId, visited, params)
+        unvisited.AddLinks(self, currURLId, visited, params)
         featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
         nextStates = unvisited.GetNextStates(params)
         #print("   childIds", childIds, unvisited)
@@ -544,12 +543,12 @@ class Env:
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
 
-        transition = self.Transition(curr, next, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
+        transition = self.Transition(curr, currURLId, next, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
         timer.Pause("Neural.6")
 
         return transition
 
-    def Trajectory(self, epoch, curr, params, sess, qns):
+    def Trajectory(self, epoch, curr, currURLId, params, sess, qns):
         visited = set()
         unvisited = Candidates()
         docsVisited = set()
@@ -565,7 +564,7 @@ class Env:
             #qnA = qns.q[0]
             #qnB = None
 
-            transition = self.Neural(epoch, curr, params, sess, qnA, qnB, visited, unvisited, docsVisited)
+            transition = self.Neural(epoch, curr, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited)
             
             qnA.corpus.AddTransition(transition)
 
@@ -799,7 +798,7 @@ def Train(params, env, sess, qns):
         #print("startState", startState)
         
         timer.Start("Trajectory")
-        env.Trajectory(epoch, startState, params, sess, qns)
+        env.Trajectory(epoch, startState, sys.maxsize, params, sess, qns)
         timer.Pause("Trajectory")
 
         timer.Start("Update")
