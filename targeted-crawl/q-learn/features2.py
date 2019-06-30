@@ -258,7 +258,6 @@ class Env:
         self.Transition = namedtuple("Transition", "currURLId nextURLId done features siblings targetQ")
         self.langIds = {}
         self.numAligned = 0
-        self.nodes = []
         self.nodes2 = {}
         self.url2urlId = {}
         self.urlId2nodeId = {}
@@ -268,7 +267,6 @@ class Env:
         # stop node = 1st node in the vec
         node = Node(sqlconn, 0, 0, 0, None, "STOP")
         #self.nodesbyURL[node.url] = node
-        self.nodes.append(node)
         self.nodes2[0] = node
         self.urlId2nodeId[0] = 0
 
@@ -283,7 +281,6 @@ class Env:
             #print("rec", rec[0], rec[1])
             id = len(self.nodes2)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
-            self.nodes.append(node)
             self.nodes2[node.urlId] = node
             self.url2urlId[node.url] = node.urlId
             self.urlId2nodeId[node.urlId] = id
@@ -299,12 +296,11 @@ class Env:
         self.urlId2nodeId[startNode.urlId] = id
 
         # start node has 1 child
-        nodeId = self.GetNodeIdFromURL(url)
-        rootNode = self.nodes[nodeId]
+        urlId = self.GetURLIdFromURL(url)
+        rootNode = self.nodes2[urlId]
         assert(rootNode is not None)
         startNode.CreateLink("", None, rootNode)
 
-        self.nodes.append(startNode)
         self.nodes2[startNode.urlId] = startNode
 
         self.startNodeId = startNode.id
@@ -426,7 +422,7 @@ class Env:
         while True:
             # print("curr", curr)
             # print("hh", next, hh)
-            currNode = self.nodes[curr]
+            currNode = self.nodes2[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
             featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
 
@@ -482,8 +478,8 @@ class Env:
     def GetNumberAligned(self, path):
         ret = 0
         for transition in path:
-            next = transition.next
-            nextNode = self.nodes[next]
+            next = transition.nextURLId
+            nextNode = self.nodes2[next]
             if nextNode.alignedDoc > 0:
                 ret += 1
         return ret
@@ -823,7 +819,7 @@ def Train(params, env, sess, qns):
             qns.q[0].PrintQ(sys.maxsize, params, env, sess)
             print()
 
-            numAligned, totReward, totDiscountedReward = env.Walk(startState, params, sess, qns.q[0], True)
+            numAligned, totReward, totDiscountedReward = env.Walk(sys.maxsize, params, sess, qns.q[0], True)
             totRewards.append(totReward)
             totDiscountedRewards.append(totDiscountedReward)
             print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
@@ -881,8 +877,7 @@ def Main():
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
-        startState = env.startNodeId
-        env.Walk(startState, params, sess, qns.q[0], True)
+        env.Walk(sys.maxsize, params, sess, qns.q[0], True)
 
         del timer
 
