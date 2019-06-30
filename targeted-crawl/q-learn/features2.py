@@ -368,7 +368,7 @@ class Env:
 
     def GetNextState(self, action, visited, unvisited, docsVisited):
         #nextNodeId = childIds[0, action]
-        nextNodeId = unvisited.GetNextState(action)
+        nextNodeId, nextURLId = unvisited.GetNextState(action)
         #print("   nextNodeId", nextNodeId)
         nextNode = self.nodes[nextNodeId]
         docId = nextNode.docId
@@ -394,7 +394,7 @@ class Env:
             #print("   non-rewarding")
             reward = -1.0
 
-        return nextNodeId, docId, reward
+        return nextNodeId, nextURLId, docId, reward
 
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
@@ -421,7 +421,7 @@ class Env:
             if printQ: unvisitedStr = str(unvisited.vec)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings)
-            next, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
+            next, nextURLId, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
             totReward += reward
             totDiscountedReward += discount * reward
             visited.add(next)
@@ -495,7 +495,7 @@ class Env:
         timer.Pause("Neural.2")
         
         timer.Start("Neural.3")
-        next, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
+        next, nextURLId, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
         nextNode = self.nodes[next]
         #if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
@@ -682,6 +682,7 @@ class Candidates:
 
         self.dict[0] = []
         self.vec.append(0)
+        self.urlIds.append(0)
 
     def AddLink(self, link):
         childId = link.childNode.id
@@ -768,9 +769,10 @@ class Candidates:
 
     def GetNextState(self, action):
         if action >= len(self.vec):
-            ret = 0
+            ret = (0, 0)
         else:
-            ret = self.vec[action]
+            #print("action", action, len(self.vec), len(self.urlIds), self.vec, self.urlIds)
+            ret = (self.vec[action], self.urlIds[action])
         return ret
 
     def GetNextStates(self, params):
