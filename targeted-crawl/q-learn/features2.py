@@ -44,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 5001
+        self.max_epochs = 500001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -128,7 +128,7 @@ class Qnetwork():
     def PrintQ(self, urlId, params, env, sess):
         #print("hh", urlId, env.nodes)
         visited = set()
-        unvisited = Candidates(env)
+        unvisited = Candidates()
 
         node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
@@ -329,11 +329,6 @@ class Env:
 
         raise Exception("URL not found:" + url)
 
-    def GetNodeIdFromURL(self, url):
-        urlId = self.GetURLIdFromURL(url)
-        nodeId = self.GetNodeIdFromURLId(urlId)
-        return nodeId
-
     def AddDocId(self, docId, nodeId, urlId):
         if docId in self.docId2URLIds:
             self.docId2URLIds[docId].add(urlId)
@@ -380,7 +375,7 @@ class Env:
 
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
-        unvisited = Candidates(self)
+        unvisited = Candidates()
         docsVisited = set()
         
         curr = start
@@ -529,7 +524,7 @@ class Env:
 
     def Trajectory(self, epoch, currURLId, params, sess, qns):
         visited = set()
-        unvisited = Candidates(self)
+        unvisited = Candidates()
         docsVisited = set()
 
         while (True):
@@ -654,8 +649,7 @@ class Node:
 ######################################################################################
 
 class Candidates:
-    def __init__(self, env):
-        self.env = env
+    def __init__(self):
         self.dict = {} # nodeid -> link
         self.urlIds = []
 
@@ -674,7 +668,7 @@ class Candidates:
         self.urlIds.remove(nextURLId)
 
     def copy(self):
-        ret = Candidates(self.env)
+        ret = Candidates()
         ret.dict = self.dict.copy()
         ret.urlIds = self.urlIds.copy()
 
