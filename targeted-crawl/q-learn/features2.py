@@ -68,7 +68,8 @@ class Qnetwork():
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
-        self.embeddings = tf.Variable(tf.random_uniform([env.ns, INPUT_DIM], 0, 0.01))
+        ns = len(env.nodes)
+        self.embeddings = tf.Variable(tf.random_uniform([ns, INPUT_DIM], 0, 0.01))
         #print("self.embeddings", self.embeddings)
 
         self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=tf.int32)
@@ -140,8 +141,9 @@ class Qnetwork():
 
     def PrintAllQ(self, params, env, sess):
         print("State         Q-values                          Next state")
-        for curr in range(env.ns):
-            self.PrintQ(curr, params, env, sess)
+        for node in env.nodes:
+            nodeId = node.id
+            self.PrintQ(nodeId, params, env, sess)
 
     def Predict(self, sess, input, siblings):
         #print("input",input.shape)
@@ -299,8 +301,6 @@ class Env:
         self.startNodeId = startNode.id
         #print("startNode", startNode.Debug())
 
-        self.ns = len(self.nodes) # number of states
-
         for node in self.nodes:
             node.CreateLinks(sqlconn, self)
             print(node.Debug())
@@ -454,8 +454,9 @@ class Env:
 
 
     def WalkAll(self, params, sess, qn):
-        for start in range(self.ns):
-            self.Walk(start, params, sess, qn, False)
+        for node in self.nodes:
+            nodeId = node.id
+            self.Walk(nodeId, params, sess, qn, False)
 
     def GetNumberAligned(self, path):
         ret = 0
@@ -743,14 +744,14 @@ class Candidates:
         for link in parentNode.links:
             sibling = link.childNode
             if sibling.id != childId:
-                print("   link", sibling.id, sibling.aligned)
+                #print("   link", sibling.id, sibling.aligned)
                 numSiblings += 1
 
                 if sibling.aligned > 0 and sibling.id in visited and sibling.aligned in visited:
                     numMatches += 1
     
         if numMatches > 0:
-            print("   ", numSiblings, numMatches)
+            #print("   ", numSiblings, numMatches)
             sfsdfds
 
         return numMatches
@@ -783,7 +784,6 @@ def Train(params, env, sess, qns):
 
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
-        #startState = np.random.randint(0, env.ns)  # random start state
         #startState = 30
         startState = env.startNodeId
         #print("startState", startState)
