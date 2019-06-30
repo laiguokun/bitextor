@@ -68,7 +68,7 @@ class Qnetwork():
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
-        ns = len(env.nodes)
+        ns = len(env.nodes2)
         self.embeddings = tf.Variable(tf.random_uniform([ns, INPUT_DIM], 0, 0.01))
         #print("self.embeddings", self.embeddings)
 
@@ -125,12 +125,12 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def PrintQ(self, curr, params, env, sess):
-        # print("hh", next, hh)
+    def PrintQ(self, urlId, params, env, sess):
+        #print("hh", urlId, env.nodes2)
         visited = set()
         unvisited = Candidates()
 
-        node = env.nodes[curr]
+        node = env.nodes2[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
         featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
 
@@ -138,13 +138,13 @@ class Qnetwork():
         action, allQ = self.Predict(sess, featuresNP, siblings)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
-        print(curr, action, allQ, featuresNP)
+        print(urlId, action, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
         print("State         Q-values                          Next state")
-        for node in env.nodes:
-            nodeId = node.id
-            self.PrintQ(nodeId, params, env, sess)
+        for node in env.nodes2.values():
+            urlId = node.urlId
+            self.PrintQ(urlId, params, env, sess)
 
     def Predict(self, sess, input, siblings):
         #print("input",input.shape)
@@ -283,7 +283,7 @@ class Env:
             id = len(self.nodes2)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes.append(node)
-            self.nodes2[id] = node
+            self.nodes2[node.urlId] = node
             self.url2urlId[node.url] = node.urlId
             self.urlId2nodeId[node.urlId] = id
             self.AddDocId(node.docId, id)
@@ -295,7 +295,7 @@ class Env:
         # start node = last node in the vec
         id = len(self.nodes2)
         startNode = Node(sqlconn, id, sys.maxsize, 0, None, "START")
-        self.urlId2nodeId[sys.maxsize] = id
+        self.urlId2nodeId[startNode.urlId] = id
 
         # start node has 1 child
         nodeId = self.GetNodeIdFromURL(url)
@@ -304,7 +304,7 @@ class Env:
         startNode.CreateLink("", None, rootNode)
 
         self.nodes.append(startNode)
-        self.nodes2[id] = startNode
+        self.nodes2[startNode.urlId] = startNode
 
         self.startNodeId = startNode.id
         #print("startNode", startNode.Debug())
@@ -812,7 +812,7 @@ def Train(params, env, sess, qns):
         if epoch > 0 and epoch % params.walk == 0:
             #qns.q[0].PrintAllQ(params, env, sess)
             qns.q[0].PrintQ(0, params, env, sess)
-            qns.q[0].PrintQ(31, params, env, sess)
+            qns.q[0].PrintQ(sys.maxsize, params, env, sess)
             print()
 
             numAligned, totReward, totDiscountedReward = env.Walk(startState, params, sess, qns.q[0], True)
