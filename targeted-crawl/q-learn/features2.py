@@ -63,7 +63,7 @@ class Qnetwork():
         # These lines establish the feed-forward part of the network used to choose actions
         INPUT_DIM = 20
         EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * params.FEATURES_PER_ACTION
-        #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
+        print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
         HIDDEN_DIM = 128
 
@@ -91,13 +91,18 @@ class Qnetwork():
         #self.hidden1 = tf.nn.relu(self.hidden1)
 
         # SIBLINGS
-        self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
+        #self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
+        self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
 
         # HIDDEN 2
-        self.hidden2 = tf.concat([self.hidden1], 0)
-        #self.hidden2 = tf.concat([self.hidden1, self.siblings], 0)
+        #self.hidden2 = tf.concat([self.hidden1], 0)
+        print("self.embedding", self.embedding.shape)
+        print("self.hidden1", self.hidden1.shape)
+        print("self.siblings", self.siblings)
+        self.hidden2 = tf.concat([self.hidden1, self.siblings], 1)
+        print("self.hidden2", self.hidden2.shape)
 
-        self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
+        self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS, HIDDEN_DIM], 0, 0.01))
 
         self.hidden2 = tf.matmul(self.hidden2, self.Whidden2)
 
