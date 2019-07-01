@@ -44,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 5001
+        self.max_epochs = 50001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -78,10 +78,14 @@ class Qnetwork():
         self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
         self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
 
-        # HIDDEN 1
-        self.hidden1 = self.embedding
+        # SIBLINGS
+        #self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
+        self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
 
-        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM, EMBED_DIM], 0, 0.01))
+        # HIDDEN 1
+        self.hidden1 = tf.concat([self.embedding, self.siblings], 1) 
+
+        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
         #self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
@@ -90,19 +94,10 @@ class Qnetwork():
         self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
         #self.hidden1 = tf.nn.relu(self.hidden1)
 
-        # SIBLINGS
-        #self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
-        self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
-
         # HIDDEN 2
-        #self.hidden2 = tf.concat([self.hidden1], 0)
-        print("self.embedding", self.embedding.shape)
-        print("self.hidden1", self.hidden1.shape)
-        print("self.siblings", self.siblings)
-        self.hidden2 = tf.concat([self.hidden1, self.siblings], 1)
-        print("self.hidden2", self.hidden2.shape)
+        self.hidden2 = self.hidden1
 
-        self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS, HIDDEN_DIM], 0, 0.01))
+        self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
 
         self.hidden2 = tf.matmul(self.hidden2, self.Whidden2)
 
