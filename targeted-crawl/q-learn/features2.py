@@ -794,8 +794,7 @@ def Train(params, sess, saver, env, qns):
             print()
             sys.stdout.flush()
 
-            saver.save(sess, "hh", global_step=epoch)
-
+            saver.save(sess, "{}/hh".format(params.saveDir), global_step=epoch)
 
             #numAligned = env.GetNumberAligned(path)
             #print("path", numAligned, env.numAligned)
@@ -829,8 +828,8 @@ def Main():
 
     sqlconn = MySQL()
 
-    #env = Env(sqlconn, "www.vade-retro.fr/")
-    env = Env(sqlconn, "www.visitbritain.com/gb/en")
+    env = Env(sqlconn, "www.vade-retro.fr/")
+    #env = Env(sqlconn, "www.visitbritain.com/gb/en")
 
     params = LearningParams(options.saveDir)
 
