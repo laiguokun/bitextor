@@ -8,6 +8,7 @@ import random
 from collections import namedtuple
 import mysql.connector
 import time
+import argparse
 
 ######################################################################################
 class Timer:
@@ -40,11 +41,11 @@ def StrNone(arg):
         return str(arg)
 ######################################################################################
 class LearningParams:
-    def __init__(self):
+    def __init__(self, saveDir):
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 100001
+        self.max_epochs = 1000001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -55,6 +56,8 @@ class LearningParams:
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 2
 
+        self.saveDir = saveDir
+        
 ######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
@@ -761,7 +764,7 @@ class Candidates:
 
 ######################################################################################
 
-def Train(params, env, sess, qns):
+def Train(params, sess, saver, env, qns):
     totRewards = []
     totDiscountedRewards = []
 
@@ -791,6 +794,9 @@ def Train(params, env, sess, qns):
             print()
             sys.stdout.flush()
 
+            saver.save(sess, "hh", global_step=epoch)
+
+
             #numAligned = env.GetNumberAligned(path)
             #print("path", numAligned, env.numAligned)
             if numAligned >= env.numAligned - 5:
@@ -810,6 +816,12 @@ timer = Timer()
  
 def Main():
     print("Starting")
+
+    oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
+    oparser.add_argument("--save-dir", dest="saveDir", default=".",
+                     help="Directory that model WIP are saved to. If existing model exists then load it")
+    options = oparser.parse_args()
+
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
@@ -820,12 +832,13 @@ def Main():
     #env = Env(sqlconn, "www.vade-retro.fr/")
     env = Env(sqlconn, "www.visitbritain.com/gb/en")
 
-    params = LearningParams()
+    params = LearningParams(options.saveDir)
 
     tf.reset_default_graph()
     qns = Qnets(params, env)
     init = tf.global_variables_initializer()
 
+    saver = tf.train.Saver()
     with tf.Session() as sess:
     #with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
         sess.run(init)
@@ -835,7 +848,7 @@ def Main():
         print()
 
         timer.Start("Train")
-        totRewards, totDiscountedRewards = Train(params, env, sess, qns)
+        totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
         timer.Pause("Train")
         
         #qn.PrintAllQ(params, env, sess)
