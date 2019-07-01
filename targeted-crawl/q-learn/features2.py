@@ -815,11 +815,10 @@ def Main():
 
     global timer
 
-    # =============================================================
     sqlconn = MySQL()
-    #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
-    # =============================================================
-    env = Env(sqlconn, "www.vade-retro.fr/")
+
+    #env = Env(sqlconn, "www.vade-retro.fr/")
+    env = Env(sqlconn, "www.visitbritain.com/gb/en")
 
     params = LearningParams()
 
