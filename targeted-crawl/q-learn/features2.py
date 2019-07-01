@@ -44,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 100001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -63,7 +63,7 @@ class Qnetwork():
         # These lines establish the feed-forward part of the network used to choose actions
         INPUT_DIM = 20
         EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * params.FEATURES_PER_ACTION
-        print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
+        #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
         HIDDEN_DIM = 128
 
@@ -88,8 +88,8 @@ class Qnetwork():
         self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
-        #self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
-        #self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
+        self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
+        self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
 
         self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
         #self.hidden1 = tf.nn.relu(self.hidden1)
@@ -98,7 +98,6 @@ class Qnetwork():
         self.hidden2 = self.hidden1
 
         self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
-
         self.hidden2 = tf.matmul(self.hidden2, self.Whidden2)
 
         self.BiasHidden2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
