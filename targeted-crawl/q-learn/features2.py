@@ -699,7 +699,11 @@ class Candidates:
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
                 ret[1, i] = parentLangId
 
-                numMatchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
+                matchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
+                numMatchedSiblings = len(matchedSiblings)
+                #if numMatchedSiblings > 1:
+                #    print("matchedSiblings", urlId, parentNode.urlId, matchedSiblings, visited)
+                
                 siblings[0, i] = numMatchedSiblings
                 
             i += 1
@@ -715,8 +719,8 @@ class Candidates:
         return ret, siblings
 
     def GetMatchedSiblings(self, env, urlId, parentNode, visited):
+        ret = []
         numSiblings = 0
-        numMatches = 0
 
         #print("parentNode", urlId)
         for link in parentNode.links:
@@ -731,9 +735,9 @@ class Candidates:
                         matchedURLIds = env.GetURLIdsFromDocId(sibling.alignedDoc)
                         intersect = matchedURLIds & visited
                         if len(intersect) > 0:
-                            numMatches += 1            
+                            ret.append(sibling.urlId)      
 
-        return numMatches
+        return ret
 
     def GetNextState(self, action):
         if action >= len(self.urlIds):
