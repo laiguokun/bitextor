@@ -44,7 +44,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 500001
+        self.max_epochs = 5001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -699,7 +699,7 @@ class Candidates:
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
                 ret[1, i] = parentLangId
 
-                numMatchedSiblings = self.GetMatchedSiblings(urlId, parentNode, visited)
+                numMatchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
                 siblings[0, i] = numMatchedSiblings
                 
             i += 1
@@ -714,7 +714,7 @@ class Candidates:
 
         return ret, siblings
 
-    def GetMatchedSiblings(self, urlId, parentNode, visited):
+    def GetMatchedSiblings(self, env, urlId, parentNode, visited):
         numSiblings = 0
         numMatches = 0
 
@@ -725,12 +725,13 @@ class Candidates:
                 #print("   link", sibling.urlId, sibling.alignedDoc)
                 numSiblings += 1
 
-                if sibling.alignedDoc > 0 and sibling.urlId in visited and sibling.alignedDoc in visited:
-                    numMatches += 1
-    
-        if numMatches > 0:
-            #print("   ", numSiblings, numMatches)
-            sfsdfds
+                if sibling.urlId in visited:
+                    # has the sibling AND it's matched doc been crawled?
+                    if sibling.alignedDoc > 0:
+                        matchedURLIds = env.GetURLIdsFromDocId(sibling.alignedDoc)
+                        intersect = matchedURLIds & visited
+                        if len(intersect) > 0:
+                            numMatches += 1            
 
         return numMatches
 
