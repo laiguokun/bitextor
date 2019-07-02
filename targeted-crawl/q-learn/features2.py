@@ -45,7 +45,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 1000001
+        self.max_epochs = 100000001
         self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -343,7 +343,7 @@ class Env:
         if docId in self.docId2URLIds:
             return self.docId2URLIds[docId]
 
-        raise Exception("Doc id not found:" + docId)
+        raise Exception("Doc id not found:" + str(docId))
 
     def GetNextState(self, action, visited, unvisited, docsVisited):
         #nextNodeId = childIds[0, action]
@@ -828,8 +828,8 @@ def Main():
 
     sqlconn = MySQL()
 
-    env = Env(sqlconn, "www.vade-retro.fr/")
-    #env = Env(sqlconn, "www.visitbritain.com/gb/en")
+    #env = Env(sqlconn, "www.vade-retro.fr/")
+    env = Env(sqlconn, "www.visitbritain.com/gb/en")
 
     params = LearningParams(options.saveDir)
 
