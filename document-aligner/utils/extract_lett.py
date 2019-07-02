@@ -27,11 +27,22 @@ def filter_digits_and_punctuation(original_text):
 
 
 def split_sentences(original_text, sentence_splitter_cmd):
+    #print("original_text", len(original_text))
     proc = ExternalTextProcessor(sentence_splitter_cmd.split())
-    output = html.unescape(proc.process(original_text.replace("\n\n", "\n")))
 
-    return [n for n in output.split("\n") if filter_digits_and_punctuation(n)]
+    tmp1 = original_text.replace("\n\n", "\n")
+    #print("tmp1", len(tmp1))
 
+    tmp2 = proc.process(tmp1)
+    #print("tmp2", len(tmp2))
+
+    tmp3 = html.unescape(tmp2)
+    #print("tmp3", len(tmp3))
+
+    tmp4 = [n for n in tmp3.split("\n") if filter_digits_and_punctuation(n)]
+    #print("tmp4", len(tmp4))
+
+    return tmp4
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -86,9 +97,12 @@ if __name__ == "__main__":
             if not text:
                 continue
 
+            count = 0
             for extracted_line in split_sentences(text, args.splitter):
                 extracted_line = extracted_line.strip()
+                #print("extracted_line", len(extracted_line))
                 if not extracted_line:
+                    #print("empty line")
                     continue
 
                 # prune long sentences
@@ -102,6 +116,9 @@ if __name__ == "__main__":
 
                 lang_file[lang].write("{0}\t{1}\n".format(
                     uri, extracted_line).encode("utf-8"))
+
+                count += 1
+            #print("count", count)
 
         # print("lang_file", lang_file)
         for f in lang_file:
