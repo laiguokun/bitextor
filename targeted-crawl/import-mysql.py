@@ -459,6 +459,9 @@ def Main():
             continue
         if "text/dns" in record.rec_headers.get_header('Content-Type'):
             continue
+        
+        print("date", record.date)
+
         pageSize = int(record.rec_headers.get_header('Content-Length'))
         if pageSize > 5242880:
             logging.info("Skipping page, over limit. " + str(pageSize) + " " + url)
@@ -565,31 +568,31 @@ def Main():
                         # Guessing MIME of the file (checked on original content)
                         logging.info(url + ": Getting mime")
                         mime = magic.from_buffer(text, mime=True)
-                        mimeFile.write(mime.encode() + b"\n")
+                        #mimeFile.write(mime.encode() + b"\n")
     
-                        urlFile.write(url.encode() + b"\n")
-                        langFile.write(lang.encode() + b"\n")
-                        encodingFile.write(orig_encoding.encode() + b"\n")
+                        #urlFile.write(url.encode() + b"\n")
+                        #langFile.write(lang.encode() + b"\n")
+                        #encodingFile.write(orig_encoding.encode() + b"\n")
         
                         b64norm = base64.b64encode(cleantree.encode())
-                        normHtmlFile.write(b64norm + b"\n")
+                        #normHtmlFile.write(b64norm + b"\n")
     
                         if options.boilerpipe:
                             b64deboil = base64.b64encode(deboiled.encode())
-                            deboilFile.write(b64deboil + b"\n")
+                            #deboilFile.write(b64deboil + b"\n")
     
                         b64text = base64.b64encode(html.unescape(plaintext).encode())
-                        plainTextFile.write(b64text + b"\n")
+                        #plainTextFile.write(b64text + b"\n")
 
-        #We convert into UTF8 first of all
-        #orig_encoding,html_text = convert_encoding(record.payload.read())
-        #pageURL=record.url
-        #crawlDate = record.date
-        #crawlDate = crawlDate.replace("T", " ")
-        #crawlDate = crawlDate.replace("Z", " ")
-        #crawlDate = crawlDate.strip()
-        #crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
-        #print("crawlDate", crawlDate, type(crawlDate))
+                        #We convert into UTF8 first of all
+                        #orig_encoding,html_text = convert_encoding(record.payload.read())
+                        #pageURL=record.url
+                        #crawlDate = record.date
+                        #crawlDate = crawlDate.replace("T", " ")
+                        #crawlDate = crawlDate.replace("Z", " ")
+                        #crawlDate = crawlDate.strip()
+                        #crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
+                        #print("crawlDate", crawlDate, type(crawlDate))
 
         #ProcessPage(options, mycursor, languages, mtProc, orig_encoding, html_text, pageURL, crawlDate)
 
