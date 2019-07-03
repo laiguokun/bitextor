@@ -305,7 +305,11 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
     # lang id
     #printable_str = ''.join(x for x in cleantree if x in string.printable)
     logging.info(url + ": detecting language")
-    lang = guess_lang_from_data2(tree)
+    try:
+        lang = guess_lang_from_data2(tree)
+    except:
+        sys.stderr.write("error guessing language")
+        return
     if len(languages) > 0 and lang not in languages:
         logging.info("Language of document " + url + ": " + lang + ". Not among searched languages.")
     else:
