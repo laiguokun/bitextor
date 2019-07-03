@@ -274,8 +274,7 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
 ######################################################################################
 
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5):
-    print("page", url)
-
+    #print("page", url)
     if url == "unknown":
         logging.info("Unknown page url")
         return
