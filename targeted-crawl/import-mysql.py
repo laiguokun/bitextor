@@ -460,8 +460,6 @@ def Main():
         if "text/dns" in record.rec_headers.get_header('Content-Type'):
             continue
         
-        print("date", record.date)
-
         pageSize = int(record.rec_headers.get_header('Content-Length'))
         if pageSize > 5242880:
             logging.info("Skipping page, over limit. " + str(pageSize) + " " + url)
@@ -473,6 +471,14 @@ def Main():
         if url[-4:] == ".gif" or url[-4:] == ".jpg" or url[-5:] == ".jpeg" or url[-4:] == ".png" or url[-4:] == ".css" or url[-3:] == ".js" or url[-4:] == ".mp3" or url[-4:] == ".mp4" or url[-4:] == ".ogg" or url[-5:] == ".midi" or url[-4:] == ".swf":
             continue
         print("url", numPages, url, pageSize)
+
+        crawlDate = record.rec_headers.get_header('WARC-Date')
+        #print("date", crawlDate)
+        crawlDate = crawlDate.replace("T", " ")
+        crawlDate = crawlDate.replace("Z", " ")
+        crawlDate = crawlDate.strip()
+        crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
+        #print("crawlDate", crawlDate, type(crawlDate))
 
         payload=record.content_stream().read()
         payloads = []
