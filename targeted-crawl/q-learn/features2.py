@@ -854,7 +854,7 @@ def Main():
 
     #env = Env(sqlconn, "www.vade-retro.fr", "www.vade-retro.fr/")
     #env = Env(sqlconn, "www.visitbritain.com", www.visitbritain.com/gb/en")
-    env = Env(sqlconn, "www.buchmann.ch", "www.buchmann.ch/catalog/product_info.php?cpath=501_2430_30&products_id=166934&language=en")
+    env = Env(sqlconn, "www.buchmann.ch", "www.buchmann.ch/fr/166918_peak_design_capture_clip_schwarz.htm")
     # "www.buchmann.ch/catalog/default.php?language=en")
 
     params = LearningParams(options.saveDir)
