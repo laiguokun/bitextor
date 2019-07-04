@@ -209,8 +209,8 @@ class Corpus:
 
     def Train(self, sess, env, params):
         if len(self.transitions) >= params.minCorpusSize:
-            for transition in self.transitions:
-                print(DebugTransition(transition))
+            #for transition in self.transitions:
+            #    print(DebugTransition(transition))
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
@@ -273,7 +273,7 @@ def DebugTransitions(transitions):
 
 ######################################################################################
 class Env:
-    def __init__(self, sqlconn, url):
+    def __init__(self, sqlconn, url, startURL):
         self.Transition = namedtuple("Transition", "currURLId nextURLId done features siblings targetQ")
         self.langIds = {}
         self.numAligned = 0
@@ -308,7 +308,7 @@ class Env:
         startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
         # start node has 1 child
-        urlId = self.GetURLIdFromURL(url)
+        urlId = self.GetURLIdFromURL(startURL)
         rootNode = self.nodes[urlId]
         assert(rootNode is not None)
         startNode.CreateLink("", None, rootNode)
@@ -852,9 +852,10 @@ def Main():
 
     sqlconn = MySQL()
 
-    #env = Env(sqlconn, "www.vade-retro.fr/")
-    #env = Env(sqlconn, "www.visitbritain.com/gb/en")
-    env = Env(sqlconn, "www.buchmann.ch/en/")
+    #env = Env(sqlconn, "www.vade-retro.fr", "www.vade-retro.fr/")
+    #env = Env(sqlconn, "www.visitbritain.com", www.visitbritain.com/gb/en")
+    env = Env(sqlconn, "www.buchmann.ch", "www.buchmann.ch/catalog/product_info.php?cpath=501_2430_30&products_id=166934&language=en")
+    # "www.buchmann.ch/catalog/default.php?language=en")
 
     params = LearningParams(options.saveDir)
 
