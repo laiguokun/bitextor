@@ -135,14 +135,19 @@ def DocAlign():
         os.system(cmd)
 
 ######################################################################################
-def SaveURL(mycursor, pageURL, docId, crawlDate):
-    ind = pageURL.find("#")
+def NormalizeURL(url):
+    ind = url.find("#")
     if ind >= 0:
-        pageURL = pageURL[:ind]
+        url = url[:ind]
         #print("pageURL", pageURL)
-    if pageURL[-5:].lower() == ".html":
-        pageURL = pageURL[:-5] + ".htm"
+    if url[-5:].lower() == ".html":
+        url = url[:-5] + ".htm"
         #print("pageURL", pageURL)
+    url = url.lower()
+    return url
+
+def SaveURL(mycursor, pageURL, docId, crawlDate):
+    pageURL = NormalizeURL(pageURL)
 
     c = hashlib.md5()
     c.update(pageURL.encode())

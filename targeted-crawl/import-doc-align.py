@@ -16,6 +16,7 @@ def NormalizeURL(url):
     if url[-5:].lower() == ".html":
         url = url[:-5] + ".htm"
         #print("pageURL", pageURL)
+    url = url.lower()
     return url
 
 def GetDocId(mycursor, url):
