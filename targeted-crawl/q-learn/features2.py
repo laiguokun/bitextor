@@ -46,7 +46,7 @@ class LearningParams:
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 100000001
-        self.eps = 0.7
+        self.eps = 1.0 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
         self.trainNumIter = 10
@@ -175,6 +175,10 @@ class Corpus:
         self.sumWeights = []
 
     def AddTransition(self, transition):
+        for currTrans in self.transitions:
+            if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
+                return
+        # completely new trans
         self.transitions.append(transition)
 
     def AddPath(self, path):
@@ -205,6 +209,8 @@ class Corpus:
 
     def Train(self, sess, env, params):
         if len(self.transitions) >= params.minCorpusSize:
+            for transition in self.transitions:
+                print(DebugTransition(transition))
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
@@ -253,6 +259,17 @@ class MySQL:
         )
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
+
+def DebugTransition(transition):
+    ret = str(transition.currURLId) + "->" + str(transition.nextURLId)
+    return ret
+
+def DebugTransitions(transitions):
+    ret = ""
+    for transition in transitions:
+        str = DebugTransition(transition)
+        ret += str + " "
+    return ret
 
 ######################################################################################
 class Env:
@@ -782,30 +799,37 @@ def Train(params, sess, saver, env, qns):
         timer.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            #qns.q[0].PrintAllQ(params, env, sess)
-            qns.q[0].PrintQ(0, params, env, sess)
-            qns.q[0].PrintQ(sys.maxsize, params, env, sess)
-            print()
+            if len(qns.q[0].corpus.losses) > 0:
+                #qns.q[0].PrintAllQ(params, env, sess)
+                qns.q[0].PrintQ(0, params, env, sess)
+                qns.q[0].PrintQ(sys.maxsize, params, env, sess)
+                print()
 
-            numAligned, totReward, totDiscountedReward = env.Walk(sys.maxsize, params, sess, qns.q[0], True)
-            totRewards.append(totReward)
-            totDiscountedRewards.append(totDiscountedReward)
-            print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
-            print()
-            sys.stdout.flush()
+                numAligned, totReward, totDiscountedReward = env.Walk(sys.maxsize, params, sess, qns.q[0], True)
+                totRewards.append(totReward)
+                totDiscountedRewards.append(totDiscountedReward)
+                print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
+                print()
+                sys.stdout.flush()
 
-            saver.save(sess, "{}/hh".format(params.saveDir), global_step=epoch)
+                #saver.save(sess, "{}/hh".format(params.saveDir), global_step=epoch)
 
-            #numAligned = env.GetNumberAligned(path)
-            #print("path", numAligned, env.numAligned)
-            if numAligned >= env.numAligned - 5:
-                #print("got them all!")
-                #eps = 1. / ((i/50) + 10)
-                params.eps *= .99
-                params.eps = max(0.1, params.eps)
+                #numAligned = env.GetNumberAligned(path)
+                #print("path", numAligned, env.numAligned)
+                if numAligned >= env.numAligned - 5:
+                    #print("got them all!")
+                    #eps = 1. / ((i/50) + 10)
+                    params.eps *= .99
+                    params.eps = max(0.1, params.eps)
+                    
+                    #params.alpha *= 0.99
+                    #params.alpha = max(0.3, params.alpha)
+            else:
+                # not yet trained
+                print("epoch", epoch, \
+                    len(qns.q[0].corpus.transitions), len(qns.q[1].corpus.transitions), \
+                    DebugTransitions(qns.q[0].corpus.transitions))
                 
-                #params.alpha *= 0.99
-                #params.alpha = max(0.3, params.alpha)
 
     return totRewards, totDiscountedRewards
             
