@@ -45,8 +45,8 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 100000001
-        self.eps = 1.0 # 0.7
+        self.max_epochs = 500001
+        self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
         self.trainNumIter = 10
@@ -800,6 +800,7 @@ def Train(params, sess, saver, env, qns):
 
         if epoch > 0 and epoch % params.walk == 0:
             if len(qns.q[0].corpus.losses) > 0:
+                # trained at least once
                 #qns.q[0].PrintAllQ(params, env, sess)
                 qns.q[0].PrintQ(0, params, env, sess)
                 qns.q[0].PrintQ(sys.maxsize, params, env, sess)
@@ -824,11 +825,10 @@ def Train(params, sess, saver, env, qns):
                     
                     #params.alpha *= 0.99
                     #params.alpha = max(0.3, params.alpha)
-            else:
-                # not yet trained
-                print("epoch", epoch, \
-                    len(qns.q[0].corpus.transitions), len(qns.q[1].corpus.transitions), \
-                    DebugTransitions(qns.q[0].corpus.transitions))
+                
+            print("epoch", epoch, \
+                 len(qns.q[0].corpus.transitions), len(qns.q[1].corpus.transitions)) #, \
+                 #DebugTransitions(qns.q[0].corpus.transitions))
                 
 
     return totRewards, totDiscountedRewards
