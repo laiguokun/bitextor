@@ -363,7 +363,7 @@ class Env:
                 urlIds = self.GetURLIdsFromDocId(nextNode.alignedDoc)
                 for urlId in urlIds:
                     if urlId in visited:
-                        reward = 17.0
+                        reward = 170.0
                         break
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
@@ -829,7 +829,8 @@ def Main():
     sqlconn = MySQL()
 
     #env = Env(sqlconn, "www.vade-retro.fr/")
-    env = Env(sqlconn, "www.visitbritain.com/gb/en")
+    #env = Env(sqlconn, "www.visitbritain.com/gb/en")
+    env = Env(sqlconn, "www.buchmann.ch/en/")
 
     params = LearningParams(options.saveDir)
 
