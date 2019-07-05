@@ -347,7 +347,7 @@ class Env:
                     break
             
             if not found:
-                #print("   graphs.append(node)")
+                print("   graphs.append", node.urlId, node.url)
                 graphs.append(node)
 
             i += 1
@@ -898,9 +898,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    env = Env(sqlconn, "www.vade-retro.fr")
+    #env = Env(sqlconn, "www.vade-retro.fr")
     #env = Env(sqlconn, "www.visitbritain.com")
-    #env = Env(sqlconn, "www.buchmann.ch")
+    env = Env(sqlconn, "www.buchmann.ch")
 
     params = LearningParams(options.saveDir)
 
