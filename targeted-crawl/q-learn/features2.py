@@ -321,7 +321,7 @@ class Env:
 
     def CreateStartNodes(self, sqlconn, startURL):
         # start node = last node in the vec
-        self.CreateGraphs()
+        graphs = self.CreateGraphs()
 
         startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
@@ -339,7 +339,7 @@ class Env:
 
         i = 0
         for node in self.nodes.values():
-            print("node", i, node.urlId)
+            #print("node", i, node.urlId)
             found = False
             for graph in graphs:
                 visited = set()
@@ -354,23 +354,29 @@ class Env:
             i += 1
 
         print("graphs", len(graphs))
-        dfsdf
+        for graph in graphs:
+            print("   ", graph.urlId, graph.url)
+        
+        return graphs
 
     def Search(self, graph, node, visited):
-        if node.urlId in visited:
+        if graph.urlId in visited:
+            #print("   already visited", graph.urlId, visited)
             return False
         else:
-            visited.add(node.urlId)
+            visited.add(graph.urlId)
 
-        #print("   graph.urlId", graph.urlId, node.urlId)
+        #print("   graph.urlId", graph.urlId, node.urlId, len(graph.links))
         if graph.urlId == node.urlId:
+            #print("   found", node.urlId)
             return True
 
         for link in graph.links:
             childGraph = link.childNode
+            #print("   childGraph", childGraph.urlId)
             found = self.Search(childGraph, node, visited)
             if found:
-                print("   FOUND", graph.urlId, node.urlId)
+                #print("   FOUND", graph.urlId, node.urlId)
                 return True
 
         return False
@@ -897,9 +903,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    #env = Env(sqlconn, "www.vade-retro.fr", "www.vade-retro.fr/")
+    env = Env(sqlconn, "www.vade-retro.fr", "www.vade-retro.fr/")
     #env = Env(sqlconn, "www.visitbritain.com", www.visitbritain.com/gb/en")
-    env = Env(sqlconn, "www.buchmann.ch", "www.buchmann.ch/fr/166918_peak_design_capture_clip_schwarz.htm")
+    #env = Env(sqlconn, "www.buchmann.ch", "www.buchmann.ch/fr/166918_peak_design_capture_clip_schwarz.htm")
     # "www.buchmann.ch/catalog/default.php?language=en")
 
     params = LearningParams(options.saveDir)
