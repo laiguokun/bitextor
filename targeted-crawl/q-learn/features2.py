@@ -321,6 +321,8 @@ class Env:
 
     def CreateStartNodes(self, sqlconn, startURL):
         # start node = last node in the vec
+        self.CreateGraphs()
+
         startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
         # start node has 1 child
@@ -332,6 +334,33 @@ class Env:
         self.nodes[startNode.urlId] = startNode
         #print("startNode", startNode.Debug())
 
+    def CreateGraphs(self):
+        graphs = []
+
+        for node in self.nodes.values():
+            found = False
+            for graph in graphs:
+                found = self.Search(graph, node)
+                if found:
+                    break
+            
+            if not found:
+                graphs.append(node)
+
+        print("graphs", len(graphs))
+        dfsdf
+
+    def Search(self, graph, node):
+        if graph.urlId == node.urlId:
+            return True
+
+        for link in graph.links:
+            childGraph = link.childNode
+            found = self.Search(childGraph, node)
+            if found:
+                return True
+
+        return False
 
     def __del__(self):
         print("langIds", self.langIds)
