@@ -337,27 +337,40 @@ class Env:
     def CreateGraphs(self):
         graphs = []
 
+        i = 0
         for node in self.nodes.values():
+            print("node", i, node.urlId)
             found = False
             for graph in graphs:
-                found = self.Search(graph, node)
+                visited = set()
+                found = self.Search(graph, node, visited)
                 if found:
                     break
             
             if not found:
+                #print("   graphs.append(node)")
                 graphs.append(node)
+
+            i += 1
 
         print("graphs", len(graphs))
         dfsdf
 
-    def Search(self, graph, node):
+    def Search(self, graph, node, visited):
+        if node.urlId in visited:
+            return False
+        else:
+            visited.add(node.urlId)
+
+        #print("   graph.urlId", graph.urlId, node.urlId)
         if graph.urlId == node.urlId:
             return True
 
         for link in graph.links:
             childGraph = link.childNode
-            found = self.Search(childGraph, node)
+            found = self.Search(childGraph, node, visited)
             if found:
+                print("   FOUND", graph.urlId, node.urlId)
                 return True
 
         return False
