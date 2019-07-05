@@ -281,11 +281,6 @@ class Env:
         self.url2urlId = {}
         self.docId2URLIds = {}
 
-        # stop node = 1st node in the vec
-        node = Node(sqlconn, 0, 0, None, "STOP")
-        #self.nodesbyURL[node.url] = node
-        self.nodes[0] = node
-
         # all nodes with docs
         sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
         val = (url + "%",)
@@ -306,10 +301,16 @@ class Env:
 
         for node in self.nodes.values():
             node.CreateLinks(sqlconn, self)
-            print(node.Debug())
         
         self.CreateStartNodes(sqlconn, startURL)
 
+        # stop node
+        node = Node(sqlconn, 0, 0, None, "STOP")
+        #self.nodesbyURL[node.url] = node
+        self.nodes[0] = node
+
+        for node in self.nodes.values():
+            print(node.Debug())
         print("all nodes", len(self.nodes))
 
         # print out
@@ -320,16 +321,14 @@ class Env:
         #print("node", node.docId, node.urlId)       
 
     def CreateStartNodes(self, sqlconn, startURL):
-        # start node = last node in the vec
-        graphs = self.CreateGraphs()
-
+        # start node id = sys.maxsize
         startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
-        # start node has 1 child
-        urlId = self.GetURLIdFromURL(startURL)
-        rootNode = self.nodes[urlId]
-        assert(rootNode is not None)
-        startNode.CreateLink("", None, rootNode)
+        graphs = self.CreateGraphs()
+        print("graphs", len(graphs))
+        for graph in graphs:
+            print("   ", graph.urlId, graph.url)
+            startNode.CreateLink("", None, graph)
 
         self.nodes[startNode.urlId] = startNode
         #print("startNode", startNode.Debug())
@@ -352,10 +351,6 @@ class Env:
                 graphs.append(node)
 
             i += 1
-
-        print("graphs", len(graphs))
-        for graph in graphs:
-            print("   ", graph.urlId, graph.url)
         
         return graphs
 
