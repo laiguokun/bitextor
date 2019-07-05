@@ -304,6 +304,22 @@ class Env:
                 self.numAligned += 1
         print("numAligned", self.numAligned)
 
+        for node in self.nodes.values():
+            node.CreateLinks(sqlconn, self)
+            print(node.Debug())
+        
+        self.CreateStartNodes(sqlconn, startURL)
+
+        print("all nodes", len(self.nodes))
+
+        # print out
+        #for node in self.nodes:
+        #    print("node", node.Debug())
+
+        #node = Node(sqlconn, url, True)
+        #print("node", node.docId, node.urlId)       
+
+    def CreateStartNodes(self, sqlconn, startURL):
         # start node = last node in the vec
         startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
@@ -316,19 +332,6 @@ class Env:
         self.nodes[startNode.urlId] = startNode
         #print("startNode", startNode.Debug())
 
-        for node in self.nodes.values():
-            node.CreateLinks(sqlconn, self)
-            print(node.Debug())
-        
-
-        print("all nodes", len(self.nodes))
-
-        # print out
-        #for node in self.nodes:
-        #    print("node", node.Debug())
-
-        #node = Node(sqlconn, url, True)
-        #print("node", node.docId, node.urlId)       
 
     def __del__(self):
         print("langIds", self.langIds)
