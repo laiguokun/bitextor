@@ -273,7 +273,7 @@ def DebugTransitions(transitions):
 
 ######################################################################################
 class Env:
-    def __init__(self, sqlconn, url, startURL):
+    def __init__(self, sqlconn, url):
         self.Transition = namedtuple("Transition", "currURLId nextURLId done features siblings targetQ")
         self.langIds = {}
         self.numAligned = 0
@@ -302,7 +302,7 @@ class Env:
         for node in self.nodes.values():
             node.CreateLinks(sqlconn, self)
         
-        self.CreateStartNodes(sqlconn, startURL)
+        self.CreateStartNodes(sqlconn)
 
         # stop node
         node = Node(sqlconn, 0, 0, None, "STOP")
@@ -320,7 +320,7 @@ class Env:
         #node = Node(sqlconn, url, True)
         #print("node", node.docId, node.urlId)       
 
-    def CreateStartNodes(self, sqlconn, startURL):
+    def CreateStartNodes(self, sqlconn):
         # start node id = sys.maxsize
         startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
@@ -898,10 +898,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    env = Env(sqlconn, "www.vade-retro.fr", "www.vade-retro.fr/")
-    #env = Env(sqlconn, "www.visitbritain.com", www.visitbritain.com/gb/en")
-    #env = Env(sqlconn, "www.buchmann.ch", "www.buchmann.ch/fr/166918_peak_design_capture_clip_schwarz.htm")
-    # "www.buchmann.ch/catalog/default.php?language=en")
+    env = Env(sqlconn, "www.vade-retro.fr")
+    #env = Env(sqlconn, "www.visitbritain.com")
+    #env = Env(sqlconn, "www.buchmann.ch")
 
     params = LearningParams(options.saveDir)
 
