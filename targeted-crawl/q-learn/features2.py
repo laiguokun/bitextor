@@ -41,7 +41,7 @@ def StrNone(arg):
         return str(arg)
 ######################################################################################
 class LearningParams:
-    def __init__(self, saveDir):
+    def __init__(self, saveDir, deleteDuplicateTransitions):
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
@@ -57,6 +57,7 @@ class LearningParams:
         self.FEATURES_PER_ACTION = 2
 
         self.saveDir = saveDir
+        self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
 ######################################################################################
 class Qnetwork():
@@ -174,16 +175,18 @@ class Corpus:
         self.losses = []
         self.sumWeights = []
 
-    def AddTransition(self, transition):
-        for currTrans in self.transitions:
-            if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
-                return
-        # completely new trans
+    def AddTransition(self, transition, deleteDuplicateTransitions):
+        if deleteDuplicateTransitions:
+            for currTrans in self.transitions:
+                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
+                    return
+            # completely new trans
+    
         self.transitions.append(transition)
 
-    def AddPath(self, path):
+    def AddPath(self, path, deleteDuplicateTransitions):
         for transition in path:
-            self.AddTransition(transition)
+            self.AddTransition(transition, deleteDuplicateTransitions)
 
 
     def GetBatch(self, maxBatchSize):        
@@ -604,7 +607,7 @@ class Env:
 
             transition = self.Neural(epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited)
             
-            qnA.corpus.AddTransition(transition)
+            qnA.corpus.AddTransition(transition, params.deleteDuplicateTransitions)
 
             currURLId = transition.nextURLId
             #print("visited", visited)
@@ -889,6 +892,8 @@ def Main():
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                      help="Directory that model WIP are saved to. If existing model exists then load it")
+    oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions", default=False,
+                     help="If True then only unique transition are used in each batch")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -898,11 +903,11 @@ def Main():
 
     sqlconn = MySQL()
 
-    #env = Env(sqlconn, "www.vade-retro.fr")
+    env = Env(sqlconn, "www.vade-retro.fr")
     #env = Env(sqlconn, "www.visitbritain.com")
-    env = Env(sqlconn, "www.buchmann.ch")
+    #env = Env(sqlconn, "www.buchmann.ch")
 
-    params = LearningParams(options.saveDir)
+    params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
 
     tf.reset_default_graph()
     qns = Qnets(params, env)
