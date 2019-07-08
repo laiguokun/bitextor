@@ -136,14 +136,22 @@ def DocAlign():
 
 ######################################################################################
 def NormalizeURL(url):
+    url = url.lower()
     ind = url.find("#")
     if ind >= 0:
         url = url[:ind]
         #print("pageURL", pageURL)
-    if url[-5:].lower() == ".html":
+    if url[-5:] == ".html":
         url = url[:-5] + ".htm"
         #print("pageURL", pageURL)
-    url = url.lower()
+
+    if url[:7] == "http://":
+        #print("   strip protocol1", url, url[7:])
+        url = url[7:]
+    elif url[:8] == "https://":
+        #print("   strip protocol2", url, url[8:])
+        url = url[8:]
+
     return url
 
 def SaveURL(mycursor, pageURL, docId, crawlDate):
@@ -264,9 +272,9 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
         newDoc = True
         sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
         val = (mime, lang, hashDoc)
-        # print("val", type(val))
         mycursor.execute(sql, val)
         docId = mycursor.lastrowid
+        #print("   SaveDoc", docId)
     else:
         # duplicate page
         newDoc = False
