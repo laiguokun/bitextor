@@ -204,13 +204,13 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
         langLinkStr = None
 
     url = urllib.parse.unquote(url)
-    #print("URL", pageURL, url)
+    #print("   URL", pageURL, url)
 
     try:
         url = urllib.parse.urljoin(pageURL, url)
         url = strip_scheme(url)
 
-        # print("link", url, " ||| ", linkStr, " ||| ", imgURL)
+        #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
         urlId = SaveURL(mycursor, url, None, None)
 
         sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
