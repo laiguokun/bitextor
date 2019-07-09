@@ -268,8 +268,8 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
 
         if res is None:
             # not link yet
-            sql = "INSERT INTO link(text, text_lang, text_lang_id, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
-            val = (linkStr, linkLangStr, linkLangId, linkStrTrans, "hover here", imgURL, docId, urlId)
+            sql = "INSERT INTO link(text, text_lang_id, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+            val = (linkStr, linkLangId, linkStrTrans, "hover here", imgURL, docId, urlId)
             mycursor.execute(sql, val)
     except:
         sys.stderr.write("error saving link")
@@ -309,11 +309,11 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, langId, mime):
     if res is None:
         # new doc
         newDoc = True
-        sql = "INSERT INTO document(mime, lang, lang_id, md5) VALUES (%s, %s, %s, %s)"
-        val = (mime, lang, langId, hashDoc)
+        sql = "INSERT INTO document(mime, lang_id, md5) VALUES (%s, %s, %s)"
+        val = (mime, langId, hashDoc)
         mycursor.execute(sql, val)
         docId = mycursor.lastrowid
-        print("   SaveDoc", docId, pageURL)
+        #print("   SaveDoc", docId, pageURL)
     else:
         # duplicate page
         newDoc = False

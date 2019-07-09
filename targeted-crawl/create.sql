@@ -23,7 +23,6 @@ CREATE TABLE IF NOT EXISTS document
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
     mime TINYTEXT,
-    lang CHAR(4),
     lang_id INT NOT NULL REFERENCES language(id),
     md5 VARCHAR(32) NOT NULL UNIQUE KEY
 );
@@ -41,7 +40,6 @@ CREATE TABLE IF NOT EXISTS link
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
     text TEXT,
-    text_lang CHAR(4),
     text_lang_id INT NOT NULL REFERENCES language(id),
     text_en TEXT,
     hover TEXT,
