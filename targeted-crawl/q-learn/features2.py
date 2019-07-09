@@ -334,7 +334,7 @@ class Env:
             startNode.CreateLink("", None, graph)
 
         self.nodes[startNode.urlId] = startNode
-        #print("startNode", startNode.Debug())
+        print("startNode", startNode.Debug())
 
     def CreateGraphs(self):
         graphs = []

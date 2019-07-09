@@ -218,7 +218,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
         url = urllib.parse.urljoin(pageURL, url)
         url = strip_scheme(url)
 
-        #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
+        print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
         urlId = SaveURL(mycursor, url, None, None)
 
         sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
@@ -274,7 +274,7 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
         val = (mime, lang, hashDoc)
         mycursor.execute(sql, val)
         docId = mycursor.lastrowid
-        #print("   SaveDoc", docId)
+        print("   SaveDoc", docId, pageURL)
     else:
         # duplicate page
         newDoc = False
@@ -287,7 +287,7 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
 ######################################################################################
 
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5):
-    #print("page", url)
+    print("page", url)
     if url == "unknown":
         logging.info("Unknown page url")
         return
@@ -512,7 +512,7 @@ def Main():
         url = url.lower()
         if url[-4:] == ".gif" or url[-4:] == ".jpg" or url[-5:] == ".jpeg" or url[-4:] == ".png" or url[-4:] == ".css" or url[-3:] == ".js" or url[-4:] == ".mp3" or url[-4:] == ".mp4" or url[-4:] == ".ogg" or url[-5:] == ".midi" or url[-4:] == ".swf":
             continue
-        print("url", numPages, url, pageSize)
+        #print("url", numPages, url, pageSize)
 
         crawlDate = record.rec_headers.get_header('WARC-Date')
         #print("date", crawlDate)
