@@ -141,7 +141,7 @@ class Qnetwork():
         action, allQ = self.Predict(sess, featuresNP, siblings)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
-        print(urlId, action, allQ, featuresNP)
+        print(urlId, action, unvisited.urlIds, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
         print("State         Q-values                          Next state")
@@ -295,7 +295,7 @@ class Env:
             #print("rec", rec[0], rec[1])
             url = rec[3]
             if url[-10:] == "robots.txt":
-                logging.info("Skipping robots.txt")
+                #print("Skipping robots.txt")
                 continue
 
             node = Node(sqlconn, rec[0], rec[1], rec[2], url)
@@ -355,7 +355,7 @@ class Env:
                     break
             
             if not found:
-                print("   graphs.append", node.urlId, node.url)
+                #print("   graphs.append", node.urlId, node.url)
                 graphs.append(node)
 
             i += 1
@@ -488,8 +488,8 @@ class Env:
 
             if printQ:
                 debugStr += "   " + str(curr) + "->" + str(nextURLId) + " " \
-                         + str(action) + " " + str(allQ) + " " \
-                         + unvisitedStr + " " \
+                         + str(action) + " " + unvisitedStr + " " \
+                         + str(allQ) + " " \
                          + str(featuresNP) + " " \
                          + "\n"
 
