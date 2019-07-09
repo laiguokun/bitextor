@@ -501,6 +501,9 @@ def Main():
         if url == "unknown":
             logging.info("Skipping page with unknown URL")
             continue
+        if url[-10:] == "robots.txt":
+            logging.info("Skipping robots.txt")
+            continue
         if "text/dns" in record.rec_headers.get_header('Content-Type'):
             continue
         

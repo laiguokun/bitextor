@@ -462,8 +462,8 @@ class Env:
             currNode = self.nodes[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
             featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
-            print("featuresNP", featuresNP)
-            print("siblings", siblings)
+            #print("featuresNP", featuresNP)
+            #print("siblings", siblings)
 
             if printQ: unvisitedStr = str(unvisited.urlIds)
 
