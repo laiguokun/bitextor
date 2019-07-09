@@ -17,12 +17,14 @@ DROP TABLE IF EXISTS document;
 DROP TABLE IF EXISTS url;
 DROP TABLE IF EXISTS link;
 DROP TABLE IF EXISTS document_align;
+DROP TABLE IF EXISTS language;
 
 CREATE TABLE IF NOT EXISTS document
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
     mime TINYTEXT,
-    lang CHAR(3),
+    lang CHAR(4),
+    lang_id INT NOT NULL REFERENCES language(id),
     md5 VARCHAR(32) NOT NULL UNIQUE KEY
 );
 
@@ -39,7 +41,8 @@ CREATE TABLE IF NOT EXISTS link
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
     text TEXT,
-    text_lang CHAR(3),
+    text_lang CHAR(4),
+    text_lang_id INT NOT NULL REFERENCES language(id),
     text_en TEXT,
     hover TEXT,
     image_url TEXT,
@@ -66,5 +69,5 @@ ALTER TABLE document_align
 CREATE TABLE IF NOT EXISTS language
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    lang CHAR(3)
+    lang CHAR(4)
 );

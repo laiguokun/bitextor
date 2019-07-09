@@ -32,12 +32,13 @@ sys.path.append(BITEXTOR)
 from external_processor import ExternalTextProcessor
 
 ######################################################################################
-class Language:
+class Languages:
     def __init__(self, mycursor):
         self.mycursor = mycursor
         self.coll = {}
 
     def GetLang(self, str):
+        str = StrNone(str)
         if str in self.coll:
             return self.coll[str]
 
@@ -46,14 +47,16 @@ class Language:
         val = (str,)
         self.mycursor.execute(sql, val)
         res = self.mycursor.fetchone()
-        if res is not None:
+        if res is None:
             sql = "INSERT INTO language(lang) VALUES (%s)"
-            # print("url1", pageURL, hashURL)
             val = (str,)
             self.mycursor.execute(sql, val)
             langId = self.mycursor.lastrowid
         else:
             langId = res[0]
+
+        #print("langId", langId)
+        self.coll[str] = langId
 
         return langId
 
@@ -63,6 +66,12 @@ def guess_lang_from_data2(data):
         data, isPlainText=False)
     return detected_languages[0][1]
 
+######################################################################################
+def StrNone(arg):
+    if arg is None:
+        return "None"
+    else:
+        return str(arg)
 ######################################################################################
 def convert_encoding(data):
     encoding = cchardet.detect(data)['encoding']
@@ -217,15 +226,15 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
     return urlId
 
 ######################################################################################
-def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
+def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass):
     if linkStr is not None:
         linkStr = str(linkStr)
         linkStr = linkStr.replace('\n', ' ')
 
         # translate. Must be 1 sentence
-        langLinkStr = guess_lang_from_data2(linkStr)
-        # print("langLinkStr", langLinkStr)
-        if langLinkStr != languages[-1]:
+        linkLangStr = guess_lang_from_data2(linkStr)
+        # print("linkLangStr", linkLangStr)
+        if linkLangStr != languages[-1]:
             tempStr = linkStr + "\n"
             mtProc.stdin.write(tempStr.encode('utf-8'))
             mtProc.stdin.flush()
@@ -237,7 +246,10 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
             linkStrTrans = linkStr
     else:
         linkStrTrans = None
-        langLinkStr = None
+        linkLangStr = None
+
+    linkLangId = languagesClass.GetLang(linkLangStr)
+    #print("linkLangId", linkLangId)
 
     url = urllib.parse.unquote(url)
     #print("   URL", pageURL, url)
@@ -256,16 +268,15 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
 
         if res is None:
             # not link yet
-            sql = "INSERT INTO link(text, text_lang, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-
-            val = (linkStr, langLinkStr, linkStrTrans, "hover here", imgURL, docId, urlId)
+            sql = "INSERT INTO link(text, text_lang, text_lang_id, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
+            val = (linkStr, linkLangStr, linkLangId, linkStrTrans, "hover here", imgURL, docId, urlId)
             mycursor.execute(sql, val)
     except:
         sys.stderr.write("error saving link")
 
 
 ######################################################################################
-def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
+def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesClass):
     soup = BeautifulSoup(html_text, features="lxml")
     for link in soup.findAll('a'):
         url = link.get('href')
@@ -284,10 +295,10 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
         else:
             imgURL = None
 
-        SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL)
+        SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
 
 ######################################################################################
-def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
+def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, langId, mime):
     sql = "SELECT id FROM document WHERE md5 = %s"
     val = (hashDoc,)
     mycursor.execute(sql, val)
@@ -298,8 +309,8 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
     if res is None:
         # new doc
         newDoc = True
-        sql = "INSERT INTO document(mime, lang, md5) VALUES (%s, %s, %s)"
-        val = (mime, lang, hashDoc)
+        sql = "INSERT INTO document(mime, lang, lang_id, md5) VALUES (%s, %s, %s, %s)"
+        val = (mime, lang, langId, hashDoc)
         mycursor.execute(sql, val)
         docId = mycursor.lastrowid
         print("   SaveDoc", docId, pageURL)
@@ -314,7 +325,7 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
 
 ######################################################################################
 
-def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5):
+def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5, languagesClass):
     print("page", url)
     if url == "unknown":
         logging.info("Unknown page url")
@@ -347,6 +358,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
     logging.info(url + ": detecting language")
     try:
         lang = guess_lang_from_data2(tree)
+        langId = languagesClass.GetLang(lang)
     except:
         sys.stderr.write("error guessing language")
         return
@@ -415,7 +427,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
 
 
 
-                (newDoc, docId) = SaveDoc(mycursor, url, crawlDate, hashDoc, lang, mime)
+                (newDoc, docId) = SaveDoc(mycursor, url, crawlDate, hashDoc, lang, langId, mime)
                 #print("docId", docId)
 
                 if newDoc:
@@ -426,7 +438,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
                     norm_html = cleantree.encode()
 
                     # links
-                    SaveLinks(mycursor, languages, mtProc, text, url, docId)
+                    SaveLinks(mycursor, languages, mtProc, text, url, docId, languagesClass)
 
                     # write html and text files
                     filePrefix = options.outDir + "/" + str(docId)
@@ -501,6 +513,7 @@ def Main():
     mycursor = mydb.cursor()
 
     f = ArchiveIterator(sys.stdin.buffer)
+    languagesClass = Languages(mycursor)
 
     seen_md5={}
     magic.Magic(mime=True)
@@ -580,7 +593,7 @@ def Main():
                 logging.info("Encoding of document " + url + " could not be identified")
 
 
-            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5)
+            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5, languagesClass)
 
     # everything done
     # commit in case there's any hanging transactions
