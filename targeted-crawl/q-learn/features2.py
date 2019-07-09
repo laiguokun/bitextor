@@ -45,7 +45,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 500001
+        self.max_epochs = 50001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -882,9 +882,9 @@ def Train(params, sess, saver, env, qns):
                     #params.alpha *= 0.99
                     #params.alpha = max(0.3, params.alpha)
                 
-            print("epoch", epoch, \
-                 len(qns.q[0].corpus.transitions), len(qns.q[1].corpus.transitions)) #, \
-                 #DebugTransitions(qns.q[0].corpus.transitions))
+            #print("epoch", epoch, \
+            #     len(qns.q[0].corpus.transitions), len(qns.q[1].corpus.transitions)) #, \
+            #     #DebugTransitions(qns.q[0].corpus.transitions))
                 
 
     return totRewards, totDiscountedRewards

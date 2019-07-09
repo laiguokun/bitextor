@@ -17,6 +17,8 @@ def NormalizeURL(url):
     if url[-5:] == ".html":
         url = url[:-5] + ".htm"
         #print("pageURL", pageURL)
+    if url[-9:] == "index.htm":
+        url = url[:-9]
 
     if url[:7] == "http://":
         #print("   strip protocol1", url, url[7:])
