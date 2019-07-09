@@ -218,7 +218,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
         url = urllib.parse.urljoin(pageURL, url)
         url = strip_scheme(url)
 
-        #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
+        print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
         urlId = SaveURL(mycursor, url, None, None)
 
         sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
@@ -274,7 +274,7 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
         val = (mime, lang, hashDoc)
         mycursor.execute(sql, val)
         docId = mycursor.lastrowid
-        #print("   SaveDoc", docId)
+        print("   SaveDoc", docId, pageURL)
     else:
         # duplicate page
         newDoc = False
@@ -287,7 +287,7 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, mime):
 ######################################################################################
 
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5):
-    #print("page", url)
+    print("page", url)
     if url == "unknown":
         logging.info("Unknown page url")
         return
@@ -322,122 +322,123 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
     except:
         sys.stderr.write("error guessing language")
         return
-    if len(languages) > 0 and lang not in languages:
-        logging.info("Language of document " + url + ": " + lang + ". Not among searched languages.")
-    else:
-        # If enabled, remove boilerplate HTML
-        if options.boilerpipe:
-            logging.info(url + ": deboiling html")
-            extractor = Extractor(extractor='ArticleExtractor', html=cleantree)
-            deboiled = extractor.getHTML()
-        else:
-            deboiled = cleantree
-
-            # We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate
-            # files we discard them
-            c = hashlib.md5()
-            c.update(deboiled.encode())
-            hashDoc = c.hexdigest()
-            #print("c", hash)
-            
-            # checking for duplicate content (duplicates are discarded)
-            if c.hexdigest() in seen_md5:
-                logging.info("Repeated file:\t" + url + "\tfirst occurrence\t" + seen_md5[c.hexdigest()])
-                pass
-            else:
-                # If enabled get text with Alcazar library
-                if options.alcazar:
-                    logging.info(url + ": Getting text with Alcazar")
-                    btext = alcazar.bodytext.parse_article(deboiled)
-                    if btext.body_text:
-                        plaintext = btext.body_text
-                    else:
-                        plaintext = ""
-                # Otherwise use beautifulsoup
-                else:
-                    logging.info(url + ": Getting text with BeautifulSoup")
-                    soup = BeautifulSoup(deboiled, "lxml")
-                    for script in soup(["script", "style", "img"]):
-                        script.extract()  # rip it out
-
-                    plaintext = soup.get_text()
-                    plaintext = re.sub(r"\n+", "\n",
-                                        re.sub(r" *\n *", "\n", re.sub(r" +", " ", re.sub(r"\r", "", plaintext))))
-
-                if len(plaintext) > 0:
-                    seen_md5[c.hexdigest()] = c.hexdigest()
-                    # Guessing MIME of the file (checked on original content)
-                    logging.info(url + ": Getting mime")
-                    mime = magic.from_buffer(text, mime=True)
-                    #mimeFile.write(mime.encode() + b"\n")
-
-                    #urlFile.write(url.encode() + b"\n")
-                    #langFile.write(lang.encode() + b"\n")
-                    #encodingFile.write(orig_encoding.encode() + b"\n")
     
-                    b64norm = base64.b64encode(cleantree.encode())
-                    #normHtmlFile.write(b64norm + b"\n")
+    #if len(languages) > 0 and lang not in languages:
+    #    logging.info("Language of document " + url + ": " + lang + ". Not among searched languages.")
+    #else:
+    # If enabled, remove boilerplate HTML
+    if options.boilerpipe:
+        logging.info(url + ": deboiling html")
+        extractor = Extractor(extractor='ArticleExtractor', html=cleantree)
+        deboiled = extractor.getHTML()
+    else:
+        deboiled = cleantree
 
-                    if options.boilerpipe:
-                        b64deboil = base64.b64encode(deboiled.encode())
-                        #deboilFile.write(b64deboil + b"\n")
+        # We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate
+        # files we discard them
+        c = hashlib.md5()
+        c.update(deboiled.encode())
+        hashDoc = c.hexdigest()
+        #print("c", hash)
+        
+        # checking for duplicate content (duplicates are discarded)
+        if c.hexdigest() in seen_md5:
+            logging.info("Repeated file:\t" + url + "\tfirst occurrence\t" + seen_md5[c.hexdigest()])
+            pass
+        else:
+            # If enabled get text with Alcazar library
+            if options.alcazar:
+                logging.info(url + ": Getting text with Alcazar")
+                btext = alcazar.bodytext.parse_article(deboiled)
+                if btext.body_text:
+                    plaintext = btext.body_text
+                else:
+                    plaintext = ""
+            # Otherwise use beautifulsoup
+            else:
+                logging.info(url + ": Getting text with BeautifulSoup")
+                soup = BeautifulSoup(deboiled, "lxml")
+                for script in soup(["script", "style", "img"]):
+                    script.extract()  # rip it out
 
-                    b64text = base64.b64encode(html.unescape(plaintext).encode())
+                plaintext = soup.get_text()
+                plaintext = re.sub(r"\n+", "\n",
+                                    re.sub(r" *\n *", "\n", re.sub(r" +", " ", re.sub(r"\r", "", plaintext))))
+
+            if len(plaintext) > 0:
+                seen_md5[c.hexdigest()] = c.hexdigest()
+                # Guessing MIME of the file (checked on original content)
+                logging.info(url + ": Getting mime")
+                mime = magic.from_buffer(text, mime=True)
+                #mimeFile.write(mime.encode() + b"\n")
+
+                #urlFile.write(url.encode() + b"\n")
+                #langFile.write(lang.encode() + b"\n")
+                #encodingFile.write(orig_encoding.encode() + b"\n")
+
+                b64norm = base64.b64encode(cleantree.encode())
+                #normHtmlFile.write(b64norm + b"\n")
+
+                if options.boilerpipe:
+                    b64deboil = base64.b64encode(deboiled.encode())
+                    #deboilFile.write(b64deboil + b"\n")
+
+                b64text = base64.b64encode(html.unescape(plaintext).encode())
 
 
 
-                    (newDoc, docId) = SaveDoc(mycursor, url, crawlDate, hashDoc, lang, mime)
-                    #print("docId", docId)
+                (newDoc, docId) = SaveDoc(mycursor, url, crawlDate, hashDoc, lang, mime)
+                #print("docId", docId)
 
-                    if newDoc:
-                        #urlFile.write(url.encode()+b"\n")
-                        #langFile.write(lang.encode()+b"\n")
-                        #encodingFile.write(orig_encoding.encode()+b"\n")
+                if newDoc:
+                    #urlFile.write(url.encode()+b"\n")
+                    #langFile.write(lang.encode()+b"\n")
+                    #encodingFile.write(orig_encoding.encode()+b"\n")
 
-                        norm_html = cleantree.encode()
+                    norm_html = cleantree.encode()
 
-                        # links
-                        SaveLinks(mycursor, languages, mtProc, text, url, docId)
+                    # links
+                    SaveLinks(mycursor, languages, mtProc, text, url, docId)
 
-                        # write html and text files
-                        filePrefix = options.outDir + "/" + str(docId)
+                    # write html and text files
+                    filePrefix = options.outDir + "/" + str(docId)
 
-                        with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
-                            htmlFile.write(text)
-                        with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
-                            normHtmlFile.write(norm_html.decode("utf-8"))
-                        with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
-                            textFile.write(plaintext)
+                    with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
+                        htmlFile.write(text)
+                    with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
+                        normHtmlFile.write(norm_html.decode("utf-8"))
+                    with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
+                        textFile.write(plaintext)
 
-                        #print("plaintext", len(plaintext))
-                        splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
-                        extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
+                    #print("plaintext", len(plaintext))
+                    splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
+                    extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
-                        # write splitted file
-                        extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
-                        with lzma.open(extractPath, 'wt') as extractFile:
-                            for extractedLine in extractedLines:
-                                extractFile.write(str(docId) + "\t" + extractedLine + "\n")
+                    # write splitted file
+                    extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
+                    with lzma.open(extractPath, 'wt') as extractFile:
+                        for extractedLine in extractedLines:
+                            extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
-                        if lang != languages[-1]:
-                            # translate
-                            transPath = options.outDir + "/" + str(docId) + ".trans.xz"
-                            transFile = lzma.open(transPath, 'wt')
+                    if lang != languages[-1]:
+                        # translate
+                        transPath = options.outDir + "/" + str(docId) + ".trans.xz"
+                        transFile = lzma.open(transPath, 'wt')
 
-                            for inLine in extractedLines:
-                                # print("inLine", inLine)
-                                inLine += "\n"
-                                mtProc.stdin.write(inLine.encode('utf-8'))
-                                mtProc.stdin.flush()
-                                outLine = mtProc.stdout.readline()
-                                outLine = outLine.decode("utf-8")
-                                transFile.write(str(docId) + "\t" + outLine)
+                        for inLine in extractedLines:
+                            # print("inLine", inLine)
+                            inLine += "\n"
+                            mtProc.stdin.write(inLine.encode('utf-8'))
+                            mtProc.stdin.flush()
+                            outLine = mtProc.stdout.readline()
+                            outLine = outLine.decode("utf-8")
+                            transFile.write(str(docId) + "\t" + outLine)
 
-                            transFile.close()
+                        transFile.close()
 
-                        # doc align
-                        if 0:
-                            DocAlign()
+                    # doc align
+                    if 0:
+                        DocAlign()
 
 ######################################################################################
 def Main():
@@ -481,7 +482,6 @@ def Main():
                              ],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     numPages = 0
-    cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=False, safe_attrs_only=False)
 
     for record in f:
         numPages += 1
@@ -512,7 +512,7 @@ def Main():
         url = url.lower()
         if url[-4:] == ".gif" or url[-4:] == ".jpg" or url[-5:] == ".jpeg" or url[-4:] == ".png" or url[-4:] == ".css" or url[-3:] == ".js" or url[-4:] == ".mp3" or url[-4:] == ".mp4" or url[-4:] == ".ogg" or url[-5:] == ".midi" or url[-4:] == ".swf":
             continue
-        print("url", numPages, url, pageSize)
+        #print("url", numPages, url, pageSize)
 
         crawlDate = record.rec_headers.get_header('WARC-Date')
         #print("date", crawlDate)
