@@ -144,6 +144,8 @@ def NormalizeURL(url):
     if url[-5:] == ".html":
         url = url[:-5] + ".htm"
         #print("pageURL", pageURL)
+    if url[-9:] == "index.htm":
+        url = url[:-9]
 
     if url[:7] == "http://":
         #print("   strip protocol1", url, url[7:])
@@ -241,9 +243,9 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId):
     soup = BeautifulSoup(html_text, features="lxml")
     for link in soup.findAll('a'):
         url = link.get('href')
-
         if url is None:
             continue
+        url = url.strip()
 
         linkStr = link.string
 
