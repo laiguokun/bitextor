@@ -293,7 +293,12 @@ class Env:
 
         for rec in res:
             #print("rec", rec[0], rec[1])
-            node = Node(sqlconn, rec[0], rec[1], rec[2], rec[3])
+            url = rec[3]
+            if url[-10:] == "robots.txt":
+                logging.info("Skipping robots.txt")
+                continue
+
+            node = Node(sqlconn, rec[0], rec[1], rec[2], url)
             self.nodes[node.urlId] = node
             self.url2urlId[node.url] = node.urlId
             self.AddDocId(node.docId, node.urlId)
