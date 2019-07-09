@@ -328,13 +328,13 @@ class Env:
         startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
 
         graphs = self.CreateGraphs()
-        print("graphs", len(graphs))
+        print("#graphs", len(graphs))
         for graph in graphs:
             print("   ", graph.urlId, graph.url)
             startNode.CreateLink("", None, graph)
 
         self.nodes[startNode.urlId] = startNode
-        print("startNode", startNode.Debug())
+        #print("startNode", startNode.Debug())
 
     def CreateGraphs(self):
         graphs = []
@@ -462,6 +462,8 @@ class Env:
             currNode = self.nodes[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
             featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
+            print("featuresNP", featuresNP)
+            print("siblings", siblings)
 
             if printQ: unvisitedStr = str(unvisited.urlIds)
 
@@ -748,7 +750,7 @@ class Candidates:
             self.AddLink(link)
 
     def GetFeaturesNP(self, env, params, visited):
-        ret = np.zeros([params.FEATURES_PER_ACTION, params.NUM_ACTIONS], dtype=np.int)
+        ret = np.zeros([params.NUM_ACTIONS, params.FEATURES_PER_ACTION], dtype=np.int)
         siblings = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
@@ -760,12 +762,12 @@ class Candidates:
                 link = links[0]
                 #print("link", link)
                 linkLangId = env.GetLangId(link.textLang)
-                ret[0, i] = linkLangId
+                ret[i, 0] = linkLangId
 
                 parentNode = link.parentNode
                 parentLangId = env.GetLangId(parentNode.lang)
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
-                ret[1, i] = parentLangId
+                ret[i, 1] = parentLangId
 
                 matchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
                 numMatchedSiblings = len(matchedSiblings)
