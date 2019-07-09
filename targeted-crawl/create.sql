@@ -62,3 +62,9 @@ CREATE TABLE IF NOT EXISTS document_align
 ALTER TABLE document_align
    ADD CONSTRAINT UQ_document_align_docs UNIQUE (document1, document2)
 ;
+
+CREATE TABLE IF NOT EXISTS language
+(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lang CHAR(3)
+);

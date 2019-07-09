@@ -32,6 +32,32 @@ sys.path.append(BITEXTOR)
 from external_processor import ExternalTextProcessor
 
 ######################################################################################
+class Language:
+    def __init__(self, mycursor):
+        self.mycursor = mycursor
+        self.coll = {}
+
+    def GetLang(self, str):
+        if str in self.coll:
+            return self.coll[str]
+
+        # new language
+        sql = "SELECT id FROM language WHERE lang = %s"
+        val = (str,)
+        self.mycursor.execute(sql, val)
+        res = self.mycursor.fetchone()
+        if res is not None:
+            sql = "INSERT INTO language(lang) VALUES (%s)"
+            # print("url1", pageURL, hashURL)
+            val = (str,)
+            self.mycursor.execute(sql, val)
+            langId = self.mycursor.lastrowid
+        else:
+            langId = res[0]
+
+        return langId
+
+
 def guess_lang_from_data2(data):
     reliable, text_bytes, detected_languages = cld2.detect(
         data, isPlainText=False)
@@ -220,7 +246,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL):
         url = urllib.parse.urljoin(pageURL, url)
         url = strip_scheme(url)
 
-        print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
+        #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
         urlId = SaveURL(mycursor, url, None, None)
 
         sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
