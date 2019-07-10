@@ -75,8 +75,9 @@ def StrNone(arg):
 ######################################################################################
 def convert_encoding(data):
     encoding = cchardet.detect(data)['encoding']
+    #print("encoding", data, encoding)
 
-    if len(data) > 0:
+    if encoding is not None and len(data) > 0:
         #We convert, even if the text is detected to be UTF8 so, if it is an error and conversion fails, the error is catched here
         for enc in [encoding, 'utf-8', 'iso-8859-1', 'windows‑1252']:
             try:
