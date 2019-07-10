@@ -291,7 +291,7 @@ class Env:
         assert (res is not None)
 
         for rec in res:
-            #print("rec", rec[0], rec[1])
+            print("rec", rec[0], rec[1], rec[2], rec[3])
             url = rec[3]
             if url[-10:] == "robots.txt":
                 #print("Skipping robots.txt")
@@ -898,9 +898,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    env = Env(sqlconn, "www.vade-retro.fr")
+    #env = Env(sqlconn, "www.vade-retro.fr")
     #env = Env(sqlconn, "www.visitbritain.com")
-    #env = Env(sqlconn, "www.buchmann.ch")
+    env = Env(sqlconn, "www.buchmann.ch")
 
     params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
 
