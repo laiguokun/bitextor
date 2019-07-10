@@ -193,6 +193,7 @@ def NormalizeURL(url):
     return url
 
 def SaveURL(mycursor, pageURL, docId, crawlDate):
+    origURL = pageURL
     pageURL = NormalizeURL(pageURL)
 
     c = hashlib.md5()
@@ -220,9 +221,9 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
                 print("WARNING duplicate URL with different document", pageURL, docId, res[1])
                 #assert (res[1] == docId)
     else:
-        sql = "INSERT INTO url(val, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s)"
+        sql = "INSERT INTO url(val, orig_url, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s, %s)"
         # print("url1", pageURL, hashURL)
-        val = (pageURL, hashURL, docId, crawlDate)
+        val = (pageURL, origURL, hashURL, docId, crawlDate)
         mycursor.execute(sql, val)
         urlId = mycursor.lastrowid
 
