@@ -33,18 +33,19 @@ def GetDocId(mycursor, url):
     c = hashlib.md5()
     c.update(url.encode())
     hashURL = c.hexdigest()
-    print("url", url, hashURL)
+    #print("url", url, hashURL)
 
     sql = "SELECT id, document_id FROM url WHERE md5 = %s"
     val = (hashURL,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
-    assert(res is not None)
+    
+    if res is not None:
+        docId = res[1]
+        if docId is not None:
+            return docId
 
-    docId = res[1]
-    assert (docId is not None)
-
-    return docId
+    return None
 
 ######################################################################################
 def SaveDocAlign(mycursor, doc1Id, doc2Id, score):
@@ -76,7 +77,7 @@ for line in sys.stdin:
     #print(line)
 
     toks = line.split("\t")
-    print("toks", toks)
+    #print("toks", toks)
     assert(len(toks) == 3)
 
     score = toks[0]
@@ -84,8 +85,14 @@ for line in sys.stdin:
     url2 = NormalizeURL(toks[2])
 
     doc1Id = GetDocId(mycursor, url1)
+    if doc1Id is None:
+        continue
+
     doc2Id = GetDocId(mycursor, url2)
-    print("   ", doc1Id, doc2Id)
+    if doc2Id is None:
+        continue
+
+    print("   ", doc1Id, doc2Id, toks)
 
     SaveDocAlign(mycursor, doc1Id, doc2Id, score)
 
