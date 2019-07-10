@@ -197,6 +197,7 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
     c = hashlib.md5()
     c.update(pageURL.encode())
     hashURL = c.hexdigest()
+    #print("pageURL", pageURL, hashURL)
 
     sql = "SELECT id, document_id FROM url WHERE md5 = %s"
     val = (hashURL,)
@@ -215,7 +216,8 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
                 mycursor.execute(sql, val)
                 assert(mycursor.rowcount == 1)
             else:
-                assert (res[1] == docId)
+                print("WARNING duplicate URL with different document", pageURL, docId, res[1])
+                #assert (res[1] == docId)
     else:
         sql = "INSERT INTO url(val, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s)"
         # print("url1", pageURL, hashURL)
@@ -303,7 +305,7 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, langId, mime):
     val = (hashDoc,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
-    #print("page", res, hashDoc, pageURL)
+    #print("SaveDoc", res, hashDoc, pageURL)
 
     #checking for duplicate content (duplicates are discarded)
     if res is None:
@@ -313,11 +315,12 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, langId, mime):
         val = (mime, langId, hashDoc)
         mycursor.execute(sql, val)
         docId = mycursor.lastrowid
-        #print("   SaveDoc", docId, pageURL)
+        #print("   SaveDoc new", docId, pageURL)
     else:
         # duplicate page
         newDoc = False
         docId = res[0]
+        #print("   SaveDoc duplicate", docId, pageURL)
 
     urlId = SaveURL(mycursor, pageURL, docId, crawlDate)
 
