@@ -278,14 +278,13 @@ def DebugTransitions(transitions):
 class Env:
     def __init__(self, sqlconn, url):
         self.Transition = namedtuple("Transition", "currURLId nextURLId done features siblings targetQ")
-        self.langIds = {}
         self.numAligned = 0
         self.nodes = {}
         self.url2urlId = {}
         self.docId2URLIds = {}
 
         # all nodes with docs
-        sql = "select url.id, url.document_id, document.lang, url.val from url, document where url.document_id = document.id and val like %s"
+        sql = "select url.id, url.document_id, document.lang_id, url.val from url, document where url.document_id = document.id and val like %s"
         val = (url + "%",)
         sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchall()
@@ -313,7 +312,7 @@ class Env:
         self.CreateStartNodes(sqlconn)
 
         # stop node
-        node = Node(sqlconn, 0, 0, None, "STOP")
+        node = Node(sqlconn, 0, 0, 0, "STOP")
         #self.nodesbyURL[node.url] = node
         self.nodes[0] = node
 
@@ -330,13 +329,13 @@ class Env:
 
     def CreateStartNodes(self, sqlconn):
         # start node id = sys.maxsize
-        startNode = Node(sqlconn, sys.maxsize, 0, None, "START")
+        startNode = Node(sqlconn, sys.maxsize, 0, 0, "START")
 
         graphs = self.CreateGraphs()
         print("#graphs", len(graphs))
         for graph in graphs:
             print("   ", graph.urlId, graph.url)
-            startNode.CreateLink("", None, graph)
+            startNode.CreateLink("", 0, graph)
 
         self.nodes[startNode.urlId] = startNode
         print("startNode", startNode.Debug())
@@ -385,16 +384,7 @@ class Env:
         return False
 
     def __del__(self):
-        print("langIds", self.langIds)
-
-    def GetLangId(self, lang):
-        if lang in self.langIds:
-            ret = self.langIds[lang]
-        else:
-            ret = len(self.langIds) + 1
-            self.langIds[lang] = ret
-        
-        return ret
+        pass
 
     def GetURLIdFromURL(self, url):
         if url in self.url2urlId:
@@ -676,7 +666,7 @@ class Node:
 
     def CreateLinks(self, sqlconn, env):
         #sql = "select id, text, url_id from link where document_id = %s"
-        sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
+        sql = "select link.id, link.text, link.text_lang_id, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
         #print("sql", sql)
         sqlconn.mycursor.execute(sql, val)
@@ -765,14 +755,12 @@ class Candidates:
             links = self.dict[urlId]
             if len(links) > 0:
                 link = links[0]
-                #print("link", link)
-                linkLangId = env.GetLangId(link.textLang)
-                ret[i, 0] = linkLangId
+                #print("link", link.parentNode.urlId, link.childNode.urlId, link.text, link.textLang)
+                ret[i, 0] = link.textLang
 
                 parentNode = link.parentNode
-                parentLangId = env.GetLangId(parentNode.lang)
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
-                ret[i, 1] = parentLangId
+                ret[i, 1] = parentNode.lang
 
                 matchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
                 numMatchedSiblings = len(matchedSiblings)
