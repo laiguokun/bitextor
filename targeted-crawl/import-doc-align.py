@@ -45,6 +45,7 @@ def GetDocId(mycursor, url):
         if docId is not None:
             return docId
 
+    print("WARNING: doc not found for URL", url)
     return None
 
 ######################################################################################
