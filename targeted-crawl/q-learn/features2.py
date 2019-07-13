@@ -45,7 +45,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 100001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -898,9 +898,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    #env = Env(sqlconn, "www.vade-retro.fr")
+    env = Env(sqlconn, "vade-retro.fr")
     #env = Env(sqlconn, "www.visitbritain.com")
-    env = Env(sqlconn, "www.buchmann.ch")
+    #env = Env(sqlconn, "www.buchmann.ch")
 
     params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
 

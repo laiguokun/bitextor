@@ -50,9 +50,15 @@ def GetDocId(mycursor, url):
 
 ######################################################################################
 def SaveDocAlign(mycursor, doc1Id, doc2Id, score):
+    print("SaveDocAlign", doc1Id, doc2Id, score)
     sql = "INSERT INTO document_align(document1, document2, score) VALUES (%s, %s, %s)"
     val = (doc1Id, doc2Id, score)
-    mycursor.execute(sql, val)
+
+    try:
+        # duplicatess, possibly due to URL normalization
+        mycursor.execute(sql, val)
+    except:
+        sys.stderr.write("encoding error")
 
 ######################################################################################
 
