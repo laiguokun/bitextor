@@ -51,7 +51,7 @@ class Languages:
         if res is None:
             sql = "INSERT INTO language(lang) VALUES (%s)"
             val = (str,)
-            self.mycursor.exe,cute(sql, val)
+            self.mycursor.execute(sql, val)
             langId = self.mycursor.lastrowid
         else:
             langId = res[0]
