@@ -68,5 +68,5 @@ ALTER TABLE document_align
 CREATE TABLE IF NOT EXISTS language
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    lang CHAR(4)
+    lang VARCHAR(32)
 );

@@ -41,6 +41,7 @@ class Languages:
         str = StrNone(str)
         if str in self.coll:
             return self.coll[str]
+        #print("GetLang", str)
 
         # new language
         sql = "SELECT id FROM language WHERE lang = %s"
@@ -50,7 +51,7 @@ class Languages:
         if res is None:
             sql = "INSERT INTO language(lang) VALUES (%s)"
             val = (str,)
-            self.mycursor.execute(sql, val)
+            self.mycursor.exe,cute(sql, val)
             langId = self.mycursor.lastrowid
         else:
             langId = res[0]
