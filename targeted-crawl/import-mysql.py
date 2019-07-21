@@ -314,21 +314,8 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesC
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
     #print("coll", len(coll))
 
-    # canonical/alternate links
-    for link in soup.findAll('link'):
-        url = link.get('href')
-
-        if url is None:
-            continue
-        url = url.strip()
-
-        linkStr = None
-        imgURL = None
-
-        SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
-
 ######################################################################################
-def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, langId, mime):
+def SaveDoc(mycursor, html_text, pageURL, crawlDate, hashDoc, lang, langId, mime):
     sql = "SELECT id FROM document WHERE md5 = %s"
     val = (hashDoc,)
     mycursor.execute(sql, val)
@@ -351,6 +338,21 @@ def SaveDoc(mycursor, pageURL, crawlDate, hashDoc, lang, langId, mime):
         #print("   SaveDoc duplicate", docId, pageURL)
 
     urlId = SaveURL(mycursor, pageURL, docId, crawlDate)
+
+    # canonical/alternate links
+    soup = BeautifulSoup(html_text, features='html5lib') # lxml html.parser
+    for link in soup.findAll('link'):
+        url = link.get('href')
+
+        if url is None:
+            continue
+        url = url.strip()
+
+        canonical = link.get('rel')
+        if canonical is None or canonical[0] != "canonical":
+            continue
+
+        urlId = SaveURL(mycursor, url, docId, crawlDate)
 
     return (newDoc, docId)
 
@@ -458,7 +460,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
 
 
 
-                (newDoc, docId) = SaveDoc(mycursor, url, crawlDate, hashDoc, lang, langId, mime)
+                (newDoc, docId) = SaveDoc(mycursor, text, url, crawlDate, hashDoc, lang, langId, mime)
                 #print("docId", docId)
 
                 if newDoc:

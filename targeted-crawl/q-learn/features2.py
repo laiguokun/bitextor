@@ -286,6 +286,7 @@ class Transition:
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
         return ret
 
+######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
         self.url = url
@@ -354,7 +355,7 @@ class Env:
     def CreateSubGraphs(self):
         graphs = []
         unvisited = set(self.nodes)
-        print("unvisited", len(unvisited), type(unvisited))
+        #print("unvisited", len(unvisited), type(unvisited))
 
         while len(unvisited) > 0:
             urlId = next(iter(unvisited))
