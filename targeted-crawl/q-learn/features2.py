@@ -342,7 +342,7 @@ class Env:
         # start node id = sys.maxsize
         startNode = Node(sqlconn, sys.maxsize, 0, 0, "START")
 
-        graphs = self.CreateGraphs()
+        graphs = self.CreateSubGraphs()
         print("#graphs", len(graphs))
         for graph in graphs:
             print("   ", graph.urlId, graph.url)
@@ -350,6 +350,32 @@ class Env:
 
         self.nodes[startNode.urlId] = startNode
         print("startNode", startNode.Debug())
+
+    def CreateSubGraphs(self):
+        graphs = []
+        unvisited = set(self.nodes)
+        print("unvisited", len(unvisited), type(unvisited))
+
+        while len(unvisited) > 0:
+            urlId = next(iter(unvisited))
+            node = self.nodes[urlId]
+            print("urlId", urlId)
+
+            graphs.append(node)
+
+            self.Visit(node, unvisited)
+
+        return graphs
+
+    def Visit(self, node, unvisited):
+        if node.urlId not in unvisited:
+            return
+
+        unvisited.remove(node.urlId)
+
+        for link in node.links:
+            childNode = link.childNode
+            self.Visit(childNode, unvisited)
 
     def CreateGraphs(self):
         graphs = []
