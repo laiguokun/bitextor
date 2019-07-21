@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import numpy as np
 import pylab as plt
 import tensorflow as tf
@@ -46,7 +47,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 100001
+        self.max_epochs = 20001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -287,6 +288,7 @@ class Transition:
 
 class Env:
     def __init__(self, sqlconn, url):
+        self.url = url
         self.numAligned = 0
         self.nodes = {}
         self.url2urlId = {}
@@ -433,7 +435,7 @@ class Env:
                 urlIds = self.GetURLIdsFromDocId(nextNode.alignedDoc)
                 for urlId in urlIds:
                     if urlId in visited:
-                        reward = 170.0
+                        reward = 17.0 #170.0
                         break
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
@@ -912,12 +914,20 @@ def Main():
 
     sqlconn = MySQL()
 
-    env = Env(sqlconn, "vade-retro.fr")
-    #env = Env(sqlconn, "www.visitbritain.com")
-    #env = Env(sqlconn, "www.buchmann.ch")
+    hostName = "vade-retro.fr"
+    #hostName = "www.visitbritain.com"
+    #hostName = "www.buchmann.ch"
+    pickleName = hostName + ".pickle"
 
-    with open('data', 'wb') as f:
-        pickle.dump(env,f)
+    if os.path.exists(pickleName):
+        with open(pickleName, 'rb') as f:
+            print("unpickling")
+            env = pickle.load(f)
+    else:
+        env = Env(sqlconn, hostName)
+        with open(pickleName, 'wb') as f:
+            print("pickling")
+            pickle.dump(env,f)
         
 
     params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
