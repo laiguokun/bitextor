@@ -284,6 +284,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
 
 ######################################################################################
 def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesClass):
+    #print(html_text)
     soup = BeautifulSoup(html_text, features="lxml")
     for link in soup.findAll('a'):
         url = link.get('href')
@@ -301,6 +302,19 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesC
                 imgURL = str(imgURL)
         else:
             imgURL = None
+
+        SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
+
+    # canonical/alternate links
+    for link in soup.findAll('link'):
+        url = link.get('href')
+
+        if url is None:
+            continue
+        url = url.strip()
+
+        linkStr = None
+        imgURL = None
 
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
 

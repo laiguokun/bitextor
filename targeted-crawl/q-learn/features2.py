@@ -356,16 +356,17 @@ class Env:
 
         i = 0
         for node in self.nodes.values():
-            #print("node", i, node.urlId)
+            print("node", i, node.urlId, node.url)
             found = False
             for graph in graphs:
+                print("   graph", graph.urlId, graph.url)
                 visited = set()
                 found = self.Search(graph, node, visited)
                 if found:
                     break
             
             if not found:
-                #print("   graphs.append", node.urlId, node.url)
+                print("   graphs.append", node.urlId, node.url)
                 graphs.append(node)
 
             i += 1
@@ -386,7 +387,7 @@ class Env:
 
         for link in graph.links:
             childGraph = link.childNode
-            #print("   childGraph", childGraph.urlId)
+            #print("   recursive search", childGraph.urlId)
             found = self.Search(childGraph, node, visited)
             if found:
                 #print("   FOUND", graph.urlId, node.urlId)
@@ -914,9 +915,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    hostName = "vade-retro.fr"
+    #hostName = "vade-retro.fr"
     #hostName = "www.visitbritain.com"
-    #hostName = "www.buchmann.ch"
+    hostName = "www.buchmann.ch"
     pickleName = hostName + ".pickle"
 
     if os.path.exists(pickleName):
