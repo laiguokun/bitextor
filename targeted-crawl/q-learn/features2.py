@@ -9,6 +9,7 @@ from collections import namedtuple
 import mysql.connector
 import time
 import argparse
+import pickle
 
 ######################################################################################
 class Timer:
@@ -263,21 +264,29 @@ class MySQL:
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
 
-def DebugTransition(transition):
-    ret = str(transition.currURLId) + "->" + str(transition.nextURLId)
-    return ret
-
+######################################################################################
 def DebugTransitions(transitions):
     ret = ""
     for transition in transitions:
-        str = DebugTransition(transition)
+        str = transition.Debug()
         ret += str + " "
     return ret
 
-######################################################################################
+class Transition:
+    def __init__(self, currURLId, nextURLId, done, features, siblings, targetQ):
+        self.currURLId = currURLId
+        self.nextURLId = nextURLId 
+        self.done = done
+        self.features = features 
+        self.siblings = siblings
+        self.targetQ = targetQ
+
+    def DebugTransition(self):
+        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        return ret
+
 class Env:
     def __init__(self, sqlconn, url):
-        self.Transition = namedtuple("Transition", "currURLId nextURLId done features siblings targetQ")
         self.numAligned = 0
         self.nodes = {}
         self.url2urlId = {}
@@ -581,7 +590,7 @@ class Env:
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
 
-        transition = self.Transition(currURLId, nextNode.urlId, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
+        transition = Transition(currURLId, nextNode.urlId, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
         timer.Pause("Neural.6")
 
         return transition
@@ -621,10 +630,15 @@ class Env:
                 targetQ[0, i] = 0
 
 ######################################################################################
+class Link:
+    def __init__(self, text, textLang, parentNode, childNode):
+        self.text = text 
+        self.textLang = textLang 
+        self.parentNode = parentNode
+        self.childNode = childNode
 
 class Node:
     def __init__(self, sqlconn, urlId, docId, lang, url):
-        self.Link = namedtuple("Link", "text textLang parentNode childNode")
 
         self.urlId = urlId
         self.docId = docId
@@ -693,7 +707,7 @@ class Node:
             self.CreateLink(text, textLang, childNode)
 
     def CreateLink(self, text, textLang, childNode):            
-        link = self.Link(text, textLang, self, childNode)
+        link = Link(text, textLang, self, childNode)
         self.links.append(link)
 
     def GetLinks(self, visited, params):
@@ -901,6 +915,10 @@ def Main():
     env = Env(sqlconn, "vade-retro.fr")
     #env = Env(sqlconn, "www.visitbritain.com")
     #env = Env(sqlconn, "www.buchmann.ch")
+
+    with open('data', 'wb') as f:
+        pickle.dump(env,f)
+        
 
     params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
 
