@@ -266,12 +266,6 @@ class MySQL:
         self.mycursor = self.mydb.cursor(buffered=True)
 
 ######################################################################################
-def DebugTransitions(transitions):
-    ret = ""
-    for transition in transitions:
-        str = transition.Debug()
-        ret += str + " "
-    return ret
 
 class Transition:
     def __init__(self, currURLId, nextURLId, done, features, siblings, targetQ):
@@ -877,6 +871,13 @@ def Train(params, sess, saver, env, qns):
 
     return totRewards, totDiscountedRewards
             
+def DebugTransitions(transitions):
+    ret = ""
+    for transition in transitions:
+        str = transition.Debug()
+        ret += str + " "
+    return ret
+
 ######################################################################################
  
 timer = Timer()
