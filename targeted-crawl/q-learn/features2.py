@@ -359,7 +359,7 @@ class Env:
         while len(unvisited) > 0:
             urlId = next(iter(unvisited))
             node = self.nodes[urlId]
-            print("urlId", urlId)
+            #print("urlId", urlId)
 
             graphs.append(node)
 
@@ -376,50 +376,6 @@ class Env:
         for link in node.links:
             childNode = link.childNode
             self.Visit(childNode, unvisited)
-
-    def CreateGraphs(self):
-        graphs = []
-
-        i = 0
-        for node in self.nodes.values():
-            #print("node", i, node.urlId, node.url)
-            found = False
-            for graph in graphs:
-                #print("   graph", graph.urlId, graph.url)
-                visited = set()
-                found = self.Search(graph, node, visited)
-                if found:
-                    break
-            
-            if not found:
-                print("   graphs.append", node.urlId, node.url)
-                graphs.append(node)
-
-            i += 1
-        
-        return graphs
-
-    def Search(self, graph, node, visited):
-        if graph.urlId in visited:
-            #print("   already visited", graph.urlId, visited)
-            return False
-        else:
-            visited.add(graph.urlId)
-
-        #print("   graph.urlId", graph.urlId, node.urlId, len(graph.links))
-        if graph.urlId == node.urlId:
-            #print("   found", node.urlId)
-            return True
-
-        for link in graph.links:
-            childGraph = link.childNode
-            #print("   recursive search", childGraph.urlId)
-            found = self.Search(childGraph, node, visited)
-            if found:
-                #print("   FOUND", graph.urlId, node.urlId)
-                return True
-
-        return False
 
     def __del__(self):
         pass
