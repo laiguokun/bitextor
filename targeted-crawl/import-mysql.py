@@ -239,21 +239,22 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
         # translate. Must be 1 sentence
         try:
             linkLangStr = guess_lang_from_data2(linkStr)
+            # print("linkLangStr", linkLangStr)
+            if linkLangStr != languages[-1]:
+                tempStr = linkStr + "\n"
+                mtProc.stdin.write(tempStr.encode('utf-8'))
+                mtProc.stdin.flush()
+                linkStrTrans = mtProc.stdout.readline()
+                linkStrTrans = linkStrTrans.decode("utf-8")
+                linkStrTrans = linkStrTrans.strip("\n")
+                # print("linkStr", linkStr, "|||", linkStrTrans)
+            else:
+                linkStrTrans = linkStr
         except:
-            sys.stderr.write("error guessing language")
-            return
+            sys.stderr.write("WARNING: error guessing language")
+            linkStrTrans = None
+            linkLangStr = None
 
-        # print("linkLangStr", linkLangStr)
-        if linkLangStr != languages[-1]:
-            tempStr = linkStr + "\n"
-            mtProc.stdin.write(tempStr.encode('utf-8'))
-            mtProc.stdin.flush()
-            linkStrTrans = mtProc.stdout.readline()
-            linkStrTrans = linkStrTrans.decode("utf-8")
-            linkStrTrans = linkStrTrans.strip("\n")
-            # print("linkStr", linkStr, "|||", linkStrTrans)
-        else:
-            linkStrTrans = linkStr
     else:
         linkStrTrans = None
         linkLangStr = None
@@ -290,7 +291,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
 ######################################################################################
 def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesClass):
     #print(html_text)
-    soup = BeautifulSoup(html_text, features='html.parser')
+    soup = BeautifulSoup(html_text, features='html5lib') # lxml html.parser
     coll = soup.findAll('a')
     for link in coll:
         url = link.get('href')
