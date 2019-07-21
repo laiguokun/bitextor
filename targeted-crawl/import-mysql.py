@@ -237,7 +237,12 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
         linkStr = linkStr.replace('\n', ' ')
 
         # translate. Must be 1 sentence
-        linkLangStr = guess_lang_from_data2(linkStr)
+        try:
+            linkLangStr = guess_lang_from_data2(linkStr)
+        except:
+            sys.stderr.write("error guessing language")
+            return
+
         # print("linkLangStr", linkLangStr)
         if linkLangStr != languages[-1]:
             tempStr = linkStr + "\n"
@@ -285,15 +290,17 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
 ######################################################################################
 def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesClass):
     #print(html_text)
-    soup = BeautifulSoup(html_text, features="lxml")
-    for link in soup.findAll('a'):
+    soup = BeautifulSoup(html_text, features='html.parser')
+    coll = soup.findAll('a')
+    for link in coll:
         url = link.get('href')
         if url is None:
             continue
         url = url.strip()
-
+        
         linkStr = link.string
-
+        #print("url", linkStr, url)
+        
         imgURL = link.find('img')
         if imgURL:
             # print("imgURL", imgURL)
@@ -304,6 +311,7 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesC
             imgURL = None
 
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
+    #print("coll", len(coll))
 
     # canonical/alternate links
     for link in soup.findAll('link'):

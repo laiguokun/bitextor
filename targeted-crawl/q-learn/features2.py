@@ -356,10 +356,10 @@ class Env:
 
         i = 0
         for node in self.nodes.values():
-            print("node", i, node.urlId, node.url)
+            #print("node", i, node.urlId, node.url)
             found = False
             for graph in graphs:
-                print("   graph", graph.urlId, graph.url)
+                #print("   graph", graph.urlId, graph.url)
                 visited = set()
                 found = self.Search(graph, node, visited)
                 if found:
