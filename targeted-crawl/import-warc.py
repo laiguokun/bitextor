@@ -231,7 +231,6 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
 
     try:
         url = urllib.parse.urljoin(pageURL, url)
-        url = strip_scheme(url)
 
         #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
         urlId = SaveURL(mycursor, url, None, None)
@@ -332,6 +331,8 @@ def SaveURL(mycursor, url, docId, crawlDate):
         urlId = mycursor.lastrowid
 
     return urlId
+
+######################################################################################
 
 def SavePageURLs(mycursor, pageURL, soup, docId, crawlDate):
     docChanged = False
