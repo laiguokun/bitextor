@@ -333,7 +333,9 @@ def SaveURL(mycursor, url, docId, crawlDate):
 
     return urlId
 
-def SaveURLs(mycursor, pageURL, soup, docId, crawlDate):
+def SavePageURLs(mycursor, pageURL, soup, docId, crawlDate):
+    docChanged = False
+
     c = hashlib.md5()
 
     c.update(NormalizeURL(pageURL).encode())
@@ -366,12 +368,13 @@ def SaveURLs(mycursor, pageURL, soup, docId, crawlDate):
         # already has doc, use existing and make url entries consistent
         docId = res[1]
         crawlDate = res[2]
+        docChanged = True
 
     pageURLId = SaveURL(mycursor, pageURL, docId, crawlDate)
     if canonicalHash is not None:
         SaveURL(mycursor, canonical, docId, crawlDate)
 
-    return pageURLId
+    return docChanged, docId
 
 ######################################################################################
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass):
@@ -412,7 +415,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, p
         docId = SaveDoc(mycursor, langId, mime)
         #print("docId", docId)
 
-        urlId = SaveURLs(mycursor, pageURL, soup, docId, crawlDate)
+        docChanged, docId = SavePageURLs(mycursor, pageURL, soup, docId, crawlDate)
         #print("docId", docId)
 
         # links
