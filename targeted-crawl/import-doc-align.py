@@ -5,9 +5,15 @@ import sys
 import argparse
 import mysql.connector
 import hashlib
-
+import urllib
+import html5lib
 
 ######################################################################################
+def strip_scheme(url):
+    parsed = urllib.parse.urlparse(url)
+    scheme = "%s://" % parsed.scheme
+    return parsed.geturl().replace(scheme, '', 1)
+
 def NormalizeURL(url):
     url = url.lower()
     ind = url.find("#")
@@ -20,14 +26,10 @@ def NormalizeURL(url):
     if url[-9:] == "index.htm":
         url = url[:-9]
 
-    if url[:7] == "http://":
-        #print("   strip protocol1", url, url[7:])
-        url = url[7:]
-    elif url[:8] == "https://":
-        #print("   strip protocol2", url, url[8:])
-        url = url[8:]
+    url = strip_scheme(url)
 
     return url
+######################################################################################
 
 def GetDocId(mycursor, url):
     c = hashlib.md5()
@@ -40,6 +42,7 @@ def GetDocId(mycursor, url):
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
     
+    assert(res is not None)
     if res is not None:
         docId = res[1]
         if docId is not None:
