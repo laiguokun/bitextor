@@ -300,12 +300,11 @@ def SaveDoc(mycursor, langId, mime):
     return docId
 
 ######################################################################################
-def SaveURL(mycursor, pageURL, docId, crawlDate):
-    origURL = pageURL
-    pageURL = NormalizeURL(pageURL)
+def SaveURL(mycursor, url, docId, crawlDate):
+    normURL = NormalizeURL(url)
 
     c = hashlib.md5()
-    c.update(pageURL.encode())
+    c.update(normURL.encode())
     hashURL = c.hexdigest()
     #print("pageURL", pageURL, hashURL)
 
@@ -328,7 +327,7 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
     else:
         sql = "INSERT INTO url(val, orig_url, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s, %s)"
         # print("url1", pageURL, hashURL)
-        val = (pageURL, origURL, hashURL, docId, crawlDate)
+        val = (normURL, url, hashURL, docId, crawlDate)
         mycursor.execute(sql, val)
         urlId = mycursor.lastrowid
 
