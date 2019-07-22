@@ -293,9 +293,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
 
 
 ######################################################################################
-def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesClass):
-    #print(html_text)
-    soup = BeautifulSoup(html_text, features='html5lib') # lxml html.parser
+def SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass):
     coll = soup.findAll('a')
     for link in coll:
         url = link.get('href')
@@ -332,7 +330,7 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesC
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
 
 ######################################################################################
-def SaveDoc(mycursor, html_text, pageURL, crawlDate, lang, langId, mime):
+def SaveDoc(mycursor, soup, pageURL, crawlDate, lang, langId, mime):
     # has URL already been saved, eg. canonical
     normURL = NormalizeURL(pageURL)
 
@@ -362,7 +360,6 @@ def SaveDoc(mycursor, html_text, pageURL, crawlDate, lang, langId, mime):
     urlId = SaveURL(mycursor, pageURL, docId, crawlDate)
 
     # canonical/alternate links
-    soup = BeautifulSoup(html_text, features='html5lib') # lxml html.parser
     for link in soup.findAll('link'):
         url = link.get('href')
 
@@ -403,7 +400,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
         return
         
     logging.info(url + ": Getting text with BeautifulSoup")
-    soup = BeautifulSoup(htmlText, "lxml")
+    soup = BeautifulSoup(htmlText, features='html5lib') # lxml html.parser
     for script in soup(["script", "style", "img"]):
         script.extract()  # rip it out
 
@@ -415,12 +412,12 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
         mime = magic.from_buffer(htmlText, mime=True)
         #mimeFile.write(mime.encode() + b"\n")
 
-        (newDoc, docId) = SaveDoc(mycursor, htmlText, url, crawlDate, lang, langId, mime)
+        (newDoc, docId) = SaveDoc(mycursor, soup, url, crawlDate, lang, langId, mime)
         #print("docId", docId)
 
         if newDoc:
             # links
-            SaveLinks(mycursor, languages, mtProc, htmlText, url, docId, languagesClass)
+            SaveLinks(mycursor, languages, mtProc, soup, url, docId, languagesClass)
 
             # write html and text files
             filePrefix = options.outDir + "/" + str(docId)
