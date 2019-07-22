@@ -229,26 +229,23 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
     url = urllib.parse.unquote(url)
     #print("   URL", pageURL, url)
 
-    try:
-        url = urllib.parse.urljoin(pageURL, url)
+    url = urllib.parse.urljoin(pageURL, url)
 
-        #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
-        urlId = SaveURL(mycursor, url, None, None)
+    #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
+    urlId = SaveURL(mycursor, url, None, None)
 
-        sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
-        val = (docId, urlId)
-        mycursor.execute(sql, val)
-        res = mycursor.fetchone()
+    sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
+    val = (docId, urlId)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
 
-        if res is None:
-            # not link yet
-            if linkStr is None or len(linkStr) < 300: 
-                # protect from weird parsing error
-                sql = "INSERT INTO link(text, text_lang_id, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-                val = (linkStr, linkLangId, linkStrTrans, "hover here", imgURL, docId, urlId)
-                mycursor.execute(sql, val)
-    except:
-        sys.stderr.write("error saving link")
+    if res is None:
+        # not link yet
+        if linkStr is None or len(linkStr) < 300: 
+            # protect from weird parsing error
+            sql = "INSERT INTO link(text, text_lang_id, text_en, hover, image_url, document_id, url_id) VALUES(%s, %s, %s, %s, %s, %s, %s)"
+            val = (linkStr, linkLangId, linkStrTrans, "hover here", imgURL, docId, urlId)
+            mycursor.execute(sql, val)
 
 
 ######################################################################################
@@ -274,19 +271,6 @@ def SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
 
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
     #print("coll", len(coll))
-
-    # canonical/alternate links
-    for link in soup.findAll('link'):
-        url = link.get('href')
-
-        if url is None:
-            continue
-        url = url.strip()
-
-        linkStr = None
-        imgURL = None
-
-        SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
 
 ######################################################################################
 def SaveDoc(mycursor, langId, mime):
@@ -335,8 +319,6 @@ def SaveURL(mycursor, url, docId, crawlDate):
 ######################################################################################
 
 def SavePageURLs(mycursor, pageURL, soup, docId, crawlDate):
-    docChanged = False
-
     c = hashlib.md5()
 
     c.update(NormalizeURL(pageURL).encode())
@@ -369,13 +351,12 @@ def SavePageURLs(mycursor, pageURL, soup, docId, crawlDate):
         # already has doc, use existing and make url entries consistent
         docId = res[1]
         crawlDate = res[2]
-        docChanged = True
 
-    pageURLId = SaveURL(mycursor, pageURL, docId, crawlDate)
+    _ = SaveURL(mycursor, pageURL, docId, crawlDate)
     if canonicalHash is not None:
         SaveURL(mycursor, canonical, docId, crawlDate)
 
-    return docChanged, docId
+    return docId, canonical
 
 ######################################################################################
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass):
@@ -416,8 +397,12 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, p
         docId = SaveDoc(mycursor, langId, mime)
         #print("docId", docId)
 
-        docChanged, docId = SavePageURLs(mycursor, pageURL, soup, docId, crawlDate)
+        docId, canonical = SavePageURLs(mycursor, pageURL, soup, docId, crawlDate)
         #print("docId", docId)
+
+        # canonical links
+        if canonical is not None:
+            SaveLink(mycursor, languages, mtProc, pageURL, docId, canonical, None, None, languagesClass)
 
         # links
         SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
