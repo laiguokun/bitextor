@@ -314,6 +314,19 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesC
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
     #print("coll", len(coll))
 
+    # canonical/alternate links
+    for link in soup.findAll('link'):
+        url = link.get('href')
+
+        if url is None:
+            continue
+        url = url.strip()
+
+        linkStr = None
+        imgURL = None
+
+        SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
+
 ######################################################################################
 def SaveDoc(mycursor, html_text, pageURL, crawlDate, hashDoc, lang, langId, mime):
     sql = "SELECT id FROM document WHERE md5 = %s"
