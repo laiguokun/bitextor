@@ -329,6 +329,25 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesC
 
 ######################################################################################
 def SaveDoc(mycursor, html_text, pageURL, crawlDate, hashDoc, lang, langId, mime):
+    # has URL already been saved, eg. canonical
+    normURL = NormalizeURL(pageURL)
+
+    c = hashlib.md5()
+    c.update(normURL.encode())
+    hashURL = c.hexdigest()
+
+    print("pageURL", pageURL, normURL, hashURL)
+    sql = "SELECT id, val, md5, document_id FROM url WHERE md5 = %s"
+    val = (hashURL,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+
+    if res is not None:
+        docId = res[3]
+        if docId is not None:
+           return (False, docId)
+
+    # has doc already saved
     sql = "SELECT id FROM document WHERE md5 = %s"
     val = (hashDoc,)
     mycursor.execute(sql, val)
