@@ -352,7 +352,8 @@ class Env:
         #print("unvisited", len(unvisited), type(unvisited))
 
         while len(unvisited) > 0:
-            urlId = next(iter(unvisited))
+            temp = sorted(unvisited)
+            urlId = temp[0]
             node = self.nodes[urlId]
             #print("urlId", urlId)
 
@@ -904,15 +905,16 @@ def Main():
     hostName = "www.buchmann.ch"
     pickleName = hostName + ".pickle"
 
-    if os.path.exists(pickleName):
-        with open(pickleName, 'rb') as f:
-            print("unpickling")
-            env = pickle.load(f)
-    else:
-        env = Env(sqlconn, hostName)
-        with open(pickleName, 'wb') as f:
-            print("pickling")
-            pickle.dump(env,f)
+    env = Env(sqlconn, hostName)
+    # if os.path.exists(pickleName):
+    #     with open(pickleName, 'rb') as f:
+    #         print("unpickling")
+    #         env = pickle.load(f)
+    # else:
+    #     env = Env(sqlconn, hostName)
+    #     with open(pickleName, 'wb') as f:
+    #         print("pickling")
+    #         pickle.dump(env,f)
         
 
     params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
