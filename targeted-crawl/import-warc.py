@@ -330,50 +330,14 @@ def SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
 
 ######################################################################################
-def SaveDoc(mycursor, soup, pageURL, crawlDate, lang, langId, mime):
-    # has URL already been saved, eg. canonical
-    normURL = NormalizeURL(pageURL)
-
-    c = hashlib.md5()
-    c.update(normURL.encode())
-    hashURL = c.hexdigest()
-
-    #print("pageURL", pageURL, normURL, hashURL)
-    sql = "SELECT id, val, md5, document_id FROM url WHERE md5 = %s"
-    val = (hashURL,)
-    mycursor.execute(sql, val)
-    res = mycursor.fetchone()
-
-    if res is not None:
-        docId = res[3]
-        if docId is not None:
-           return (False, docId)
-
-    # new doc
-    newDoc = True
+def SaveDoc(mycursor, langId, mime):
     sql = "INSERT INTO document(mime, lang_id) VALUES (%s, %s)"
     val = (mime, langId)
     mycursor.execute(sql, val)
     docId = mycursor.lastrowid
     #print("   SaveDoc new", docId, pageURL)
 
-    urlId = SaveURL(mycursor, pageURL, docId, crawlDate)
-
-    # canonical/alternate links
-    for link in soup.findAll('link'):
-        url = link.get('href')
-
-        if url is None:
-            continue
-        url = url.strip()
-
-        canonical = link.get('rel')
-        if canonical is None or canonical[0] != "canonical":
-            continue
-
-        urlId = SaveURL(mycursor, url, docId, crawlDate)
-
-    return (newDoc, docId)
+    return docId
 
 ######################################################################################
 
@@ -412,50 +376,49 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
         mime = magic.from_buffer(htmlText, mime=True)
         #mimeFile.write(mime.encode() + b"\n")
 
-        (newDoc, docId) = SaveDoc(mycursor, soup, url, crawlDate, lang, langId, mime)
+        docId = SaveDoc(mycursor, langId, mime)
         #print("docId", docId)
 
-        if newDoc:
-            # links
-            SaveLinks(mycursor, languages, mtProc, soup, url, docId, languagesClass)
+        # links
+        SaveLinks(mycursor, languages, mtProc, soup, url, docId, languagesClass)
 
-            # write html and text files
-            filePrefix = options.outDir + "/" + str(docId)
+        # write html and text files
+        filePrefix = options.outDir + "/" + str(docId)
 
-            with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
-                htmlFile.write(htmlText)
-            with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
-                textFile.write(plaintext)
+        with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
+            htmlFile.write(htmlText)
+        with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
+            textFile.write(plaintext)
 
-            #print("plaintext", len(plaintext))
-            splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
-            extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
+        #print("plaintext", len(plaintext))
+        splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
+        extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
-            # write splitted file
-            extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
-            with lzma.open(extractPath, 'wt') as extractFile:
-                for extractedLine in extractedLines:
-                    extractFile.write(str(docId) + "\t" + extractedLine + "\n")
+        # write splitted file
+        extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
+        with lzma.open(extractPath, 'wt') as extractFile:
+            for extractedLine in extractedLines:
+                extractFile.write(str(docId) + "\t" + extractedLine + "\n")
 
-            if lang != languages[-1]:
-                # translate
-                transPath = options.outDir + "/" + str(docId) + ".trans.xz"
-                transFile = lzma.open(transPath, 'wt')
+        if lang != languages[-1]:
+            # translate
+            transPath = options.outDir + "/" + str(docId) + ".trans.xz"
+            transFile = lzma.open(transPath, 'wt')
 
-                for inLine in extractedLines:
-                    # print("inLine", inLine)
-                    inLine += "\n"
-                    mtProc.stdin.write(inLine.encode('utf-8'))
-                    mtProc.stdin.flush()
-                    outLine = mtProc.stdout.readline()
-                    outLine = outLine.decode("utf-8")
-                    transFile.write(str(docId) + "\t" + outLine)
+            for inLine in extractedLines:
+                # print("inLine", inLine)
+                inLine += "\n"
+                mtProc.stdin.write(inLine.encode('utf-8'))
+                mtProc.stdin.flush()
+                outLine = mtProc.stdout.readline()
+                outLine = outLine.decode("utf-8")
+                transFile.write(str(docId) + "\t" + outLine)
 
-                transFile.close()
+            transFile.close()
 
-            # doc align
-            if 0:
-                DocAlign()
+        # doc align
+        if 0:
+            DocAlign()
 
 ######################################################################################
 def Main():
