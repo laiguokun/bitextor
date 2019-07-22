@@ -394,7 +394,7 @@ def SaveDoc(mycursor, html_text, pageURL, crawlDate, hashDoc, lang, langId, mime
 
 ######################################################################################
 
-def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5, languagesClass):
+def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, url, crawlDate, seen_md5, languagesClass):
     print("page", url)
     if url == "unknown":
         logging.info("Unknown page url")
@@ -403,7 +403,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
     if orig_encoding == None:
         logging.info("Encoding of document " + url + " could not be identified")
 
-    if len(text) == 0:
+    if len(htmlText) == 0:
         logging.info("Empty page")
         return
 
@@ -412,7 +412,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
     tree=""
     try:
         cleaner = Cleaner(style=True, links=True, add_nofollow=True, page_structure=False, safe_attrs_only=False)
-        cleanhtml = cleaner.clean_html(re.sub('encoding *= *"[^"]+"', '', text, flags=re.IGNORECASE))
+        cleanhtml = cleaner.clean_html(re.sub('encoding *= *"[^"]+"', '', htmlText, flags=re.IGNORECASE))
         tree = ftfy.fix_text(cleanhtml, fix_entities=False, fix_character_width=False)
         #document = html5lib.parse(fixedtext, treebuilder="lxml", namespaceHTMLElements=False)
         #tree = etree.tostring(document, encoding="utf-8")
@@ -477,7 +477,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
                 seen_md5[c.hexdigest()] = c.hexdigest()
                 # Guessing MIME of the file (checked on original content)
                 logging.info(url + ": Getting mime")
-                mime = magic.from_buffer(text, mime=True)
+                mime = magic.from_buffer(htmlText, mime=True)
                 #mimeFile.write(mime.encode() + b"\n")
 
                 #urlFile.write(url.encode() + b"\n")
@@ -495,7 +495,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
 
 
 
-                (newDoc, docId) = SaveDoc(mycursor, text, url, crawlDate, hashDoc, lang, langId, mime)
+                (newDoc, docId) = SaveDoc(mycursor, htmlText, url, crawlDate, hashDoc, lang, langId, mime)
                 #print("docId", docId)
 
                 if newDoc:
@@ -506,13 +506,13 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
                     norm_html = cleantree.encode()
 
                     # links
-                    SaveLinks(mycursor, languages, mtProc, text, url, docId, languagesClass)
+                    SaveLinks(mycursor, languages, mtProc, htmlText, url, docId, languagesClass)
 
                     # write html and text files
                     filePrefix = options.outDir + "/" + str(docId)
 
                     with lzma.open(filePrefix + ".html.xz", "wt") as htmlFile:
-                        htmlFile.write(text)
+                        htmlFile.write(htmlText)
                     with lzma.open(filePrefix + ".norm.xz", "wt") as normHtmlFile:
                         normHtmlFile.write(norm_html.decode("utf-8"))
                     with lzma.open(filePrefix + ".text.xz", "wt") as textFile:
@@ -654,14 +654,14 @@ def Main():
 
         for payload in payloads:
             # We convert into UTF8 first of all
-            orig_encoding, text = convert_encoding(payload)
+            orig_encoding, htmlText = convert_encoding(payload)
             logging.info("Processing document: " + url)
 
             if orig_encoding is None:
                 logging.info("Encoding of document " + url + " could not be identified")
 
 
-            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, crawlDate, seen_md5, languagesClass)
+            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, url, crawlDate, seen_md5, languagesClass)
 
     # everything done
     # commit in case there's any hanging transactions
