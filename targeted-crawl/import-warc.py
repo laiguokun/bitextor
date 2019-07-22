@@ -374,14 +374,14 @@ def SaveURLs(mycursor, pageURL, soup, docId, crawlDate):
     return pageURLId
 
 ######################################################################################
-def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, url, crawlDate, languagesClass):
-    print("page", url)
-    if url == "unknown":
+def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass):
+    print("page", pageURL)
+    if pageURL == "unknown":
         logging.info("Unknown page url")
         return
 
     if orig_encoding == None:
-        logging.info("Encoding of document " + url + " could not be identified")
+        logging.info("Encoding of document " + pageURL + " could not be identified")
 
     if len(htmlText) == 0:
         logging.info("Empty page")
@@ -389,14 +389,14 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
 
     # lang id
     #printable_str = ''.join(x for x in cleantree if x in string.printable)
-    logging.info(url + ": detecting language")
+    logging.info(pageURL + ": detecting language")
     success, lang = guess_lang_from_data2(htmlText)
     if success:
         langId = languagesClass.GetLang(lang)
     else:
         return
         
-    logging.info(url + ": Getting text with BeautifulSoup")
+    logging.info(pageURL + ": Getting text with BeautifulSoup")
     soup = BeautifulSoup(htmlText, features='html5lib') # lxml html.parser
     for script in soup(["script", "style", "img"]):
         script.extract()  # rip it out
@@ -405,18 +405,18 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
 
     if len(plaintext) > 0:
         # Guessing MIME of the file (checked on original content)
-        logging.info(url + ": Getting mime")
+        logging.info(pageURL + ": Getting mime")
         mime = magic.from_buffer(htmlText, mime=True)
         #mimeFile.write(mime.encode() + b"\n")
 
         docId = SaveDoc(mycursor, langId, mime)
         #print("docId", docId)
 
-        urlId = SaveURLs(mycursor, url, soup, docId, crawlDate)
+        urlId = SaveURLs(mycursor, pageURL, soup, docId, crawlDate)
         #print("docId", docId)
 
         # links
-        SaveLinks(mycursor, languages, mtProc, soup, url, docId, languagesClass)
+        SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
 
         # write html and text files
         filePrefix = options.outDir + "/" + str(docId)
@@ -509,10 +509,10 @@ def Main():
         if record.rec_type != 'response':
             continue
         if record.rec_headers.get_header('WARC-Target-URI')[0] == '<' and record.rec_headers.get_header('WARC-Target-URI')[-1] == '>':
-            url = record.rec_headers.get_header('WARC-Target-URI')[1:-1]
+            pageURL = record.rec_headers.get_header('WARC-Target-URI')[1:-1]
         else:
-            url = record.rec_headers.get_header('WARC-Target-URI')
-        if url == "unknown":
+            pageURL = record.rec_headers.get_header('WARC-Target-URI')
+        if pageURL == "unknown":
             logging.info("Skipping page with unknown URL")
             continue
         if "text/dns" in record.rec_headers.get_header('Content-Type'):
@@ -520,15 +520,15 @@ def Main():
         
         pageSize = int(record.rec_headers.get_header('Content-Length'))
         if pageSize > 5242880:
-            logging.info("Skipping page, over limit. " + str(pageSize) + " " + url)
+            logging.info("Skipping page, over limit. " + str(pageSize) + " " + pageURL)
             continue
         if record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None:
             if "image/" in record.http_headers.get_header('Content-Type') or "audio/" in record.http_headers.get_header('Content-Type') or "video/" in record.http_headers.get_header('Content-Type') or "text/x-component" in record.http_headers.get_header('Content-Type') or "text/x-js" in record.http_headers.get_header('Content-Type') or "text/javascript" in record.http_headers.get_header('Content-Type') or "application/x-javascript" in record.http_headers.get_header('Content-Type') or "text/css" in record.http_headers.get_header('Content-Type') or "application/javascript" in record.http_headers.get_header('Content-Type') or "application/x-shockwave-flash" in record.http_headers.get_header('Content-Type') or "application/octet-stream" in record.http_headers.get_header('Content-Type') or "application/x-font-ttf" in record.http_headers.get_header('Content-Type'):
                 continue
-        url = url.lower()
-        if url[-4:] == ".gif" or url[-4:] == ".jpg" or url[-5:] == ".jpeg" or url[-4:] == ".png" or url[-4:] == ".css" or url[-3:] == ".js" or url[-4:] == ".mp3" or url[-4:] == ".mp4" or url[-4:] == ".ogg" or url[-5:] == ".midi" or url[-4:] == ".swf":
+        pageURL = pageURL.lower()
+        if pageURL[-4:] == ".gif" or pageURL[-4:] == ".jpg" or pageURL[-5:] == ".jpeg" or pageURL[-4:] == ".png" or pageURL[-4:] == ".css" or pageURL[-3:] == ".js" or pageURL[-4:] == ".mp3" or pageURL[-4:] == ".mp4" or pageURL[-4:] == ".ogg" or pageURL[-5:] == ".midi" or pageURL[-4:] == ".swf":
             continue
-        #print("url", numPages, url, pageSize)
+        #print("pageURL", numPages, pageURL, pageSize)
 
         crawlDate = record.rec_headers.get_header('WARC-Date')
         #print("date", crawlDate)
@@ -541,19 +541,19 @@ def Main():
         payload=record.content_stream().read()
         payloads = []
 
-        if url[-4:] == ".pdf" or ((record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None) and "application/pdf" in record.http_headers.get_header('Content-Type')):
+        if pageURL[-4:] == ".pdf" or ((record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None) and "application/pdf" in record.http_headers.get_header('Content-Type')):
             #if options.pdfextract:
             #    payloads = pdfextract(payload)
             #else:
             #    payloads = pdf2html(payload)
             continue
-        elif url[-4:] == ".odt" or url[-4:] == ".ods" or url[-4:] == ".odp":
+        elif pageURL[-4:] == ".odt" or pageURL[-4:] == ".ods" or pageURL[-4:] == ".odp":
             #payloads = openoffice2html(payload)
             continue
-        elif url[-5:] == ".docx" or url[-5:] == ".pptx" or url[-5:] == ".xlsx":
+        elif pageURL[-5:] == ".docx" or pageURL[-5:] == ".pptx" or pageURL[-5:] == ".xlsx":
             #payloads = office2html(payload)
             continue
-        elif url[-5:] == ".epub":
+        elif pageURL[-5:] == ".epub":
             #payloads = epub2html(payload)
             continue
         else:
@@ -562,13 +562,13 @@ def Main():
         for payload in payloads:
             # We convert into UTF8 first of all
             orig_encoding, htmlText = convert_encoding(payload)
-            logging.info("Processing document: " + url)
+            logging.info("Processing document: " + pageURL)
 
             if orig_encoding is None:
-                logging.info("Encoding of document " + url + " could not be identified")
+                logging.info("Encoding of document " + pageURL + " could not be identified")
 
 
-            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, url, crawlDate, languagesClass)
+            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
 
     # everything done
     # commit in case there's any hanging transactions
