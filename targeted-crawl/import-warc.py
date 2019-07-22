@@ -309,7 +309,7 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
     hashURL = c.hexdigest()
     #print("pageURL", pageURL, hashURL)
 
-    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
+    sql = "SELECT id, document_id, crawl_date FROM url WHERE md5 = %s"
     val = (hashURL,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
@@ -320,10 +320,11 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
 
         if docId is not None:
             assert(crawlDate is not None)
-            sql = "UPDATE url SET document_id = %s, crawl_date = %s WHERE id = %s"
-            val = (docId, crawlDate, urlId)
-            mycursor.execute(sql, val)
-            assert(mycursor.rowcount == 1)
+            if docId != res[1] or crawlDate != res[2]:
+                sql = "UPDATE url SET document_id = %s, crawl_date = %s WHERE id = %s"
+                val = (docId, crawlDate, urlId)
+                mycursor.execute(sql, val)
+                assert(mycursor.rowcount == 1)
     else:
         sql = "INSERT INTO url(val, orig_url, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s, %s)"
         # print("url1", pageURL, hashURL)
@@ -335,33 +336,27 @@ def SaveURL(mycursor, pageURL, docId, crawlDate):
 
 def SaveURLs(mycursor, pageURL, soup, docId, crawlDate):
     c = hashlib.md5()
-    urls = []
-    urlHashes = []
 
-    normPageURL = NormalizeURL(pageURL)
-    c.update(normPageURL.encode())
-    urls.append(pageURL)
-    urlHashes.append(c.hexdigest())
+    c.update(NormalizeURL(pageURL).encode())
+    pageURLHash = c.hexdigest()
 
+    canonical = None
+    canonicalHash = None
     for link in soup.findAll('link'):
         linkType = link.get('rel')
         if linkType is not None and linkType[0] == "canonical":
             canonical = link.get('href')
             if canonical is not None:
                 canonical = canonical.strip()
-                normCanonical = NormalizeURL(canonical)
-                c.update(normCanonical.encode())
-                urls.append(canonical)
-                urlHashes.append(c.hexdigest())
+                c.update(NormalizeURL(canonical).encode())
+                canonicalHash = c.hexdigest()
                 break
 
     # does the canonical or page url already have a doc? 
     # If so, use it instead of new doc
-    print("urlHashes", urlHashes)
-    strHashes = ""
-    for hash in urlHashes:
-        strHashes += hash + ","
-    print("strHashes", strHashes)
+    strHashes = pageURLHash
+    if canonicalHash is not None:
+        strHashes += "," + canonicalHash
 
     sql = "SELECT id, document_id, crawl_date FROM url WHERE md5 in (%s) AND document_id IS NOT NULL"
     val = (strHashes,)
@@ -373,8 +368,11 @@ def SaveURLs(mycursor, pageURL, soup, docId, crawlDate):
         docId = res[1]
         crawlDate = res[2]
 
-    for url in urls:
-        SaveURL(mycursor, url, docId, crawlDate)
+    pageURLId = SaveURL(mycursor, pageURL, docId, crawlDate)
+    if canonicalHash is not None:
+        SaveURL(mycursor, canonical, docId, crawlDate)
+
+    return pageURLId
 
 ######################################################################################
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, url, crawlDate, languagesClass):
