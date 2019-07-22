@@ -97,6 +97,23 @@ def strip_scheme(url):
     parsed = urllib.parse.urlparse(url)
     scheme = "%s://" % parsed.scheme
     return parsed.geturl().replace(scheme, '', 1)
+
+def NormalizeURL(url):
+    url = url.lower()
+    ind = url.find("#")
+    if ind >= 0:
+        url = url[:ind]
+        #print("pageURL", pageURL)
+    if url[-5:] == ".html":
+        url = url[:-5] + ".htm"
+        #print("pageURL", pageURL)
+    if url[-9:] == "index.htm":
+        url = url[:-9]
+
+    url = strip_scheme(url)
+
+    return url
+
 ######################################################################################
 def filter_digits_and_punctuation(original_text):
     text_split = original_text.split()
@@ -177,63 +194,6 @@ def DocAlign():
         os.system(cmd)
 
 ######################################################################################
-def NormalizeURL(url):
-    url = url.lower()
-    ind = url.find("#")
-    if ind >= 0:
-        url = url[:ind]
-        #print("pageURL", pageURL)
-    if url[-5:] == ".html":
-        url = url[:-5] + ".htm"
-        #print("pageURL", pageURL)
-    if url[-9:] == "index.htm":
-        url = url[:-9]
-
-    if url[:7] == "http://":
-        #print("   strip protocol1", url, url[7:])
-        url = url[7:]
-    elif url[:8] == "https://":
-        #print("   strip protocol2", url, url[8:])
-        url = url[8:]
-
-    return url
-
-def SaveURL(mycursor, pageURL, docId, crawlDate):
-    origURL = pageURL
-    pageURL = NormalizeURL(pageURL)
-
-    c = hashlib.md5()
-    c.update(pageURL.encode())
-    hashURL = c.hexdigest()
-    #print("pageURL", pageURL, hashURL)
-
-    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
-    val = (hashURL,)
-    mycursor.execute(sql, val)
-    res = mycursor.fetchone()
-
-    if res is not None:
-        # url exists
-        urlId = res[0]
-
-        if docId is not None:
-            assert(crawlDate is not None)
-            if res[1] is None:
-                sql = "UPDATE url SET document_id = %s, crawl_date = %s WHERE id = %s"
-                val = (docId, crawlDate, urlId)
-                mycursor.execute(sql, val)
-                assert(mycursor.rowcount == 1)
-            else:
-                print("WARNING duplicate URL with different document", pageURL, docId, res[1])
-                #assert (res[1] == docId)
-    else:
-        sql = "INSERT INTO url(val, orig_url, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s, %s)"
-        # print("url1", pageURL, hashURL)
-        val = (pageURL, origURL, hashURL, docId, crawlDate)
-        mycursor.execute(sql, val)
-        urlId = mycursor.lastrowid
-
-    return urlId
 
 ######################################################################################
 def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass):
@@ -340,7 +300,83 @@ def SaveDoc(mycursor, langId, mime):
     return docId
 
 ######################################################################################
+def SaveURL(mycursor, pageURL, docId, crawlDate):
+    origURL = pageURL
+    pageURL = NormalizeURL(pageURL)
 
+    c = hashlib.md5()
+    c.update(pageURL.encode())
+    hashURL = c.hexdigest()
+    #print("pageURL", pageURL, hashURL)
+
+    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
+    val = (hashURL,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+
+    if res is not None:
+        # url exists
+        urlId = res[0]
+
+        if docId is not None:
+            assert(crawlDate is not None)
+            sql = "UPDATE url SET document_id = %s, crawl_date = %s WHERE id = %s"
+            val = (docId, crawlDate, urlId)
+            mycursor.execute(sql, val)
+            assert(mycursor.rowcount == 1)
+    else:
+        sql = "INSERT INTO url(val, orig_url, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s, %s)"
+        # print("url1", pageURL, hashURL)
+        val = (pageURL, origURL, hashURL, docId, crawlDate)
+        mycursor.execute(sql, val)
+        urlId = mycursor.lastrowid
+
+    return urlId
+
+def SaveURLs(mycursor, pageURL, soup, docId, crawlDate):
+    c = hashlib.md5()
+    urls = []
+    urlHashes = []
+
+    normPageURL = NormalizeURL(pageURL)
+    c.update(normPageURL.encode())
+    urls.append(pageURL)
+    urlHashes.append(c.hexdigest())
+
+    for link in soup.findAll('link'):
+        linkType = link.get('rel')
+        if linkType is not None and linkType[0] == "canonical":
+            canonical = link.get('href')
+            if canonical is not None:
+                canonical = canonical.strip()
+                normCanonical = NormalizeURL(canonical)
+                c.update(normCanonical.encode())
+                urls.append(canonical)
+                urlHashes.append(c.hexdigest())
+                break
+
+    # does the canonical or page url already have a doc? 
+    # If so, use it instead of new doc
+    print("urlHashes", urlHashes)
+    strHashes = ""
+    for hash in urlHashes:
+        strHashes += hash + ","
+    print("strHashes", strHashes)
+
+    sql = "SELECT id, document_id, crawl_date FROM url WHERE md5 in (%s) AND document_id IS NOT NULL"
+    val = (strHashes,)
+    mycursor.execute(sql, val)
+    res = mycursor.fetchone()
+
+    if res is not None:
+        # already has doc, use existing and make url entries consistent
+        docId = res[1]
+        crawlDate = res[2]
+
+    for url in urls:
+        SaveURL(mycursor, url, docId, crawlDate)
+
+######################################################################################
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, url, crawlDate, languagesClass):
     print("page", url)
     if url == "unknown":
@@ -377,6 +413,9 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
         #mimeFile.write(mime.encode() + b"\n")
 
         docId = SaveDoc(mycursor, langId, mime)
+        #print("docId", docId)
+
+        urlId = SaveURLs(mycursor, url, soup, docId, crawlDate)
         #print("docId", docId)
 
         # links
