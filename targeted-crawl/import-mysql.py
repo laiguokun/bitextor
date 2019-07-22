@@ -63,9 +63,14 @@ class Languages:
 
 
 def guess_lang_from_data2(data):
-    reliable, text_bytes, detected_languages = cld2.detect(
-        data, isPlainText=False)
-    return detected_languages[0][1]
+    try:
+        reliable, text_bytes, detected_languages = cld2.detect(
+            data, isPlainText=False)
+    except:
+        sys.stderr.write("error guessing language")
+        return False, None
+
+    return True, detected_languages[0][1]
 
 ######################################################################################
 def StrNone(arg):
@@ -237,9 +242,9 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
         linkStr = linkStr.replace('\n', ' ')
 
         # translate. Must be 1 sentence
-        try:
-            linkLangStr = guess_lang_from_data2(linkStr)
-            # print("linkLangStr", linkLangStr)
+        success, linkLangStr = guess_lang_from_data2(linkStr)
+        # print("linkLangStr", linkLangStr)
+        if success:
             if linkLangStr != languages[-1]:
                 tempStr = linkStr + "\n"
                 mtProc.stdin.write(tempStr.encode('utf-8'))
@@ -250,8 +255,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
                 # print("linkStr", linkStr, "|||", linkStrTrans)
             else:
                 linkStrTrans = linkStr
-        except:
-            sys.stderr.write("WARNING: error guessing language")
+        else:
             linkStrTrans = None
             linkLangStr = None
 
@@ -421,11 +425,10 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, text, url, 
     # lang id
     #printable_str = ''.join(x for x in cleantree if x in string.printable)
     logging.info(url + ": detecting language")
-    try:
-        lang = guess_lang_from_data2(tree)
+    success, lang = guess_lang_from_data2(tree)
+    if success:
         langId = languagesClass.GetLang(lang)
-    except:
-        sys.stderr.write("error guessing language")
+    else:
         return
     
     #if len(languages) > 0 and lang not in languages:
