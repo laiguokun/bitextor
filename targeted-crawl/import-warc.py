@@ -332,7 +332,7 @@ def SaveLinks(mycursor, languages, mtProc, html_text, pageURL, docId, languagesC
         SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, languagesClass)
 
 ######################################################################################
-def SaveDoc(mycursor, html_text, pageURL, crawlDate, hashDoc, lang, langId, mime):
+def SaveDoc(mycursor, html_text, pageURL, crawlDate, lang, langId, mime):
     # has URL already been saved, eg. canonical
     normURL = NormalizeURL(pageURL)
 
@@ -340,7 +340,7 @@ def SaveDoc(mycursor, html_text, pageURL, crawlDate, hashDoc, lang, langId, mime
     c.update(normURL.encode())
     hashURL = c.hexdigest()
 
-    print("pageURL", pageURL, normURL, hashURL)
+    #print("pageURL", pageURL, normURL, hashURL)
     sql = "SELECT id, val, md5, document_id FROM url WHERE md5 = %s"
     val = (hashURL,)
     mycursor.execute(sql, val)
@@ -351,27 +351,13 @@ def SaveDoc(mycursor, html_text, pageURL, crawlDate, hashDoc, lang, langId, mime
         if docId is not None:
            return (False, docId)
 
-    # has doc already saved
-    sql = "SELECT id FROM document WHERE md5 = %s"
-    val = (hashDoc,)
+    # new doc
+    newDoc = True
+    sql = "INSERT INTO document(mime, lang_id) VALUES (%s, %s)"
+    val = (mime, langId)
     mycursor.execute(sql, val)
-    res = mycursor.fetchone()
-    #print("SaveDoc", res, hashDoc, pageURL)
-
-    #checking for duplicate content (duplicates are discarded)
-    if res is None:
-        # new doc
-        newDoc = True
-        sql = "INSERT INTO document(mime, lang_id, md5) VALUES (%s, %s, %s)"
-        val = (mime, langId, hashDoc)
-        mycursor.execute(sql, val)
-        docId = mycursor.lastrowid
-        #print("   SaveDoc new", docId, pageURL)
-    else:
-        # duplicate page
-        newDoc = False
-        docId = res[0]
-        #print("   SaveDoc duplicate", docId, pageURL)
+    docId = mycursor.lastrowid
+    #print("   SaveDoc new", docId, pageURL)
 
     urlId = SaveURL(mycursor, pageURL, docId, crawlDate)
 
@@ -415,15 +401,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
         langId = languagesClass.GetLang(lang)
     else:
         return
-    
-
-    # We compute MD5 on the HTML (either normalized one or after boilerpipe if enabled): if we get duplicate
-    # files we discard them
-    c = hashlib.md5()
-    c.update(htmlText.encode())
-    hashDoc = c.hexdigest()
-    #print("c", hash)
-    
+        
     logging.info(url + ": Getting text with BeautifulSoup")
     soup = BeautifulSoup(htmlText, "lxml")
     for script in soup(["script", "style", "img"]):
@@ -437,7 +415,7 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, u
         mime = magic.from_buffer(htmlText, mime=True)
         #mimeFile.write(mime.encode() + b"\n")
 
-        (newDoc, docId) = SaveDoc(mycursor, htmlText, url, crawlDate, hashDoc, lang, langId, mime)
+        (newDoc, docId) = SaveDoc(mycursor, htmlText, url, crawlDate, lang, langId, mime)
         #print("docId", docId)
 
         if newDoc:
