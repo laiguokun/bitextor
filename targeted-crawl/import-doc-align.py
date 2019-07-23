@@ -20,6 +20,8 @@ def NormalizeURL(url):
     if ind >= 0:
         url = url[:ind]
         #print("pageURL", pageURL)
+    if url[-1:] == "/":
+        url = url[:-1]
     if url[-5:] == ".html":
         url = url[:-5] + ".htm"
         #print("pageURL", pageURL)

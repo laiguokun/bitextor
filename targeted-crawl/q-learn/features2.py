@@ -357,6 +357,9 @@ class Env:
             node = self.nodes[urlId]
             #print("urlId", urlId)
 
+            assert(node.urlId in unvisited)
+            unvisited.remove(node.urlId)
+
             graphs.append(node)
 
             self.Visit(node, unvisited)
@@ -364,13 +367,14 @@ class Env:
         return graphs
 
     def Visit(self, node, unvisited):
-        if node.urlId not in unvisited:
-            return
-
-        unvisited.remove(node.urlId)
-
+        recurse = []
         for link in node.links:
             childNode = link.childNode
+            if childNode.urlId in unvisited:
+                unvisited.remove(childNode.urlId)
+                recurse.append(childNode)
+
+        for childNode in recurse:
             self.Visit(childNode, unvisited)
 
     def __del__(self):
@@ -901,8 +905,8 @@ def Main():
     sqlconn = MySQL()
 
     #hostName = "vade-retro.fr"
-    #hostName = "www.visitbritain.com"
-    hostName = "www.buchmann.ch"
+    hostName = "www.visitbritain.com"
+    #hostName = "www.buchmann.ch"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
