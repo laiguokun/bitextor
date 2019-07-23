@@ -905,8 +905,8 @@ def Main():
     sqlconn = MySQL()
 
     #hostName = "vade-retro.fr"
-    hostName = "www.visitbritain.com"
-    #hostName = "www.buchmann.ch"
+    #hostName = "www.visitbritain.com"
+    hostName = "www.buchmann.ch"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)

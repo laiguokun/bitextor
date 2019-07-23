@@ -513,16 +513,17 @@ def Main():
         else:
             payloads = [payload]
 
-        for payload in payloads:
-            # We convert into UTF8 first of all
-            orig_encoding, htmlText = convert_encoding(payload)
-            logging.info("Processing document: " + pageURL)
+        assert(len(payloads) == 1)
+        # We convert into UTF8 first of all
+        #print(payload)
+        orig_encoding, htmlText = convert_encoding(payloads[0])
+        logging.info("Processing document: " + pageURL)
 
-            if orig_encoding is None:
-                logging.info("Encoding of document " + pageURL + " could not be identified")
+        if orig_encoding is None:
+            logging.info("Encoding of document " + pageURL + " could not be identified")
 
 
-            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
+        ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
 
     # everything done
     # commit in case there's any hanging transactions
