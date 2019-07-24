@@ -48,7 +48,7 @@ class CrawlHost:
     
     ######################################################################################
     def Download(self, url):
-        if self.count > self.maxCount:
+        if self.count >= self.maxCount:
             return False
 
         normURL = NormalizeURL(url)
@@ -70,6 +70,8 @@ class CrawlHost:
                 pageResponse.apparent_encoding, pageResponse.encoding)
         #print(pageResponse.text)
 
+        pageURL = pageResponse.url
+
         text = pageResponse.text
         #text = ConvertEncoding(pageResponse.text, pageResponse.encoding)
 
@@ -86,7 +88,8 @@ class CrawlHost:
         soup = BeautifulSoup(content, features='html5lib') # lxml html.parser
         #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
 
-        self.FollowLinks(soup, url)
+        cont = self.FollowLinks(soup, pageURL)
+        return cont
 
     ######################################################################################
     def FollowLinks(self, soup, pageURL):
@@ -111,16 +114,21 @@ class CrawlHost:
             else:
                 imgURL = None
 
+            cont = self.Download(url)
+            if not cont:
+                return False
+
+        return True
 
 ######################################################################################
 
 def Main():
     print("Starting")
 
-    url = "http://www.visitbritain.com"
-    #url = "http://www.buchmann.ch"
+    #url = "http://www.visitbritain.com"
+    url = "http://www.buchmann.ch"
     #url = "https://www.buchmann.ch/catalog/default.php"
-    crawler = CrawlHost(url, 7)
+    crawler = CrawlHost(url, 777)
     crawler.Start()
 
     print("Finished")
