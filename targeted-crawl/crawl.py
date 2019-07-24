@@ -14,7 +14,6 @@ def ConvertEncoding(data, encoding):
     return ''
 
 ######################################################################################
-
 def FollowLinks(soup):
     coll = soup.findAll('a')
 
@@ -36,34 +35,49 @@ def FollowLinks(soup):
         else:
             imgURL = None
 
+######################################################################################
+def Download(url):
+    pageResponse = requests.get(url, timeout=5)
+    print("status_code", pageResponse.status_code)
 
-url = "http://www.visitbritain.com"
-#url = "http://www.buchmann.ch"
-#url = "https://www.buchmann.ch/catalog/default.php"
-pageResponse = requests.get(url, timeout=5)
-print("status_code", pageResponse.status_code)
+    for histResponse in pageResponse.history:
+        print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
+                histResponse.apparent_encoding, histResponse.encoding)
+        #print(histResponse.text)
 
-for histResponse in pageResponse.history:
-    print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
-            histResponse.apparent_encoding, histResponse.encoding)
-    #print(histResponse.text)
+    print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
+            pageResponse.apparent_encoding, pageResponse.encoding)
+    #print(pageResponse.text)
 
-print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
-        pageResponse.apparent_encoding, pageResponse.encoding)
-#print(pageResponse.text)
+    text = pageResponse.text
+    #text = ConvertEncoding(pageResponse.text, pageResponse.encoding)
 
-text = pageResponse.text
-#text = ConvertEncoding(pageResponse.text, pageResponse.encoding)
+    content = pageResponse.content
 
-content = pageResponse.content
+    with open("text", "w") as f:
+        f.write(text)
 
-with open("text", "w") as f:
-    f.write(text)
+    with open("content", "wb") as f:
+        f.write(content)
 
-with open("content", "wb") as f:
-    f.write(content)
+    soup = BeautifulSoup(content, features='html5lib') # lxml html.parser
+    #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
 
-soup = BeautifulSoup(content, features='html5lib') # lxml html.parser
-#soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
+    FollowLinks(soup)
 
-FollowLinks(soup)
+######################################################################################
+
+def Main():
+    print("Starting")
+
+    url = "http://www.visitbritain.com"
+    #url = "http://www.buchmann.ch"
+    #url = "https://www.buchmann.ch/catalog/default.php"
+    Download(url)
+
+    print("Finished")
+
+######################################################################################
+
+if __name__ == "__main__":
+    Main()
