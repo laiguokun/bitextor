@@ -42,6 +42,9 @@ class CrawlHost:
         self.count = 0
         self.visited = set()
 
+    def __del__(self):
+        print(self.visited)
+
     ######################################################################################
     def Start(self):
         self.Download(self.url)
@@ -65,6 +68,10 @@ class CrawlHost:
             print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
                     histResponse.apparent_encoding, histResponse.encoding)
             #print(histResponse.text)
+            histURL =  histResponse.url
+            normHistURL = NormalizeURL(histURL)
+            self.visited.add(normHistURL)
+    
 
         print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
                 pageResponse.apparent_encoding, pageResponse.encoding)
@@ -128,7 +135,7 @@ def Main():
     #url = "http://www.visitbritain.com"
     url = "http://www.buchmann.ch"
     #url = "https://www.buchmann.ch/catalog/default.php"
-    crawler = CrawlHost(url, 777)
+    crawler = CrawlHost(url, 7)
     crawler.Start()
 
     print("Finished")
