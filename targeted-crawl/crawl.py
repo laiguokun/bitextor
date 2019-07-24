@@ -2,9 +2,11 @@
 import os
 import sys
 import requests
+import urllib
 from bs4 import BeautifulSoup
 
 ######################################################################################
+#helpers
 def ConvertEncoding(data, encoding):
     if encoding is not None and len(data) > 0:
         try:
@@ -14,11 +16,31 @@ def ConvertEncoding(data, encoding):
     return ''
 
 ######################################################################################
+def strip_scheme(url):
+    parsed = urllib.parse.urlparse(url)
+    scheme = "%s://" % parsed.scheme
+    return parsed.geturl().replace(scheme, '', 1)
+
+def NormalizeURL(url):
+    ind = url.find("#")
+    if ind >= 0:
+        url = url[:ind]
+        #print("pageURL", pageURL)
+    if url[-1:] == "/":
+        url = url[:-1]
+
+    url = strip_scheme(url)
+
+    return url
+
+
+######################################################################################
 class CrawlHost:
     def __init__(self, url, maxCount):
         self.url = url
-        self.maxCount = 100
+        self.maxCount = maxCount
         self.count = 0
+        self.visited = set()
 
     ######################################################################################
     def Start(self):
@@ -26,9 +48,15 @@ class CrawlHost:
     
     ######################################################################################
     def Download(self, url):
-        self.count += 1
         if self.count > self.maxCount:
             return False
+
+        normURL = NormalizeURL(url)
+        if normURL in self.visited:
+            return True
+
+        self.count += 1
+        self.visited.add(normURL)
 
         pageResponse = requests.get(url, timeout=5)
         print("status_code", pageResponse.status_code)
@@ -58,10 +86,10 @@ class CrawlHost:
         soup = BeautifulSoup(content, features='html5lib') # lxml html.parser
         #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
 
-        self.FollowLinks(soup)
+        self.FollowLinks(soup, url)
 
     ######################################################################################
-    def FollowLinks(self, soup):
+    def FollowLinks(self, soup, pageURL):
         coll = soup.findAll('a')
 
         for link in coll:
@@ -69,6 +97,7 @@ class CrawlHost:
             if url is None:
                 continue
             url = url.strip()
+            url = urllib.parse.urljoin(pageURL, url)
             
             linkStr = link.string
             print("url", linkStr, url)
