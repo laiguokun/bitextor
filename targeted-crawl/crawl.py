@@ -6,6 +6,7 @@ import urllib
 import argparse
 import datetime
 import tldextract
+import base64
 from bs4 import BeautifulSoup
 
 ######################################################################################
@@ -52,10 +53,10 @@ class CrawlHost:
 
     ######################################################################################
     def Start(self):
-        self.Download("START", self.url)
+        self.Download("START", self.url, "")
     
     ######################################################################################
-    def Download(self, parentURL, url):
+    def Download(self, parentURL, url, linkStr):
         if self.count >= self.maxCount:
             return False
 
@@ -81,11 +82,12 @@ class CrawlHost:
             normHistURL = NormalizeURL(histResponse.url)
             self.visited.add(normHistURL)
 
-            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code)
+            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code, linkStr)
 
             parentURL = histResponse.url
+            linkStr = ""
     
-
+        # found page, or error
         print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
                 pageResponse.apparent_encoding, pageResponse.encoding)
         #print(pageResponse.text)
@@ -99,7 +101,7 @@ class CrawlHost:
         normPageURL = NormalizeURL(pageResponse.url)
         self.visited.add(normPageURL)
 
-        self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code)
+        self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code, linkStr)
 
         soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
         #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
@@ -130,18 +132,21 @@ class CrawlHost:
             else:
                 imgURL = None
 
-            cont = self.Download(pageURL, url)
+            cont = self.Download(pageURL, url, linkStr)
             if not cont:
                 return False
 
         return True
 
     ######################################################################################
-    def WriteJournal(self, parentURL, url, status_code):
+    def WriteJournal(self, parentURL, url, status_code, linkStr):
+        linkStrB64 = base64.b64encode(linkStr.encode()).decode()
+
         journalStr = str(self.count) +"\t" \
                     + parentURL + "\t" + url + "\t" \
                     + str(status_code) + "\t" \
-                    + str(datetime.datetime.now()) \
+                    + str(datetime.datetime.now()) + "\t" \
+                    + linkStrB64 \
                     + "\n"
         self.journal.write(journalStr)
 
