@@ -104,9 +104,9 @@ class CrawlHost:
         self.WriteJournal(parentURL, pageURL, pageResponse.status_code, linkStr, imgURL)
 
         if pageResponse.status_code == 200:
-            print("HH1", pageResponse.headers['Content-Type'])
+            #print("HH1", pageResponse.headers['Content-Type'])
             if pageResponse.headers['Content-Type'].find("text/html") >= 0:
-                print("HH2")
+                #print("HH2")
                 with open(self.outDir + "/" + str(self.count) + ".html", "wb") as f:
                     f.write(pageResponse.content)
                 
@@ -120,7 +120,7 @@ class CrawlHost:
                 cont = self.FollowLinks(soup, pageURL)
                 return cont
             else:
-                print("HH3")
+                #print("HH3")
                 return True
         else:
             return True
@@ -137,7 +137,8 @@ class CrawlHost:
             url = urllib.parse.urljoin(pageURL, url)
             
             linkStr = link.string
-            print("url", linkStr, url)
+            #if linkStr is not None: linkStr = linkStr.strip()
+            #print("url", linkStr, url)
             
             imgURL = link.find('img')
             if imgURL:
