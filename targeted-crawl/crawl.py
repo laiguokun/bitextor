@@ -5,6 +5,7 @@ import requests
 import urllib
 import argparse
 import datetime
+import tldextract
 from bs4 import BeautifulSoup
 
 ######################################################################################
@@ -35,6 +36,9 @@ class CrawlHost:
         self.count = 0
         self.visited = set()
 
+        self.domain = tldextract.extract(url).registered_domain
+        #print("self.domain", self.domain)
+
         if os.path.exists(self.outDir):
             if not os.path.isdir(self.outDir):
                 sys.stderr.write("Must be a directory: " + self.outDir)
@@ -54,6 +58,10 @@ class CrawlHost:
     def Download(self, parentURL, url):
         if self.count >= self.maxCount:
             return False
+
+        domain = tldextract.extract(url).registered_domain
+        if domain != self.domain:
+            return True
 
         normURL = NormalizeURL(url)
         if normURL in self.visited:
