@@ -48,10 +48,10 @@ class CrawlHost:
 
     ######################################################################################
     def Start(self):
-        self.Download(self.url)
+        self.Download("START", self.url)
     
     ######################################################################################
-    def Download(self, url):
+    def Download(self, parentURL, url):
         if self.count >= self.maxCount:
             return False
 
@@ -69,39 +69,33 @@ class CrawlHost:
             print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
                     histResponse.apparent_encoding, histResponse.encoding)
             #print(histResponse.text)
-            journalStr = str(self.count) + "\t" + histResponse.url + "\t" + str(histResponse.status_code) + "\n"
-            self.journal.write(journalStr)
+            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code)
 
             histURL =  histResponse.url
             normHistURL = NormalizeURL(histURL)
             self.visited.add(normHistURL)
+
+            parentURL = histResponse.url
     
 
         print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
                 pageResponse.apparent_encoding, pageResponse.encoding)
         #print(pageResponse.text)
-        journalStr = str(self.count) + "\t" + pageResponse.url + "\t" + str(pageResponse.status_code) + "\n"
-        self.journal.write(journalStr)
-
-        pageURL = pageResponse.url
-
-        text = pageResponse.text
-        #text = ConvertEncoding(pageResponse.text, pageResponse.encoding)
-
-        content = pageResponse.content
 
         dirName = str(self.count)
         os.mkdir(dirName)
         with open(dirName + "/text", "w") as f:
-            f.write(text)
+            f.write(pageResponse.text)
 
         with open(dirName + "/content", "wb") as f:
-            f.write(content)
+            f.write(pageResponse.content)
 
-        soup = BeautifulSoup(content, features='html5lib') # lxml html.parser
+        self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code)
+
+        soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
         #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
 
-        cont = self.FollowLinks(soup, pageURL)
+        cont = self.FollowLinks(soup, pageResponse.url)
         return cont
 
     ######################################################################################
@@ -127,11 +121,16 @@ class CrawlHost:
             else:
                 imgURL = None
 
-            cont = self.Download(url)
+            cont = self.Download(pageURL, url)
             if not cont:
                 return False
 
         return True
+
+    ######################################################################################
+    def WriteJournal(self, parentURL, url, status_code):
+        journalStr = str(self.count) +"\t" + parentURL + "\t" + url + "\t" + str(status_code) + "\n"
+        self.journal.write(journalStr)
 
 ######################################################################################
 
