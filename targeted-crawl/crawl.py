@@ -73,6 +73,7 @@ class CrawlHost:
 
         pageResponse = requests.get(url, timeout=5)
 
+        # list of re-directions
         for histResponse in pageResponse.history:
             print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
                     histResponse.apparent_encoding, histResponse.encoding)
@@ -97,22 +98,25 @@ class CrawlHost:
                 pageResponse.apparent_encoding, pageResponse.encoding)
         #print(pageResponse.text)
 
-        with open(self.outDir + "/" + str(self.count) + ".text", "w") as f:
-            f.write(pageResponse.text)
-
-        with open(self.outDir + "/" + str(self.count) + ".content", "wb") as f:
-            f.write(pageResponse.content)
-
         normPageURL = NormalizeURL(pageURL)
         self.visited.add(normPageURL)
 
         self.WriteJournal(parentURL, pageURL, pageResponse.status_code, linkStr, imgURL)
 
-        soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
-        #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
+        if pageResponse.status_code == 200:
+            with open(self.outDir + "/" + str(self.count) + ".text", "w") as f:
+                f.write(pageResponse.text)
 
-        cont = self.FollowLinks(soup, pageURL)
-        return cont
+            with open(self.outDir + "/" + str(self.count) + ".content", "wb") as f:
+                f.write(pageResponse.content)
+
+            soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
+            #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
+
+            cont = self.FollowLinks(soup, pageURL)
+            return cont
+        else:
+            return True
 
     ######################################################################################
     def FollowLinks(self, soup, pageURL):
