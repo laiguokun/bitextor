@@ -53,10 +53,10 @@ class CrawlHost:
 
     ######################################################################################
     def Start(self):
-        self.Download("START", self.url, "")
+        self.Download("START", self.url, None, None)
     
     ######################################################################################
-    def Download(self, parentURL, url, linkStr):
+    def Download(self, parentURL, url, linkStr, imgURL):
         if self.count >= self.maxCount:
             return False
 
@@ -72,7 +72,6 @@ class CrawlHost:
         self.visited.add(normURL)
 
         pageResponse = requests.get(url, timeout=5)
-        print("status_code", pageResponse.status_code)
 
         for histResponse in pageResponse.history:
             print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
@@ -82,10 +81,11 @@ class CrawlHost:
             normHistURL = NormalizeURL(histResponse.url)
             self.visited.add(normHistURL)
 
-            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code, linkStr)
+            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code, linkStr, imgURL)
 
             parentURL = histResponse.url
-            linkStr = ""
+            linkStr = None
+            imgURL = None
     
         # found page, or error
         print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
@@ -101,7 +101,7 @@ class CrawlHost:
         normPageURL = NormalizeURL(pageResponse.url)
         self.visited.add(normPageURL)
 
-        self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code, linkStr)
+        self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code, linkStr, imgURL)
 
         soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
         #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
@@ -125,28 +125,34 @@ class CrawlHost:
             
             imgURL = link.find('img')
             if imgURL:
-                # print("imgURL", imgURL)
+                #print("imgURL", imgURL, pageURL)
                 imgURL = imgURL.get('src')
                 if imgURL is not None:
+                    imgURL = urllib.parse.urljoin(pageURL, imgURL)
                     imgURL = str(imgURL)
+                    #print("   imgURL", imgURL, pageURL)
             else:
                 imgURL = None
 
-            cont = self.Download(pageURL, url, linkStr)
+            cont = self.Download(pageURL, url, linkStr, imgURL)
             if not cont:
                 return False
 
         return True
 
     ######################################################################################
-    def WriteJournal(self, parentURL, url, status_code, linkStr):
+    def WriteJournal(self, parentURL, url, status_code, linkStr, imgURL):
+        if linkStr == None: linkStr = ""
+        if imgURL == None: imgURL = ""
+
         linkStrB64 = base64.b64encode(linkStr.encode()).decode()
 
         journalStr = str(self.count) +"\t" \
                     + parentURL + "\t" + url + "\t" \
                     + str(status_code) + "\t" \
                     + str(datetime.datetime.now()) + "\t" \
-                    + linkStrB64 \
+                    + linkStrB64 + "\t" \
+                    + imgURL \
                     + "\n"
         self.journal.write(journalStr)
 
