@@ -3,17 +3,9 @@ import os
 import sys
 import requests
 import urllib
+import argparse
+import datetime
 from bs4 import BeautifulSoup
-
-######################################################################################
-#helpers
-def ConvertEncoding(data, encoding):
-    if encoding is not None and len(data) > 0:
-        try:
-            return data.decode(encoding)
-        except UnicodeDecodeError:
-            sys.stderr.write("encoding error")
-    return ''
 
 ######################################################################################
 def strip_scheme(url):
@@ -36,12 +28,20 @@ def NormalizeURL(url):
 
 ######################################################################################
 class CrawlHost:
-    def __init__(self, url, maxCount):
+    def __init__(self, url, outDir, maxCount):
         self.url = url
+        self.outDir = outDir
         self.maxCount = maxCount
         self.count = 0
         self.visited = set()
-        self.journal = open("journal", "w")
+
+        if os.path.exists(self.outDir):
+            if not os.path.isdir(self.outDir):
+                sys.stderr.write("Must be a directory: " + self.outDir)
+        else:
+            os.mkdir(self.outDir)
+
+        self.journal = open(outDir + "/journal", "w")
 
     def __del__(self):
         print(self.visited)
@@ -82,12 +82,10 @@ class CrawlHost:
                 pageResponse.apparent_encoding, pageResponse.encoding)
         #print(pageResponse.text)
 
-        dirName = str(self.count)
-        os.mkdir(dirName)
-        with open(dirName + "/text", "w") as f:
+        with open(self.outDir + "/" + str(self.count) + ".text", "w") as f:
             f.write(pageResponse.text)
 
-        with open(dirName + "/content", "wb") as f:
+        with open(self.outDir + "/" + str(self.count) + ".content", "wb") as f:
             f.write(pageResponse.content)
 
         self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code)
@@ -129,18 +127,27 @@ class CrawlHost:
 
     ######################################################################################
     def WriteJournal(self, parentURL, url, status_code):
-        journalStr = str(self.count) +"\t" + parentURL + "\t" + url + "\t" + str(status_code) + "\n"
+        journalStr = str(self.count) +"\t" \
+                    + parentURL + "\t" + url + "\t" \
+                    + str(status_code) + "\t" \
+                    + str(datetime.datetime.now()) \
+                    + "\n"
         self.journal.write(journalStr)
 
 ######################################################################################
 
 def Main():
     print("Starting")
+    oparser = argparse.ArgumentParser(description="hieu's crawling")
+    oparser.add_argument("--url", dest="url", required=True,
+                     help="Starting URL to crawl")
+    oparser.add_argument("--out-dir", dest="outDir", default=".",
+                     help="Directory where html, text and journal will be saved. Will create if doesn't exist")
+    oparser.add_argument("--max-requests", dest="maxRequests", default=10000, type=int,
+                     help="Max number of user-generated requests")
+    options = oparser.parse_args()
 
-    #url = "http://www.visitbritain.com"
-    url = "http://www.buchmann.ch"
-    #url = "https://www.buchmann.ch/catalog/default.php"
-    crawler = CrawlHost(url, 7)
+    crawler = CrawlHost(options.url, options.outDir, options.maxRequests)
     crawler.Start()
 
     print("Finished")
