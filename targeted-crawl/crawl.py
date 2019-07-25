@@ -77,11 +77,11 @@ class CrawlHost:
             print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
                     histResponse.apparent_encoding, histResponse.encoding)
             #print(histResponse.text)
-            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code)
 
-            histURL =  histResponse.url
-            normHistURL = NormalizeURL(histURL)
+            normHistURL = NormalizeURL(histResponse.url)
             self.visited.add(normHistURL)
+
+            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code)
 
             parentURL = histResponse.url
     
@@ -95,6 +95,9 @@ class CrawlHost:
 
         with open(self.outDir + "/" + str(self.count) + ".content", "wb") as f:
             f.write(pageResponse.content)
+
+        normPageURL = NormalizeURL(pageResponse.url)
+        self.visited.add(normPageURL)
 
         self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code)
 
