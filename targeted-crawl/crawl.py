@@ -41,6 +41,7 @@ class CrawlHost:
         self.maxCount = maxCount
         self.count = 0
         self.visited = set()
+        self.journal = open("journal", "w")
 
     def __del__(self):
         print(self.visited)
@@ -68,6 +69,9 @@ class CrawlHost:
             print("   histResponse", histResponse, histResponse.url, histResponse.headers['Content-Type'], \
                     histResponse.apparent_encoding, histResponse.encoding)
             #print(histResponse.text)
+            journalStr = str(self.count) + "\t" + histResponse.url + "\t" + str(histResponse.status_code) + "\n"
+            self.journal.write(journalStr)
+
             histURL =  histResponse.url
             normHistURL = NormalizeURL(histURL)
             self.visited.add(normHistURL)
@@ -76,6 +80,8 @@ class CrawlHost:
         print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
                 pageResponse.apparent_encoding, pageResponse.encoding)
         #print(pageResponse.text)
+        journalStr = str(self.count) + "\t" + pageResponse.url + "\t" + str(pageResponse.status_code) + "\n"
+        self.journal.write(journalStr)
 
         pageURL = pageResponse.url
 
