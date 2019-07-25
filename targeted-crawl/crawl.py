@@ -78,17 +78,22 @@ class CrawlHost:
                     histResponse.apparent_encoding, histResponse.encoding)
             #print(histResponse.text)
 
-            normHistURL = NormalizeURL(histResponse.url)
+            histURL = histResponse.url
+            histURL = urllib.parse.urljoin(parentURL, histURL)
+            normHistURL = NormalizeURL(histURL)
             self.visited.add(normHistURL)
 
-            self.WriteJournal(parentURL, histResponse.url, histResponse.status_code, linkStr, imgURL)
+            self.WriteJournal(parentURL, histURL, histResponse.status_code, linkStr, imgURL)
 
-            parentURL = histResponse.url
+            parentURL = histURL
             linkStr = None
             imgURL = None
     
         # found page, or error
-        print("pageResponse", pageResponse, pageResponse.url, pageResponse.headers['Content-Type'], \
+        pageURL = pageResponse.url
+        pageURL = urllib.parse.urljoin(parentURL, pageURL)
+
+        print("pageResponse", pageResponse, pageURL, pageResponse.headers['Content-Type'], \
                 pageResponse.apparent_encoding, pageResponse.encoding)
         #print(pageResponse.text)
 
@@ -98,15 +103,15 @@ class CrawlHost:
         with open(self.outDir + "/" + str(self.count) + ".content", "wb") as f:
             f.write(pageResponse.content)
 
-        normPageURL = NormalizeURL(pageResponse.url)
+        normPageURL = NormalizeURL(pageURL)
         self.visited.add(normPageURL)
 
-        self.WriteJournal(parentURL, pageResponse.url, pageResponse.status_code, linkStr, imgURL)
+        self.WriteJournal(parentURL, pageURL, pageResponse.status_code, linkStr, imgURL)
 
         soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
         #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
 
-        cont = self.FollowLinks(soup, pageResponse.url)
+        cont = self.FollowLinks(soup, pageURL)
         return cont
 
     ######################################################################################
