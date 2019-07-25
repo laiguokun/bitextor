@@ -104,17 +104,24 @@ class CrawlHost:
         self.WriteJournal(parentURL, pageURL, pageResponse.status_code, linkStr, imgURL)
 
         if pageResponse.status_code == 200:
-            with open(self.outDir + "/" + str(self.count) + ".text", "w") as f:
-                f.write(pageResponse.text)
+            print("HH1", pageResponse.headers['Content-Type'])
+            if pageResponse.headers['Content-Type'].find("text/html") >= 0:
+                print("HH2")
+                with open(self.outDir + "/" + str(self.count) + ".html", "wb") as f:
+                    f.write(pageResponse.content)
+                
+                soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
+                #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
 
-            with open(self.outDir + "/" + str(self.count) + ".content", "wb") as f:
-                f.write(pageResponse.content)
+                plainText = soup.get_text()
+                with open(self.outDir + "/" + str(self.count) + ".text", "w") as f:
+                    f.write(plainText)
 
-            soup = BeautifulSoup(pageResponse.content, features='html5lib') # lxml html.parser
-            #soup = BeautifulSoup(pageResponse.text, features='html5lib') # lxml html.parser
-
-            cont = self.FollowLinks(soup, pageURL)
-            return cont
+                cont = self.FollowLinks(soup, pageURL)
+                return cont
+            else:
+                print("HH3")
+                return True
         else:
             return True
 
