@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS response
     to_url INT REFERENCES url(id),
     mime TINYTEXT,
     lang_id INT REFERENCES language(id),
-    md5 VARCHAR(32) UNIQUE KEY
+    md5 VARCHAR(32)
 );
 
 CREATE TABLE IF NOT EXISTS link

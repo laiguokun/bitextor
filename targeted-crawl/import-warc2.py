@@ -201,7 +201,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
     url = urllib.parse.urljoin(pageURL, url)
 
     #print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
-    urlId = SaveURL(mycursor, url, None, None)
+    urlId = SaveURL(mycursor, url)
 
     sql = "SELECT id FROM link WHERE document_id = %s AND url_id = %s"
     val = (docId, urlId)
@@ -279,8 +279,8 @@ def SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId):
 ######################################################################################
 def SaveDoc(mycursor, crawlDate, statusCode, urlId, langId, mime, md5):
     sql = "INSERT INTO response(url, status_code, crawl_date, mime, lang_id, md5) VALUES (%s, %s, %s, %s, %s, %s)"
-    # print("url1", pageURL, hashURL)
     val = (urlId, statusCode, crawlDate, mime, langId, md5)
+    print("SaveDoc", val)
     mycursor.execute(sql, val)
     responseId = mycursor.lastrowid
     return responseId
@@ -328,7 +328,6 @@ def ProcessPage(options, mycursor, languages, mtProc, statusCode, orig_encoding,
         pageURLId = SaveURL(mycursor, pageURL)
         docId = SaveDoc(mycursor, crawlDate, statusCode, pageURLId, langId, mime, hashDoc)
         #print("docId", docId)
-
         
         # links
         SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
