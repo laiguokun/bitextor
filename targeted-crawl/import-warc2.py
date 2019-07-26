@@ -426,58 +426,74 @@ def Main():
         if "text/dns" in record.rec_headers.get_header('Content-Type'):
             continue
         
-        pageSize = int(record.rec_headers.get_header('Content-Length'))
-        if pageSize > 5242880:
-            logging.info("Skipping page, over limit. " + str(pageSize) + " " + pageURL)
-            continue
-        if record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None:
-            if "image/" in record.http_headers.get_header('Content-Type') or "audio/" in record.http_headers.get_header('Content-Type') or "video/" in record.http_headers.get_header('Content-Type') or "text/x-component" in record.http_headers.get_header('Content-Type') or "text/x-js" in record.http_headers.get_header('Content-Type') or "text/javascript" in record.http_headers.get_header('Content-Type') or "application/x-javascript" in record.http_headers.get_header('Content-Type') or "text/css" in record.http_headers.get_header('Content-Type') or "application/javascript" in record.http_headers.get_header('Content-Type') or "application/x-shockwave-flash" in record.http_headers.get_header('Content-Type') or "application/octet-stream" in record.http_headers.get_header('Content-Type') or "application/x-font-ttf" in record.http_headers.get_header('Content-Type'):
+        httpStatusCode = int(record.http_headers.get_statuscode())
+        print("httpStatusCode", type(httpStatusCode), httpStatusCode)
+
+        if httpStatusCode == 200:
+            pageSize = int(record.rec_headers.get_header('Content-Length'))
+            if pageSize > 5242880:
+                logging.info("Skipping page, over limit. " + str(pageSize) + " " + pageURL)
                 continue
-        pageURL = pageURL.lower()
-        if pageURL[-4:] == ".gif" or pageURL[-4:] == ".jpg" or pageURL[-5:] == ".jpeg" or pageURL[-4:] == ".png" or pageURL[-4:] == ".css" or pageURL[-3:] == ".js" or pageURL[-4:] == ".mp3" or pageURL[-4:] == ".mp4" or pageURL[-4:] == ".ogg" or pageURL[-5:] == ".midi" or pageURL[-4:] == ".swf":
-            continue
-        #print("pageURL", numPages, pageURL, pageSize)
+            if record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None:
+                if "image/" in record.http_headers.get_header('Content-Type') \
+                    or "audio/" in record.http_headers.get_header('Content-Type') \
+                    or "video/" in record.http_headers.get_header('Content-Type') \
+                    or "text/x-component" in record.http_headers.get_header('Content-Type') \
+                    or "text/x-js" in record.http_headers.get_header('Content-Type') \
+                    or "text/javascript" in record.http_headers.get_header('Content-Type') \
+                    or "application/x-javascript" in record.http_headers.get_header('Content-Type') \
+                    or "text/css" in record.http_headers.get_header('Content-Type') \
+                    or "application/javascript" in record.http_headers.get_header('Content-Type') \
+                    or "application/x-shockwave-flash" in record.http_headers.get_header('Content-Type') \
+                    or "application/octet-stream" in record.http_headers.get_header('Content-Type') \
+                    or "application/x-font-ttf" in record.http_headers.get_header('Content-Type'):
+                    logging.info("Image, audio or script: " + pageURL)
+                    continue
+            pageURL = pageURL.lower()
+            if pageURL[-4:] == ".gif" or pageURL[-4:] == ".jpg" or pageURL[-5:] == ".jpeg" or pageURL[-4:] == ".png" or pageURL[-4:] == ".css" or pageURL[-3:] == ".js" or pageURL[-4:] == ".mp3" or pageURL[-4:] == ".mp4" or pageURL[-4:] == ".ogg" or pageURL[-5:] == ".midi" or pageURL[-4:] == ".swf":
+                continue
+            #print("pageURL", numPages, pageURL, pageSize)
 
-        crawlDate = record.rec_headers.get_header('WARC-Date')
-        #print("date", crawlDate)
-        crawlDate = crawlDate.replace("T", " ")
-        crawlDate = crawlDate.replace("Z", " ")
-        crawlDate = crawlDate.strip()
-        crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
-        #print("crawlDate", crawlDate, type(crawlDate))
+            crawlDate = record.rec_headers.get_header('WARC-Date')
+            #print("date", crawlDate)
+            crawlDate = crawlDate.replace("T", " ")
+            crawlDate = crawlDate.replace("Z", " ")
+            crawlDate = crawlDate.strip()
+            crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
+            #print("crawlDate", crawlDate, type(crawlDate))
 
-        payload=record.content_stream().read()
-        payloads = []
+            payload=record.content_stream().read()
+            payloads = []
 
-        if pageURL[-4:] == ".pdf" or ((record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None) and "application/pdf" in record.http_headers.get_header('Content-Type')):
-            #if options.pdfextract:
-            #    payloads = pdfextract(payload)
-            #else:
-            #    payloads = pdf2html(payload)
-            continue
-        elif pageURL[-4:] == ".odt" or pageURL[-4:] == ".ods" or pageURL[-4:] == ".odp":
-            #payloads = openoffice2html(payload)
-            continue
-        elif pageURL[-5:] == ".docx" or pageURL[-5:] == ".pptx" or pageURL[-5:] == ".xlsx":
-            #payloads = office2html(payload)
-            continue
-        elif pageURL[-5:] == ".epub":
-            #payloads = epub2html(payload)
-            continue
-        else:
-            payloads = [payload]
+            if pageURL[-4:] == ".pdf" or ((record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None) and "application/pdf" in record.http_headers.get_header('Content-Type')):
+                #if options.pdfextract:
+                #    payloads = pdfextract(payload)
+                #else:
+                #    payloads = pdf2html(payload)
+                continue
+            elif pageURL[-4:] == ".odt" or pageURL[-4:] == ".ods" or pageURL[-4:] == ".odp":
+                #payloads = openoffice2html(payload)
+                continue
+            elif pageURL[-5:] == ".docx" or pageURL[-5:] == ".pptx" or pageURL[-5:] == ".xlsx":
+                #payloads = office2html(payload)
+                continue
+            elif pageURL[-5:] == ".epub":
+                #payloads = epub2html(payload)
+                continue
+            else:
+                payloads = [payload]
 
-        assert(len(payloads) == 1)
-        # We convert into UTF8 first of all
-        #print(payload)
-        orig_encoding, htmlText = convert_encoding(payloads[0])
-        logging.info("Processing document: " + pageURL)
+            assert(len(payloads) == 1)
+            # We convert into UTF8 first of all
+            #print(payload)
+            orig_encoding, htmlText = convert_encoding(payloads[0])
+            logging.info("Processing document: " + pageURL)
 
-        if orig_encoding is None:
-            logging.info("Encoding of document " + pageURL + " could not be identified")
+            if orig_encoding is None:
+                logging.info("Encoding of document " + pageURL + " could not be identified")
 
-
-        ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
+            print("ProcessPage")
+            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
 
     # everything done
     # commit in case there's any hanging transactions
