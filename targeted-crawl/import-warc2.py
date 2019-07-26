@@ -429,7 +429,10 @@ def Main():
         httpStatusCode = int(record.http_headers.get_statuscode())
         print("httpStatusCode", type(httpStatusCode), httpStatusCode)
 
-        if httpStatusCode == 200:
+        if httpStatusCode in (301, 302):
+            redirectURL = record.http_headers.get_header("Location")
+            print("   redirect", pageURL, redirectURL)
+        elif httpStatusCode == 200:
             pageSize = int(record.rec_headers.get_header('Content-Length'))
             if pageSize > 5242880:
                 logging.info("Skipping page, over limit. " + str(pageSize) + " " + pageURL)
@@ -447,8 +450,9 @@ def Main():
                     or "application/x-shockwave-flash" in record.http_headers.get_header('Content-Type') \
                     or "application/octet-stream" in record.http_headers.get_header('Content-Type') \
                     or "application/x-font-ttf" in record.http_headers.get_header('Content-Type'):
-                    logging.info("Image, audio or script: " + pageURL)
+                    logging.info("Weird content type: " + pageURL)
                     continue
+
             pageURL = pageURL.lower()
             if pageURL[-4:] == ".gif" or pageURL[-4:] == ".jpg" or pageURL[-5:] == ".jpeg" or pageURL[-4:] == ".png" or pageURL[-4:] == ".css" or pageURL[-3:] == ".js" or pageURL[-4:] == ".mp3" or pageURL[-4:] == ".mp4" or pageURL[-4:] == ".ogg" or pageURL[-5:] == ".midi" or pageURL[-4:] == ".swf":
                 continue
