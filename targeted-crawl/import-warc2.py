@@ -93,30 +93,7 @@ def convert_encoding(data):
 
     return (None,'')
 ######################################################################################
-def strip_scheme(url):
-    parsed = urllib.parse.urlparse(url)
-    scheme = "%s://" % parsed.scheme
-    return parsed.geturl().replace(scheme, '', 1)
 
-def NormalizeURL(url):
-    url = url.lower()
-    ind = url.find("#")
-    if ind >= 0:
-        url = url[:ind]
-        #print("pageURL", pageURL)
-    if url[-1:] == "/":
-        url = url[:-1]
-    if url[-5:] == ".html":
-        url = url[:-5] + ".htm"
-        #print("pageURL", pageURL)
-    if url[-9:] == "index.htm":
-        url = url[:-9]
-
-    url = strip_scheme(url)
-
-    return url
-
-######################################################################################
 def filter_digits_and_punctuation(original_text):
     text_split = original_text.split()
     if len(text_split) == 1 and sum([1 for m in text_split[0] if m in string.punctuation + string.digits]) > len(
@@ -243,10 +220,8 @@ def SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
 
 ######################################################################################
 def SaveURL(mycursor, url):
-    normURL = NormalizeURL(url)
-
     c = hashlib.md5()
-    c.update(normURL.encode())
+    c.update(url.encode())
     hashURL = c.hexdigest()
     #print("pageURL", pageURL, hashURL)
 
@@ -259,9 +234,9 @@ def SaveURL(mycursor, url):
         # url exists
         urlId = res[0]
     else:
-        sql = "INSERT INTO url(val, orig_url, md5) VALUES (%s, %s, %s)"
+        sql = "INSERT INTO url(val, md5) VALUES (%s, %s)"
         # print("url1", pageURL, hashURL)
-        val = (normURL, url, hashURL)
+        val = (url, hashURL)
         mycursor.execute(sql, val)
         urlId = mycursor.lastrowid
 
@@ -280,7 +255,7 @@ def SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId):
 def SaveDoc(mycursor, crawlDate, statusCode, urlId, langId, mime, md5):
     sql = "INSERT INTO response(url, status_code, crawl_date, mime, lang_id, md5) VALUES (%s, %s, %s, %s, %s, %s)"
     val = (urlId, statusCode, crawlDate, mime, langId, md5)
-    print("SaveDoc", val)
+    #print("SaveDoc", val)
     mycursor.execute(sql, val)
     responseId = mycursor.lastrowid
     return responseId
@@ -368,7 +343,7 @@ def ProcessPage(options, mycursor, languages, mtProc, statusCode, orig_encoding,
 
 ######################################################################################
 def RedirectURL(mycursor, statusCode, fromURL, toURL, crawlDate):
-    print("   redirect", statusCode, crawlDate, fromURL, toURL)
+    print("redirect", statusCode, crawlDate, fromURL, toURL)
     fromURLId = SaveURL(mycursor, fromURL)
     toURLId = SaveURL(mycursor, toURL)
     SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId)
@@ -444,8 +419,7 @@ def Main():
         #print("crawlDate", crawlDate, type(crawlDate))
 
         httpStatusCode = int(record.http_headers.get_statuscode())
-        print("httpStatusCode", type(httpStatusCode), httpStatusCode)
-
+        
         if httpStatusCode in (301, 302):
             toURL = record.http_headers.get_header("Location")
             RedirectURL(mycursor, httpStatusCode, pageURL, toURL, crawlDate)
@@ -505,7 +479,6 @@ def Main():
             if orig_encoding is None:
                 logging.info("Encoding of document " + pageURL + " could not be identified")
 
-            print("ProcessPage")
             ProcessPage(options, mycursor, languages, mtProc, httpStatusCode, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
 
     # everything done
