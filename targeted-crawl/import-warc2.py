@@ -244,7 +244,7 @@ def SaveURL(mycursor, url):
 
 ######################################################################################
 def SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId):
-    sql = "INSERT INTO response(url, status_code, crawl_date, to_url) VALUES (%s, %s, %s, %s)"
+    sql = "INSERT INTO response(url_id, status_code, crawl_date, to_url_id) VALUES (%s, %s, %s, %s)"
     # print("url1", pageURL, hashURL)
     val = (fromURLId, statusCode, crawlDate, toURLId)
     mycursor.execute(sql, val)
@@ -253,7 +253,7 @@ def SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId):
 
 ######################################################################################
 def SaveDoc(mycursor, crawlDate, statusCode, urlId, langId, mime, md5):
-    sql = "INSERT INTO response(url, status_code, crawl_date, mime, lang_id, md5) VALUES (%s, %s, %s, %s, %s, %s)"
+    sql = "INSERT INTO response(url_id, status_code, crawl_date, mime, lang_id, md5) VALUES (%s, %s, %s, %s, %s, %s)"
     val = (urlId, statusCode, crawlDate, mime, langId, md5)
     #print("SaveDoc", val)
     mycursor.execute(sql, val)

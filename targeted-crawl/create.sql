@@ -31,10 +31,10 @@ CREATE TABLE IF NOT EXISTS url
 CREATE TABLE IF NOT EXISTS response
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    url INT NOT NULL REFERENCES url(id),
+    url_id INT NOT NULL REFERENCES url(id),
     status_code INT,
     crawl_date DATETIME NOT NULL,
-    to_url INT REFERENCES url(id),
+    to_url_id INT REFERENCES url(id),
     mime TINYTEXT,
     lang_id INT REFERENCES language(id),
     md5 VARCHAR(32)
