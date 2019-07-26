@@ -252,7 +252,7 @@ def SaveDoc(mycursor, langId, mime):
     return docId
 
 ######################################################################################
-def SaveURL(mycursor, url, docId, crawlDate):
+def SaveURL(mycursor, url):
     normURL = NormalizeURL(url)
 
     c = hashlib.md5()
@@ -260,7 +260,7 @@ def SaveURL(mycursor, url, docId, crawlDate):
     hashURL = c.hexdigest()
     #print("pageURL", pageURL, hashURL)
 
-    sql = "SELECT id, document_id, crawl_date FROM url WHERE md5 = %s"
+    sql = "SELECT id FROM url WHERE md5 = %s"
     val = (hashURL,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
@@ -268,23 +268,22 @@ def SaveURL(mycursor, url, docId, crawlDate):
     if res is not None:
         # url exists
         urlId = res[0]
-
-        if docId is not None:
-            assert(crawlDate is not None)
-            if docId != res[1] or crawlDate != res[2]:
-                sql = "UPDATE url SET document_id = %s, crawl_date = %s WHERE id = %s"
-                val = (docId, crawlDate, urlId)
-                mycursor.execute(sql, val)
-                assert(mycursor.rowcount == 1)
     else:
-        sql = "INSERT INTO url(val, orig_url, md5, document_id, crawl_date) VALUES (%s, %s, %s, %s, %s)"
+        sql = "INSERT INTO url(val, orig_url, md5) VALUES (%s, %s, %s)"
         # print("url1", pageURL, hashURL)
-        val = (normURL, url, hashURL, docId, crawlDate)
+        val = (normURL, url, hashURL)
         mycursor.execute(sql, val)
         urlId = mycursor.lastrowid
 
     return urlId
 
+######################################################################################
+def SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId):
+    sql = "INSERT INTO response(url, status_code, crawl_date, to_url) VALUES (%s, %s, %s, %s)"
+    # print("url1", pageURL, hashURL)
+    val = (fromURLId, statusCode, crawlDate, toURLId)
+    mycursor.execute(sql, val)
+    urlId = mycursor.lastrowid
 
 ######################################################################################
 def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass):
@@ -365,6 +364,13 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, p
             transFile.close()
 
 ######################################################################################
+def RedirectURL(mycursor, statusCode, fromURL, toURL, crawlDate):
+    print("   redirect", statusCode, crawlDate, fromURL, toURL)
+    fromURLId = SaveURL(mycursor, fromURL)
+    toURLId = SaveURL(mycursor, toURL)
+    SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId)
+    
+######################################################################################
 def Main():
     print("Starting")
 
@@ -393,7 +399,7 @@ def Main():
         database="paracrawl",
         charset='utf8'
     )
-    mydb.autocommit = False
+    mydb.autocommit = True #False
     mycursor = mydb.cursor()
 
     f = ArchiveIterator(sys.stdin.buffer)
@@ -425,13 +431,21 @@ def Main():
             continue
         if "text/dns" in record.rec_headers.get_header('Content-Type'):
             continue
-        
+
+        crawlDate = record.rec_headers.get_header('WARC-Date')
+        #print("date", crawlDate)
+        crawlDate = crawlDate.replace("T", " ")
+        crawlDate = crawlDate.replace("Z", " ")
+        crawlDate = crawlDate.strip()
+        crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
+        #print("crawlDate", crawlDate, type(crawlDate))
+
         httpStatusCode = int(record.http_headers.get_statuscode())
         print("httpStatusCode", type(httpStatusCode), httpStatusCode)
 
         if httpStatusCode in (301, 302):
-            redirectURL = record.http_headers.get_header("Location")
-            print("   redirect", pageURL, redirectURL)
+            toURL = record.http_headers.get_header("Location")
+            RedirectURL(mycursor, httpStatusCode, pageURL, toURL, crawlDate)
         elif httpStatusCode == 200:
             pageSize = int(record.rec_headers.get_header('Content-Length'))
             if pageSize > 5242880:
@@ -457,14 +471,6 @@ def Main():
             if pageURL[-4:] == ".gif" or pageURL[-4:] == ".jpg" or pageURL[-5:] == ".jpeg" or pageURL[-4:] == ".png" or pageURL[-4:] == ".css" or pageURL[-3:] == ".js" or pageURL[-4:] == ".mp3" or pageURL[-4:] == ".mp4" or pageURL[-4:] == ".ogg" or pageURL[-5:] == ".midi" or pageURL[-4:] == ".swf":
                 continue
             #print("pageURL", numPages, pageURL, pageSize)
-
-            crawlDate = record.rec_headers.get_header('WARC-Date')
-            #print("date", crawlDate)
-            crawlDate = crawlDate.replace("T", " ")
-            crawlDate = crawlDate.replace("Z", " ")
-            crawlDate = crawlDate.strip()
-            crawlDate = datetime.strptime(crawlDate, '%Y-%m-%d  %H:%M:%S')
-            #print("crawlDate", crawlDate, type(crawlDate))
 
             payload=record.content_stream().read()
             payloads = []

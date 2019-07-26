@@ -14,26 +14,31 @@ pip3 install mysql-connector-python
 */
 
 DROP TABLE IF EXISTS document;
+DROP TABLE IF EXISTS response;
 DROP TABLE IF EXISTS url;
 DROP TABLE IF EXISTS link;
 DROP TABLE IF EXISTS document_align;
 DROP TABLE IF EXISTS language;
 
-CREATE TABLE IF NOT EXISTS document
-(
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    mime TINYTEXT,
-    lang_id INT NOT NULL REFERENCES language(id)
-);
 
 CREATE TABLE IF NOT EXISTS url
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
     val TEXT,
     orig_url TEXT,
-    md5 VARCHAR(32) NOT NULL UNIQUE KEY,
-    document_id INT REFERENCES document(id),
-    crawl_date DATETIME
+    md5 VARCHAR(32) NOT NULL UNIQUE KEY
+);
+
+CREATE TABLE IF NOT EXISTS response
+(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    url INT NOT NULL REFERENCES url(id),
+    status_code INT,
+    crawl_date DATETIME NOT NULL,
+    to_url INT REFERENCES url(id),
+    mime TINYTEXT,
+    lang_id INT REFERENCES language(id),
+    md5 VARCHAR(32) UNIQUE KEY
 );
 
 CREATE TABLE IF NOT EXISTS link
