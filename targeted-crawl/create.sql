@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS link
     text_en TEXT,
     hover TEXT,
     image_url TEXT,
-    document_id INT NOT NULL REFERENCES document(id),
+    document_id INT NOT NULL REFERENCES response(id),
     url_id INT NOT NULL REFERENCES url(id)
 );
 
@@ -60,8 +60,8 @@ ALTER TABLE link
 CREATE TABLE IF NOT EXISTS document_align
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    document1 INT NOT NULL REFERENCES document(id),
-    document2 INT NOT NULL REFERENCES document(id),
+    document1 INT NOT NULL REFERENCES response(id),
+    document2 INT NOT NULL REFERENCES response(id),
     score FLOAT
 );
 

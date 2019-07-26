@@ -242,16 +242,6 @@ def SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
     #print("coll", len(coll))
 
 ######################################################################################
-def SaveDoc(mycursor, langId, mime):
-    sql = "INSERT INTO document(mime, lang_id) VALUES (%s, %s)"
-    val = (mime, langId)
-    mycursor.execute(sql, val)
-    docId = mycursor.lastrowid
-    #print("   SaveDoc new", docId, pageURL)
-
-    return docId
-
-######################################################################################
 def SaveURL(mycursor, url):
     normURL = NormalizeURL(url)
 
@@ -283,10 +273,20 @@ def SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId):
     # print("url1", pageURL, hashURL)
     val = (fromURLId, statusCode, crawlDate, toURLId)
     mycursor.execute(sql, val)
-    urlId = mycursor.lastrowid
+    responseId = mycursor.lastrowid
+    return responseId
 
 ######################################################################################
-def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass):
+def SaveDoc(mycursor, crawlDate, statusCode, urlId, langId, mime, md5):
+    sql = "INSERT INTO response(url, status_code, crawl_date, mime, lang_id, md5) VALUES (%s, %s, %s, %s, %s, %s)"
+    # print("url1", pageURL, hashURL)
+    val = (urlId, statusCode, crawlDate, mime, langId, md5)
+    mycursor.execute(sql, val)
+    responseId = mycursor.lastrowid
+    return responseId
+
+######################################################################################
+def ProcessPage(options, mycursor, languages, mtProc, statusCode, orig_encoding, htmlText, pageURL, crawlDate, languagesClass):
     print("page", pageURL)
     if pageURL == "unknown":
         logging.info("Unknown page url")
@@ -321,10 +321,14 @@ def ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, p
         mime = magic.from_buffer(htmlText, mime=True)
         #mimeFile.write(mime.encode() + b"\n")
 
-        docId = SaveDoc(mycursor, langId, mime)
+        c = hashlib.md5()
+        c.update(htmlText.encode())
+        hashDoc = c.hexdigest()
+
+        pageURLId = SaveURL(mycursor, pageURL)
+        docId = SaveDoc(mycursor, crawlDate, statusCode, pageURLId, langId, mime, hashDoc)
         #print("docId", docId)
 
-        SaveURL(mycursor, pageURL, docId, crawlDate)
         
         # links
         SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
@@ -503,7 +507,7 @@ def Main():
                 logging.info("Encoding of document " + pageURL + " could not be identified")
 
             print("ProcessPage")
-            ProcessPage(options, mycursor, languages, mtProc, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
+            ProcessPage(options, mycursor, languages, mtProc, httpStatusCode, orig_encoding, htmlText, pageURL, crawlDate, languagesClass)
 
     # everything done
     # commit in case there's any hanging transactions
