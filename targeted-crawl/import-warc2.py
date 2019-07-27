@@ -349,6 +349,17 @@ def RedirectURL(mycursor, statusCode, fromURL, toURL, crawlDate):
     SaveRedirect(mycursor, crawlDate, statusCode, fromURLId, toURLId)
     
 ######################################################################################
+def NotFoundURL(mycursor, statusCode, url, crawlDate):
+    urlId = SaveURL(mycursor, url)
+
+    sql = "INSERT INTO response(url_id, status_code, crawl_date) VALUES (%s, %s, %s)"
+    val = (urlId, statusCode, crawlDate)
+    #print("SaveDoc", val)
+    mycursor.execute(sql, val)
+    responseId = mycursor.lastrowid
+    return responseId
+
+######################################################################################
 def Main():
     print("Starting")
 
@@ -404,7 +415,10 @@ def Main():
             pageURL = record.rec_headers.get_header('WARC-Target-URI')[1:-1]
         else:
             pageURL = record.rec_headers.get_header('WARC-Target-URI')
-        if pageURL == "unknown":
+
+        pageURLLower = pageURL.lower()
+
+        if pageURLLower == "unknown":
             logging.info("Skipping page with unknown URL")
             continue
         if "text/dns" in record.rec_headers.get_header('Content-Type'):
@@ -420,7 +434,9 @@ def Main():
 
         httpStatusCode = int(record.http_headers.get_statuscode())
         
-        if httpStatusCode in (301, 302):
+        if httpStatusCode in (403, 404):
+            NotFoundURL(mycursor, httpStatusCode, pageURL, crawlDate)
+        elif httpStatusCode in (301, 302):
             toURL = record.http_headers.get_header("Location")
             RedirectURL(mycursor, httpStatusCode, pageURL, toURL, crawlDate)
         elif httpStatusCode == 200:
@@ -444,27 +460,32 @@ def Main():
                     logging.info("Weird content type: " + pageURL)
                     continue
 
-            pageURL = pageURL.lower()
-            if pageURL[-4:] == ".gif" or pageURL[-4:] == ".jpg" or pageURL[-5:] == ".jpeg" or pageURL[-4:] == ".png" or pageURL[-4:] == ".css" or pageURL[-3:] == ".js" or pageURL[-4:] == ".mp3" or pageURL[-4:] == ".mp4" or pageURL[-4:] == ".ogg" or pageURL[-5:] == ".midi" or pageURL[-4:] == ".swf":
+            if pageURLLower[-4:] == ".gif" or pageURLLower[-4:] == ".jpg" \
+                or pageURLLower[-5:] == ".jpeg" or pageURLLower[-4:] == ".png" \
+                or pageURLLower[-4:] == ".css" or pageURLLower[-3:] == ".js" \
+                or pageURLLower[-4:] == ".mp3" or pageURLLower[-4:] == ".mp4" \
+                or pageURLLower[-4:] == ".ogg" or pageURLLower[-5:] == ".midi" \
+                or pageURLLower[-4:] == ".swf":
                 continue
             #print("pageURL", numPages, pageURL, pageSize)
 
             payload=record.content_stream().read()
+            #print("payload", payload)
             payloads = []
 
-            if pageURL[-4:] == ".pdf" or ((record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None) and "application/pdf" in record.http_headers.get_header('Content-Type')):
+            if pageURLLower[-4:] == ".pdf" or ((record.http_headers is not None and record.http_headers.get_header('Content-Type') is not None) and "application/pdf" in record.http_headers.get_header('Content-Type')):
                 #if options.pdfextract:
                 #    payloads = pdfextract(payload)
                 #else:
                 #    payloads = pdf2html(payload)
                 continue
-            elif pageURL[-4:] == ".odt" or pageURL[-4:] == ".ods" or pageURL[-4:] == ".odp":
+            elif pageURLLower[-4:] == ".odt" or pageURLLower[-4:] == ".ods" or pageURLLower[-4:] == ".odp":
                 #payloads = openoffice2html(payload)
                 continue
-            elif pageURL[-5:] == ".docx" or pageURL[-5:] == ".pptx" or pageURL[-5:] == ".xlsx":
+            elif pageURLLower[-5:] == ".docx" or pageURLLower[-5:] == ".pptx" or pageURLLower[-5:] == ".xlsx":
                 #payloads = office2html(payload)
                 continue
-            elif pageURL[-5:] == ".epub":
+            elif pageURLLower[-5:] == ".epub":
                 #payloads = epub2html(payload)
                 continue
             else:
@@ -472,7 +493,6 @@ def Main():
 
             assert(len(payloads) == 1)
             # We convert into UTF8 first of all
-            #print(payload)
             orig_encoding, htmlText = convert_encoding(payloads[0])
             logging.info("Processing document: " + pageURL)
 

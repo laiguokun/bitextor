@@ -39,7 +39,9 @@ def GetDocId(mycursor, url):
     hashURL = c.hexdigest()
     #print("url", url, hashURL)
 
-    sql = "SELECT id, document_id FROM url WHERE md5 = %s"
+    sql = "SELECT t1.id, t2.id FROM url t1, response t2 " \
+        + "WHERE t2.url_id = t1.id " \
+        + "AND t1.md5 = %s"
     val = (hashURL,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
@@ -93,8 +95,8 @@ for line in sys.stdin:
     assert(len(toks) == 3)
 
     score = toks[0]
-    url1 = NormalizeURL(toks[1])
-    url2 = NormalizeURL(toks[2])
+    url1 = toks[1]
+    url2 = toks[2]
 
     doc1Id = GetDocId(mycursor, url1)
     if doc1Id is None:
