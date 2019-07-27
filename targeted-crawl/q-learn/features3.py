@@ -291,9 +291,10 @@ class Env:
         self.docId2URLIds = {}
 
         urlId = self.Url2UrlId(sqlconn, url)
-        docIds = self.UrlId2DocIds(sqlconn, urlId)
+        docIds, redirects = self.UrlId2Responses(sqlconn, urlId)
         urlIds = self.DocIds2Links(sqlconn, docIds)
-        print(url, urlId, docIds, urlIds)
+
+        print(url, urlId, docIds, urlIds, redirects)
 
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
@@ -312,18 +313,22 @@ class Env:
 
         return urlIds
 
-    def UrlId2DocIds(self, sqlconn, urlId):
-        sql = "SELECT id FROM response WHERE status_code = 200 AND url_id = %s"
+    def UrlId2Responses(self, sqlconn, urlId):
+        sql = "SELECT id, status_code, to_url_id FROM response WHERE url_id = %s"
         val = (urlId,)
         sqlconn.mycursor.execute(sql, val)
         ress = sqlconn.mycursor.fetchall()
         assert (ress is not None)
 
         docIds = []
+        redirects = []
         for res in ress:
-            docIds.append(res[0])
+            if res[1] == 200:
+                docIds.append(res[0])
+            elif res[1] in (301, 302):
+                redirects.append(res[2])
 
-        return docIds
+        return docIds, redirects
 
 
     def Url2UrlId(self, sqlconn, url):
