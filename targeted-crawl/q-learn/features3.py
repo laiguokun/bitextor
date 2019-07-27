@@ -290,11 +290,13 @@ class Env:
         self.url2urlId = {}
         self.docId2URLIds = {}
 
+        visited = set()
+
         urlId = self.Url2UrlId(sqlconn, url)
-        docIds, redirects = self.UrlId2Responses(sqlconn, urlId)
+        docIds, redirect = self.UrlId2Responses(sqlconn, urlId)
         urlIds = self.DocIds2Links(sqlconn, docIds)
 
-        print(url, urlId, docIds, urlIds, redirects)
+        print(url, urlId, docIds, urlIds, redirect)
 
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
@@ -321,14 +323,16 @@ class Env:
         assert (ress is not None)
 
         docIds = []
-        redirects = []
+        redirect = None
         for res in ress:
             if res[1] == 200:
+                assert(redirect == None)
                 docIds.append(res[0])
             elif res[1] in (301, 302):
-                redirects.append(res[2])
+                assert(len(docIds) == 0)
+                redirect = res[2]
 
-        return docIds, redirects
+        return docIds, redirect
 
 
     def Url2UrlId(self, sqlconn, url):
