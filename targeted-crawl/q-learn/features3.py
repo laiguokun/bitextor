@@ -293,11 +293,13 @@ class Env:
         visited = set()
 
         urlId = self.Url2UrlId(sqlconn, url)
+        self.Visit(sqlconn, visited, urlId)
 
+    def Visit(self, sqlconn, visited, urlId):
         if urlId in visited:
-            pass
-        else:
-            visited.add(urlId)
+            return
+
+        visited.add(urlId)
 
         docIds, redirect = self.UrlId2Responses(sqlconn, urlId)
 
@@ -305,9 +307,12 @@ class Env:
             assert(len(docIds) == 0)
             docIds, redirect = self.UrlId2Responses(sqlconn, redirect)
 
-        urlIds = self.DocIds2Links(sqlconn, docIds)
+        childUrlIds = self.DocIds2Links(sqlconn, docIds)
 
-        print(url, urlId, docIds, urlIds, redirect)
+        print(urlId, docIds, childUrlIds, redirect)
+
+        for childUrlId in childUrlIds:
+            self.Visit(sqlconn, visited, childUrlId)
 
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
