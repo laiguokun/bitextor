@@ -293,7 +293,18 @@ class Env:
         visited = set()
 
         urlId = self.Url2UrlId(sqlconn, url)
+
+        if urlId in visited:
+            pass
+        else:
+            visited.add(urlId)
+
         docIds, redirect = self.UrlId2Responses(sqlconn, urlId)
+
+        while redirect is not None:
+            assert(len(docIds) == 0)
+            docIds, redirect = self.UrlId2Responses(sqlconn, redirect)
+
         urlIds = self.DocIds2Links(sqlconn, docIds)
 
         print(url, urlId, docIds, urlIds, redirect)
