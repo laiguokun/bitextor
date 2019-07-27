@@ -221,9 +221,9 @@ def SaveLinks(mycursor, languages, mtProc, soup, pageURL, docId, languagesClass)
 ######################################################################################
 def SaveURL(mycursor, url):
     c = hashlib.md5()
-    c.update(url.encode())
+    c.update(url.lower().encode())
     hashURL = c.hexdigest()
-    #print("pageURL", pageURL, hashURL)
+    #print("url", url, hashURL)
 
     sql = "SELECT id FROM url WHERE md5 = %s"
     val = (hashURL,)

@@ -35,13 +35,14 @@ def NormalizeURL(url):
 
 def GetDocId(mycursor, url):
     c = hashlib.md5()
-    c.update(url.encode())
+    c.update(url.lower().encode())
     hashURL = c.hexdigest()
     #print("url", url, hashURL)
 
     sql = "SELECT t1.id, t2.id FROM url t1, response t2 " \
         + "WHERE t2.url_id = t1.id " \
-        + "AND t1.md5 = %s"
+        + "AND t1.md5 = %s LIMIT 1"
+    print(sql, hashURL)
     val = (hashURL,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
