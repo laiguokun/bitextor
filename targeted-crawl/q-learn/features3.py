@@ -347,24 +347,38 @@ class Env:
         startNode = visited[urlId]
         assert(startNode is not None)
 
+        print("Merging")
         self.Merge(visited, startNode)
+        print("self.nodes", len(self.nodes))
 
         print("graph created")
 
+    def GetRedirectedURL(self, node):
+        assert(node.redirect is not None)
+        while node.redirect is not None:
+            node = node.redirect
+        return node
+
     def Merge(self, visited, node):
-        if node not in visited:
+        if node.urlId not in visited:
             #processed already
             return
 
         visited.remove(node)
 
-        normURL = NormalizeURL(node.url)
+        if node.redirect is not None:
+            redirectedNode = self.GetRedirectedURL(node)
+            assert(redirectedNode is not None)
+            normURL = NormalizeURL(redirectedNode.url)
+        else:
+            normURL = NormalizeURL(node.url)
+
         if normURL in self.nodes:
             # already processed
-            recombNode = self.nodes[node.normURL]
+            recombNode = self.nodes[normURL]
             recombNode.Recombine(node)
         else:
-            self.nodes[node.normURL] = node
+            self.nodes[normURL] = node
 
         # recursively merge
         for link in node.links:
