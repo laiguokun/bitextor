@@ -319,6 +319,10 @@ class Node2:
         self.redirect = None
         self.links = set()
 
+    def Debug(self):
+        return " ".join([str(self.id), self.url, StrNone(self.docIds), 
+                        StrNone(self.redirect), str(len(self.links)) ] )
+
 class Env:
     def __init__(self, sqlconn, url):
         self.url = url
@@ -332,6 +336,9 @@ class Env:
         urlId = self.Url2UrlId(sqlconn, url)
         self.Visit(sqlconn, visited, urlId, url)
         print("visited", len(visited))
+
+        for node in visited.values():
+            print(node.Debug())
 
         startNode = visited[urlId]
         assert(startNode is not None)
@@ -365,11 +372,11 @@ class Env:
             #    print("   ", urlId, url)
 
             childUrlIds = self.DocIds2Links(sqlconn, docIds)
-            node.childUrlIds = childUrlIds
 
             for childUrlId in childUrlIds:
                 childUrl = self.UrlId2Url(sqlconn, childUrlId)
-                self.Visit(sqlconn, visited, childUrlId, childUrl)
+                childNode = self.Visit(sqlconn, visited, childUrlId, childUrl)
+                node.links.add(childNode)
 
         return node
 
