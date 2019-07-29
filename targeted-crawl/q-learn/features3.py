@@ -304,14 +304,21 @@ class Transition:
         return ret
 
 ######################################################################################
+class Link2:
+    def __init__(self, text, textLang, parentNode, childNode):
+        self.text = text 
+        self.textLang = textLang 
+        self.parentNode = parentNode
+        self.childNode = childNode
+
 class Node2:
-    def __init__(self, id, url, normURL, docIds, redirect):
+    def __init__(self, id, url, normURL, docIds):
         self.id = id
         self.url = url
         self.normURL = normURL
         self.docIds = docIds
-        self.redirect = redirect
-        self.childUrlIds = None
+        self.redirect = None
+        self.links = set()
 
 class Env:
     def __init__(self, sqlconn, url):
@@ -334,27 +341,26 @@ class Env:
         if node.normURL in self.nodes:
             # already processed
             return self.nodes[node.normURL]
-        
-
 
     def Visit(self, sqlconn, visited, urlId, url):
         if urlId in visited:
             return visited[urlId]
 
         normURL = NormalizeURL(url)        
-        docIds, redirect = self.UrlId2Responses(sqlconn, urlId)
-        node = Node2(len(self.nodes) + 1, url, normURL, docIds, redirect)
+        docIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
+        node = Node2(len(self.nodes) + 1, url, normURL, docIds)
         visited[urlId] = node
 
         print("Visit", urlId, \
             "None" if docIds is None else len(docIds), \
-            "None" if redirect is None else len(redirect), \
+            "None" if redirectId is None else len(redirectId), \
             url, normURL)
 
-        if redirect is not None:
+        if redirectId is not None:
             assert(len(docIds) == 0)
-            redirectURL = self.UrlId2Url(sqlconn, redirect)
-            self.Visit(sqlconn, visited, redirect, redirectURL)
+            redirectURL = self.UrlId2Url(sqlconn, redirectId)
+            redirectNode = self.Visit(sqlconn, visited, redirectId, redirectURL)
+            node.redirect = redirectNode
         else:
             #for docId in docIds:
             #    #urlId, url =  self.RespId2URL(sqlconn, docId)
@@ -368,7 +374,7 @@ class Env:
                 self.Visit(sqlconn, visited, childUrlId, childUrl)
 
         return node
-        
+
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
         for docId in docIds:
@@ -394,16 +400,16 @@ class Env:
         assert (ress is not None)
 
         docIds = []
-        redirect = None
+        redirectId = None
         for res in ress:
             if res[1] == 200:
-                assert(redirect == None)
+                assert(redirectId == None)
                 docIds.append(res[0])
             elif res[1] in (301, 302):
                 assert(len(docIds) == 0)
-                redirect = res[2]
+                redirectId = res[2]
 
-        return docIds, redirect
+        return docIds, redirectId
 
     def RespId2URL(self, sqlconn, respId):
         sql = "SELECT T1.id, T1.val FROM url T1, response T2 " \
