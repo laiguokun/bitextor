@@ -324,7 +324,8 @@ class Env:
 
         urlId = self.Url2UrlId(sqlconn, url)
         self.Visit(sqlconn, visited, urlId, url)
-
+        print("visited", len(visited))
+        
     def Visit(self, sqlconn, visited, urlId, url):
         if urlId in visited:
             return
