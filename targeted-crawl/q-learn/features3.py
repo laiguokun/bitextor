@@ -371,11 +371,12 @@ class Env:
             #    #urlId, url =  self.RespId2URL(sqlconn, docId)
             #    print("   ", urlId, url)
 
-            childUrlIds = self.DocIds2Links(sqlconn, docIds)
+            linksStruct = self.DocIds2Links(sqlconn, docIds)
 
-            for childUrlId in childUrlIds:
-                childUrl = self.UrlId2Url(sqlconn, childUrlId)
-                childNode = self.Visit(sqlconn, visited, childUrlId, childUrl)
+            for linkStruct in linksStruct:
+                childURLId = linkStruct[0]
+                childUrl = self.UrlId2Url(sqlconn, childURLId)
+                childNode = self.Visit(sqlconn, visited, childURLId, childUrl)
                 node.links.add(childNode)
 
         return node
@@ -385,17 +386,18 @@ class Env:
         for docId in docIds:
             docIdsStr += str(docId) + ","
 
-        sql = "SELECT id, url_id FROM link WHERE document_id IN (%s)"
+        sql = "SELECT id, url_id, text, text_lang_id FROM link WHERE document_id IN (%s)"
         val = (docIdsStr,)
         sqlconn.mycursor.execute(sql, val)
         ress = sqlconn.mycursor.fetchall()
         assert (ress is not None)
 
-        urlIds = []
+        linksStruct = []
         for res in ress:
-            urlIds.append(res[1])
+            struct = (res[1], res[2], res[3])
+            linksStruct.append(struct)
 
-        return urlIds
+        return linksStruct
 
     def UrlId2Responses(self, sqlconn, urlId):
         sql = "SELECT id, status_code, to_url_id FROM response WHERE url_id = %s"
