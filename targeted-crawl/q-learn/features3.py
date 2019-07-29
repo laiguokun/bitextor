@@ -309,7 +309,10 @@ class Env:
 
         childUrlIds = self.DocIds2Links(sqlconn, docIds)
 
-        print(urlId, docIds, childUrlIds, redirect)
+        print("Visit", urlId, \
+            "None" if docIds is None else len(docIds), \
+            "None" if childUrlIds is None else len(childUrlIds), \
+            "None" if redirect is None else len(redirect))
 
         for childUrlId in childUrlIds:
             self.Visit(sqlconn, visited, childUrlId)
