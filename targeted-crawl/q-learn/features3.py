@@ -312,15 +312,15 @@ class Link2:
         self.childNode = childNode
 
 class Node2:
-    def __init__(self, id, url, docIds):
-        self.id = id
+    def __init__(self, urlId, url, docIds):
+        self.urlId = urlId
         self.url = url
         self.docIds = docIds
         self.redirect = None
         self.links = set()
 
     def Debug(self):
-        return " ".join([str(self.id), self.url, StrNone(self.docIds), 
+        return " ".join([str(self.urlId), self.url, StrNone(self.docIds), 
                         StrNone(self.redirect), str(len(self.links)) ] )
 
 class Env:
@@ -343,17 +343,21 @@ class Env:
         startNode = visited[urlId]
         assert(startNode is not None)
 
+        self.Merge(visited, startNode)
+
     def Merge(self, visited, node):
-        if node.normURL in self.nodes:
+        normURL = NormalizeURL(node.url)
+        if normURL in self.nodes:
             # already processed
-            return self.nodes[node.normURL]
+            recombNode = self.nodes[node.normURL]
+            
 
     def Visit(self, sqlconn, visited, urlId, url):
         if urlId in visited:
             return visited[urlId]
 
         docIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-        node = Node2(len(self.nodes) + 1, url, docIds)
+        node = Node2(urlId, url, docIds)
         visited[urlId] = node
 
         print("Visit", urlId, \
