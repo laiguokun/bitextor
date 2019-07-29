@@ -377,7 +377,8 @@ class Env:
                 childURLId = linkStruct[0]
                 childUrl = self.UrlId2Url(sqlconn, childURLId)
                 childNode = self.Visit(sqlconn, visited, childURLId, childUrl)
-                node.links.add(childNode)
+                link = Link2(linkStruct[1], linkStruct[2], node, childNode)
+                node.links.add(link)
 
         return node
 
