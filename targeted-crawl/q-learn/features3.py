@@ -312,10 +312,9 @@ class Link2:
         self.childNode = childNode
 
 class Node2:
-    def __init__(self, id, url, normURL, docIds):
+    def __init__(self, id, url, docIds):
         self.id = id
         self.url = url
-        self.normURL = normURL
         self.docIds = docIds
         self.redirect = None
         self.links = set()
@@ -346,15 +345,14 @@ class Env:
         if urlId in visited:
             return visited[urlId]
 
-        normURL = NormalizeURL(url)        
         docIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-        node = Node2(len(self.nodes) + 1, url, normURL, docIds)
+        node = Node2(len(self.nodes) + 1, url, docIds)
         visited[urlId] = node
 
         print("Visit", urlId, \
             "None" if docIds is None else len(docIds), \
             "None" if redirectId is None else len(redirectId), \
-            url, normURL)
+            url)
 
         if redirectId is not None:
             assert(len(docIds) == 0)
