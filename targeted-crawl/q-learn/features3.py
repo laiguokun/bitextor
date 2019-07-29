@@ -310,7 +310,8 @@ class Node2:
         self.url = url
         self.normURL = normURL
         self.docIds = docIds
-        self.redirect =redirect
+        self.redirect = redirect
+        self.childUrlIds = None
 
 class Env:
     def __init__(self, sqlconn, url):
@@ -325,10 +326,20 @@ class Env:
         urlId = self.Url2UrlId(sqlconn, url)
         self.Visit(sqlconn, visited, urlId, url)
         print("visited", len(visited))
+
+        startNode = visited[urlId]
+        assert(startNode is not None)
+
+    def Merge(self, visited, node):
+        if node.normURL in self.nodes:
+            # already processed
+            return self.nodes[node.normURL]
         
+
+
     def Visit(self, sqlconn, visited, urlId, url):
         if urlId in visited:
-            return
+            return visited[urlId]
 
         normURL = NormalizeURL(url)        
         docIds, redirect = self.UrlId2Responses(sqlconn, urlId)
@@ -345,15 +356,19 @@ class Env:
             redirectURL = self.UrlId2Url(sqlconn, redirect)
             self.Visit(sqlconn, visited, redirect, redirectURL)
         else:
-            childUrlIds = self.DocIds2Links(sqlconn, docIds)
             #for docId in docIds:
             #    #urlId, url =  self.RespId2URL(sqlconn, docId)
             #    print("   ", urlId, url)
+
+            childUrlIds = self.DocIds2Links(sqlconn, docIds)
+            node.childUrlIds = childUrlIds
 
             for childUrlId in childUrlIds:
                 childUrl = self.UrlId2Url(sqlconn, childUrlId)
                 self.Visit(sqlconn, visited, childUrlId, childUrl)
 
+        return node
+        
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
         for docId in docIds:
