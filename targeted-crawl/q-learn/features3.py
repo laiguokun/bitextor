@@ -42,6 +42,28 @@ def StrNone(arg):
         return "None"
     else:
         return str(arg)
+
+def NormalizeURL(url):
+    url = url.lower()
+    ind = url.find("#")
+    if ind >= 0:
+        url = url[:ind]
+        #print("pageURL", pageURL)
+    #if url[-5:] == ".html":
+    #    url = url[:-5] + ".htm"
+    #if url[-9:] == "index.htm":
+    #    url = url[:-9]
+    if url[-1:] == "/":
+        url = url[:-1]
+
+    if url[:7] == "http://":
+        #print("   strip protocol1", url, url[7:])
+        url = url[7:]
+    elif url[:8] == "https://":
+        #print("   strip protocol2", url, url[8:])
+        url = url[8:]
+
+    return url
 ######################################################################################
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
@@ -282,6 +304,14 @@ class Transition:
         return ret
 
 ######################################################################################
+class Node2:
+    def __init__(self, id, url, normURL, docIds, redirect):
+        self.id = id
+        self.url = url
+        self.normURL = normURL
+        self.docIds = docIds
+        self.redirect =redirect
+
 class Env:
     def __init__(self, sqlconn, url):
         self.url = url
@@ -290,32 +320,38 @@ class Env:
         self.url2urlId = {}
         self.docId2URLIds = {}
 
-        visited = set()
+        visited = {} # urlId -> Node2
 
         urlId = self.Url2UrlId(sqlconn, url)
-        self.Visit(sqlconn, visited, urlId)
+        self.Visit(sqlconn, visited, urlId, url)
 
-    def Visit(self, sqlconn, visited, urlId):
+    def Visit(self, sqlconn, visited, urlId, url):
         if urlId in visited:
             return
 
-        visited.add(urlId)
-
+        normURL = NormalizeURL(url)        
         docIds, redirect = self.UrlId2Responses(sqlconn, urlId)
-
-        while redirect is not None:
-            assert(len(docIds) == 0)
-            docIds, redirect = self.UrlId2Responses(sqlconn, redirect)
-
-        childUrlIds = self.DocIds2Links(sqlconn, docIds)
+        node = Node2(len(self.nodes) + 1, url, normURL, docIds, redirect)
+        visited[urlId] = node
 
         print("Visit", urlId, \
             "None" if docIds is None else len(docIds), \
-            "None" if childUrlIds is None else len(childUrlIds), \
-            "None" if redirect is None else len(redirect))
+            "None" if redirect is None else len(redirect), \
+            url, normURL)
 
-        for childUrlId in childUrlIds:
-            self.Visit(sqlconn, visited, childUrlId)
+        if redirect is not None:
+            assert(len(docIds) == 0)
+            redirectURL = self.UrlId2Url(sqlconn, redirect)
+            self.Visit(sqlconn, visited, redirect, redirectURL)
+        else:
+            childUrlIds = self.DocIds2Links(sqlconn, docIds)
+            #for docId in docIds:
+            #    #urlId, url =  self.RespId2URL(sqlconn, docId)
+            #    print("   ", urlId, url)
+
+            for childUrlId in childUrlIds:
+                childUrl = self.UrlId2Url(sqlconn, childUrlId)
+                self.Visit(sqlconn, visited, childUrlId, childUrl)
 
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
@@ -353,6 +389,25 @@ class Env:
 
         return docIds, redirect
 
+    def RespId2URL(self, sqlconn, respId):
+        sql = "SELECT T1.id, T1.val FROM url T1, response T2 " \
+            + "WHERE T1.id = T2.url_id AND T2.id = %s"
+        val = (respId,)
+        sqlconn.mycursor.execute(sql, val)
+        res = sqlconn.mycursor.fetchone()
+        assert (res is not None)
+
+        return res[0], res[1]
+
+
+    def UrlId2Url(self, sqlconn, urlId):
+        sql = "SELECT val FROM url WHERE id = %s"
+        val = (urlId,)
+        sqlconn.mycursor.execute(sql, val)
+        res = sqlconn.mycursor.fetchone()
+        assert (res is not None)
+
+        return res[0]
 
     def Url2UrlId(self, sqlconn, url):
         c = hashlib.md5()
@@ -370,6 +425,7 @@ class Env:
 
         return res[0]
 
+    ########################################################################
     def GetNextState(self, action, visited, unvisited, docsVisited):
         #nextNodeId = childIds[0, action]
         nextURLId = unvisited.GetNextState(action)
