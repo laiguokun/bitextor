@@ -318,6 +318,10 @@ class Node2:
         self.docIds = docIds
         self.redirect = None
         self.links = set()
+        self.recombURLIds = set()
+
+    def Recombine(self, otherNode):
+        pass
 
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds), 
@@ -345,12 +349,27 @@ class Env:
 
         self.Merge(visited, startNode)
 
+        print("graph created")
+
     def Merge(self, visited, node):
+        if node not in visited:
+            #processed already
+            return
+
+        visited.remove(node)
+
         normURL = NormalizeURL(node.url)
         if normURL in self.nodes:
             # already processed
             recombNode = self.nodes[node.normURL]
-            
+            recombNode.Recombine(node)
+        else:
+            self.nodes[node.normURL] = node
+
+        # recursively merge
+        for link in node.links:
+            childNode = link.childNode
+            self.Merge(visited, childNode)
 
     def Visit(self, sqlconn, visited, urlId, url):
         if urlId in visited:
