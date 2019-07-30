@@ -321,11 +321,18 @@ class Node2:
         self.recombURLIds = set()
 
     def Recombine(self, otherNode):
-        pass
+        #assert(otherNode is None)
+        #print("Recombining")
+        #print("   ", self.Debug())
+        #print("   ", otherNode.Debug())
+        self.docIds.extend(otherNode.docIds)
+        self.recombURLIds.add(otherNode.urlId)
+        #print("   ", self.Debug())
 
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds), 
-                        StrNone(self.redirect), str(len(self.links)) ] )
+                        StrNone(self.redirect), str(len(self.links)),
+                        str(self.recombURLIds) ] )
 
 class Env:
     def __init__(self, sqlconn, url):
