@@ -310,9 +310,11 @@ class Link:
         self.textLang = textLang 
         self.parentNode = parentNode
         self.childNode = childNode
+######################################################################################
 
 class Node2:
-    def __init__(self, urlId, url, docIds):
+    def __init__(self, urlId, url, docIds, langIds):
+        assert(len(docIds) == len(langIds))
         self.urlId = urlId
         self.url = url
         self.docIds = set(docIds)
@@ -320,6 +322,12 @@ class Node2:
         self.links = set()
         self.recombURLIds = set()
         self.winningNode = None
+        self.lang = None if len(langIds) == 0 else langIds[0]
+        self.alignedDoc = 0
+
+        #print("self.lang", self.lang)
+        for lang in langIds:
+            assert(self.lang == lang)
 
     def Recombine(self, otherNode):
         assert(otherNode is not None)
@@ -331,13 +339,22 @@ class Node2:
         self.links.update(otherNode.links)
         self.recombURLIds.add(otherNode.urlId)
         
+        if self.lang is None:
+            if otherNode.lang is not None:
+                self.lang = otherNode.lang
+        else:
+            if otherNode.lang is not None:
+                assert(self.lang == otherNode.lang)
+
         #print("   ", self.Debug())
 
     def Debug(self):
-        return " ".join([str(self.urlId), self.url, StrNone(self.docIds), 
+        return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
+                        StrNone(self.lang), 
                         StrNone(self.redirect), str(len(self.links)),
                         str(self.recombURLIds) ] )
 
+######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
         self.url = url
@@ -438,8 +455,8 @@ class Env:
         if urlId in visited:
             return visited[urlId]
 
-        docIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-        node = Node2(urlId, url, docIds)
+        docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
+        node = Node2(urlId, url, docIds, langIds)
         visited[urlId] = node
 
         print("Visit", urlId, \
@@ -487,23 +504,25 @@ class Env:
         return linksStruct
 
     def UrlId2Responses(self, sqlconn, urlId):
-        sql = "SELECT id, status_code, to_url_id FROM response WHERE url_id = %s"
+        sql = "SELECT id, status_code, to_url_id, lang_id FROM response WHERE url_id = %s"
         val = (urlId,)
         sqlconn.mycursor.execute(sql, val)
         ress = sqlconn.mycursor.fetchall()
         assert (ress is not None)
 
         docIds = []
+        langIds = []
         redirectId = None
         for res in ress:
             if res[1] == 200:
                 assert(redirectId == None)
                 docIds.append(res[0])
+                langIds.append(res[3])
             elif res[1] in (301, 302):
                 assert(len(docIds) == 0)
                 redirectId = res[2]
 
-        return docIds, redirectId
+        return docIds, langIds, redirectId
 
     def RespId2URL(self, sqlconn, respId):
         sql = "SELECT T1.id, T1.val FROM url T1, response T2 " \
@@ -755,92 +774,6 @@ class Env:
         for i in range(nextStates.shape[1]):
             if nextStates[0, i] == 0:
                 targetQ[0, i] = 0
-
-######################################################################################
-class Node:
-    def __init__(self, sqlconn, urlId, docId, lang, url):
-
-        self.urlId = urlId
-        self.docId = docId
-        self.lang = lang
-        self.url = url
-        self.links = []
-        self.alignedDoc = 0
-
-        self.CreateAlign(sqlconn)
-
-    def CreateAlign(self, sqlconn):
-        if self.docId is not None:
-            sql = "select document1, document2 from document_align where document1 = %s or document2 = %s"
-            val = (self.docId,self.docId)
-            #print("sql", sql)
-            sqlconn.mycursor.execute(sql, val)
-            res = sqlconn.mycursor.fetchall()
-            #print("alignedDoc",  self.url, self.docId, res)
-
-            if len(res) > 0:
-                rec = res[0]
-                if self.docId == rec[0]:
-                    self.alignedDoc = rec[1]
-                elif self.docId == rec[1]:
-                    self.alignedDoc = rec[0]
-                else:
-                    assert(True)
-
-        #print(self.Debug())
-
-    def Debug(self):
-        strLinks = ""
-        for link in self.links:
-            strLinks += str(link.childNode.urlId) + " "
-
-        return " ".join([str(self.urlId), StrNone(self.docId), 
-                        StrNone(self.lang), str(self.alignedDoc), self.url,
-                        "links=", str(len(self.links)), ":", strLinks ] )
-
-    def CreateLinks(self, sqlconn, env):
-        #sql = "select id, text, url_id from link where document_id = %s"
-        sql = "select link.id, link.text, link.text_lang_id, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
-        val = (self.docId,)
-        #print("sql", sql)
-        sqlconn.mycursor.execute(sql, val)
-        res = sqlconn.mycursor.fetchall()
-        assert (res is not None)
-
-        for rec in res:
-            text = rec[1]
-            textLang = rec[2]
-            urlId = rec[3]
-            url = rec[4]
-            #print("urlid", self.docId, text, urlId)
-
-            if urlId in env.nodes:
-                childNode = env.nodes[urlId]
-                #print("child", self.docId, childNode.Debug())
-            else:
-                continue
-                #childNode = Node(sqlconn, urlId, None, None, url)
-                #nodes[childNode.urlId] = childNode
-                #nodesbyURL[childNode.url] = childNode
-                #nodes.append(childNode)
-
-            self.CreateLink(text, textLang, childNode)
-
-    def CreateLink(self, text, textLang, childNode):            
-        link = Link(text, textLang, self, childNode)
-        self.links.append(link)
-
-    def GetLinks(self, visited, params):
-        ret = []
-        for link in self.links:
-            childNode = link.childNode
-            childURLId = childNode.urlId
-            #print("   ", childNode.Debug())
-            if childURLId != self.urlId and childURLId not in visited:
-                ret.append(link)
-        #print("   childIds", childIds)
-
-        return ret
 
 ######################################################################################
 
