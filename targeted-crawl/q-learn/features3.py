@@ -304,7 +304,7 @@ class Transition:
         return ret
 
 ######################################################################################
-class Link2:
+class Link:
     def __init__(self, text, textLang, parentNode, childNode):
         self.text = text 
         self.textLang = textLang 
@@ -463,7 +463,7 @@ class Env:
                 childURLId = linkStruct[0]
                 childUrl = self.UrlId2Url(sqlconn, childURLId)
                 childNode = self.CreateGraphFromDB(sqlconn, visited, childURLId, childUrl)
-                link = Link2(linkStruct[1], linkStruct[2], node, childNode)
+                link = Link(linkStruct[1], linkStruct[2], node, childNode)
                 node.links.add(link)
 
         return node
@@ -757,13 +757,6 @@ class Env:
                 targetQ[0, i] = 0
 
 ######################################################################################
-class Link:
-    def __init__(self, text, textLang, parentNode, childNode):
-        self.text = text 
-        self.textLang = textLang 
-        self.parentNode = parentNode
-        self.childNode = childNode
-
 class Node:
     def __init__(self, sqlconn, urlId, docId, lang, url):
 
