@@ -329,6 +329,18 @@ class Node2:
         for lang in langIds:
             assert(self.lang == lang)
 
+    def GetLinks(self, visited, params):
+        ret = []
+        for link in self.links:
+            childNode = link.childNode
+            childURLId = childNode.urlId
+            #print("   ", childNode.Debug())
+            if childURLId != self.urlId and childURLId not in visited:
+                ret.append(link)
+        #print("   childIds", childIds)
+
+        return ret
+
     def Recombine(self, otherNode):
         assert(otherNode is not None)
         #print("Recombining")
