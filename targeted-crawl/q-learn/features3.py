@@ -321,13 +321,16 @@ class Node2:
         self.recombURLIds = set()
 
     def Recombine(self, otherNode):
-        #assert(otherNode is None)
-        #print("Recombining")
-        #print("   ", self.Debug())
-        #print("   ", otherNode.Debug())
+        assert(otherNode is not None)
+        print("Recombining")
+        print("   ", self.Debug())
+        print("   ", otherNode.Debug())
+        
         self.docIds.extend(otherNode.docIds)
+        self.links.update(otherNode.links)
         self.recombURLIds.add(otherNode.urlId)
-        #print("   ", self.Debug())
+        
+        print("   ", self.Debug())
 
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds), 
