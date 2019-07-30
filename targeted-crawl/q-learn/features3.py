@@ -342,7 +342,7 @@ class Env:
     def __init__(self, sqlconn, url):
         self.url = url
         self.numAligned = 0
-        self.nodes = {}
+        self.nodes = {} # normURL -> Node2
         self.url2urlId = {}
         self.docId2URLIds = {}
 
@@ -362,7 +362,8 @@ class Env:
         self.Merge(visited, startNode)
         print("self.nodes", len(self.nodes))
 
-        self.PruneEmptyNodes(startNode)
+        visited = set()
+        self.PruneEmptyNodes(startNode, visited)
         print("self.nodes", len(self.nodes))
 
         #for normURL, node in self.nodes.items():
@@ -370,11 +371,19 @@ class Env:
 
         print("graph created")
 
-    def PruneEmptyNodes(self, node):
-        for link in node.links:
+    def PruneEmptyNodes(self, node, visited):
+        if node in visited:
+            return
+        visited.add(node)
+
+        linksCopy = set(node.links)
+        for link in linksCopy:
             childNode = link.childNode
             if len(childNode.docIds) == 0:
                 print("empty", childNode.Debug())
+                node.links.remove(link)
+
+            self.PruneEmptyNodes(childNode, visited)
 
     def GetRedirectedURL(self, node):
         assert(node.redirect is not None)
@@ -399,12 +408,10 @@ class Env:
             # already processed
             winningNode = self.nodes[normURL]
             winningNode.Recombine(node)
-
-            node.winningNode = winningNode
         else:
             self.nodes[normURL] = node
-            node.winningNode = node
             winningNode = node
+        node.winningNode = winningNode
 
         # recursively merge
         for link in node.links:
