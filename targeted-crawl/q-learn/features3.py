@@ -323,7 +323,7 @@ class Node2:
         self.recombURLIds = set()
         self.winningNode = None
         self.lang = None if len(langIds) == 0 else langIds[0]
-        self.alignedDoc = 0
+        self.alignedURLId = None
 
         #print("self.lang", self.lang)
         for lang in langIds:
@@ -346,11 +346,18 @@ class Node2:
             if otherNode.lang is not None:
                 assert(self.lang == otherNode.lang)
 
+        if self.alignedURLId is None:
+            if otherNode.alignedURLId is not None:
+                self.alignedURLId = otherNode.alignedURLId
+        else:
+            if otherNode.alignedURLId is not None:
+                assert(self.alignedURLId == otherNode.alignedURLId)
+
         #print("   ", self.Debug())
 
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
-                        StrNone(self.lang), 
+                        StrNone(self.lang), StrNone(self.alignedURLId),
                         StrNone(self.redirect), str(len(self.links)),
                         str(self.recombURLIds) ] )
 
@@ -364,19 +371,20 @@ class Env:
         self.docId2URLIds = {}
 
         visited = {} # urlId -> Node
-
         urlId = self.Url2UrlId(sqlconn, url)
         self.CreateGraphFromDB(sqlconn, visited, urlId, url)
         print("visited", len(visited))
         #for node in visited.values():
         #    print(node.Debug())
 
+        self.ImportURLAlign(sqlconn, visited)
+
         startNode = visited[urlId]
         assert(startNode is not None)
 
         print("Merging")
         normURL2Node = {}
-        self.Merge(visited, normURL2Node, startNode)
+        self.Recombine(visited, normURL2Node, startNode)
         print("normURL2Node", len(normURL2Node))
 
         visited = set() # set of nodes
@@ -388,6 +396,21 @@ class Env:
             print(node.Debug())
 
         print("graph created")
+
+    def ImportURLAlign(self, sqlconn, visited):
+        sql = "SELECT id, url1, url2 FROM url_align"
+        val = ()
+        sqlconn.mycursor.execute(sql, val)
+        ress = sqlconn.mycursor.fetchall()
+        assert (ress is not None)
+
+        for res in ress:
+            urlId1 = res[1]
+            urlId2 = res[2]
+            node1 = visited[urlId1]
+            node2 = visited[urlId2]
+            node1.alignedURLId = urlId2
+            node2.alignedURLId = urlId1
 
     def Visit(self, node):
         if node.urlId in self.nodes:
@@ -418,7 +441,7 @@ class Env:
             node = node.redirect
         return node
 
-    def Merge(self, visited, normURL2Node, node):
+    def Recombine(self, visited, normURL2Node, node):
         if node.urlId not in visited:
             #processed already
             return node.winningNode
@@ -443,7 +466,7 @@ class Env:
         # recursively merge
         for link in node.links:
             childNode = link.childNode
-            newChildNode = self.Merge(visited, normURL2Node, childNode)
+            newChildNode = self.Recombine(visited, normURL2Node, childNode)
             #print("childNode", childNode.Debug())
             #print("newChildNode", newChildNode.Debug())
             #print()
