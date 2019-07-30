@@ -315,22 +315,23 @@ class Node2:
     def __init__(self, urlId, url, docIds):
         self.urlId = urlId
         self.url = url
-        self.docIds = docIds
+        self.docIds = set(docIds)
         self.redirect = None
         self.links = set()
         self.recombURLIds = set()
+        self.winningNode = None
 
     def Recombine(self, otherNode):
         assert(otherNode is not None)
-        print("Recombining")
-        print("   ", self.Debug())
-        print("   ", otherNode.Debug())
+        #print("Recombining")
+        #print("   ", self.Debug())
+        #print("   ", otherNode.Debug())
         
-        self.docIds.extend(otherNode.docIds)
+        self.docIds.update(otherNode.docIds)
         self.links.update(otherNode.links)
         self.recombURLIds.add(otherNode.urlId)
         
-        print("   ", self.Debug())
+        #print("   ", self.Debug())
 
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds), 
@@ -361,10 +362,19 @@ class Env:
         self.Merge(visited, startNode)
         print("self.nodes", len(self.nodes))
 
-        for normURL, node in self.nodes.items():
-            print(normURL, node.Debug())
+        self.PruneEmptyNodes(startNode)
+        print("self.nodes", len(self.nodes))
+
+        #for normURL, node in self.nodes.items():
+        #    print(normURL, node.Debug())
 
         print("graph created")
+
+    def PruneEmptyNodes(self, node):
+        for link in node.links:
+            childNode = link.childNode
+            if len(childNode.docIds) == 0:
+                print("empty", childNode.Debug())
 
     def GetRedirectedURL(self, node):
         assert(node.redirect is not None)
@@ -375,7 +385,7 @@ class Env:
     def Merge(self, visited, node):
         if node.urlId not in visited:
             #processed already
-            return
+            return node.winningNode
         del visited[node.urlId]
 
         if node.redirect is not None:
@@ -387,15 +397,25 @@ class Env:
 
         if normURL in self.nodes:
             # already processed
-            recombNode = self.nodes[normURL]
-            recombNode.Recombine(node)
+            winningNode = self.nodes[normURL]
+            winningNode.Recombine(node)
+
+            node.winningNode = winningNode
         else:
             self.nodes[normURL] = node
+            node.winningNode = node
+            winningNode = node
 
         # recursively merge
         for link in node.links:
             childNode = link.childNode
-            self.Merge(visited, childNode)
+            newChildNode = self.Merge(visited, childNode)
+            #print("childNode", childNode.Debug())
+            #print("newChildNode", newChildNode.Debug())
+            #print()
+            link.childNode = newChildNode
+
+        return winningNode
 
     def Visit(self, sqlconn, visited, urlId, url):
         if urlId in visited:
