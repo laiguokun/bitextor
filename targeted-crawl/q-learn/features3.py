@@ -359,11 +359,11 @@ class Env:
     def __init__(self, sqlconn, url):
         self.url = url
         self.numAligned = 0
-        self.nodes = {} # normURL -> Node2
+        self.nodes = {} # urlId -> Node
         self.url2urlId = {}
         self.docId2URLIds = {}
 
-        visited = {} # urlId -> Node2
+        visited = {} # urlId -> Node
 
         urlId = self.Url2UrlId(sqlconn, url)
         self.CreateGraphFromDB(sqlconn, visited, urlId, url)
@@ -376,27 +376,26 @@ class Env:
         assert(startNode is not None)
 
         print("Merging")
-        self.Merge(visited, startNode)
-        print("self.nodes", len(self.nodes))
+        normURL2Node = {}
+        self.Merge(visited, normURL2Node, startNode)
+        print("self.nodes", len(normURL2Node))
 
         visited = set() # set of nodes
         self.PruneEmptyNodes(startNode, visited)
-        print("self.nodes", len(self.nodes))
 
-        visited = set() # set of nodes
-        self.Visit(startNode, visited)
-        print("visited", len(visited))
+        self.Visit(startNode)
+        print("self.nodes", len(self.nodes))
 
         print("graph created")
 
-    def Visit(self, node, visited):
-        if node in visited:
+    def Visit(self, node):
+        if node.urlId in self.nodes:
             return
-        visited.add(node)
+        self.nodes[node.urlId] = node
 
         for link in node.links:
             childNode = link.childNode
-            self.Visit(childNode, visited)
+            self.Visit(childNode)
             
     def PruneEmptyNodes(self, node, visited):
         if node in visited:
@@ -418,7 +417,7 @@ class Env:
             node = node.redirect
         return node
 
-    def Merge(self, visited, node):
+    def Merge(self, visited, normURL2Node, node):
         if node.urlId not in visited:
             #processed already
             return node.winningNode
@@ -431,19 +430,19 @@ class Env:
         else:
             normURL = NormalizeURL(node.url)
 
-        if normURL in self.nodes:
+        if normURL in normURL2Node:
             # already processed
-            winningNode = self.nodes[normURL]
+            winningNode = normURL2Node[normURL]
             winningNode.Recombine(node)
         else:
-            self.nodes[normURL] = node
+            normURL2Node[normURL] = node
             winningNode = node
         node.winningNode = winningNode
 
         # recursively merge
         for link in node.links:
             childNode = link.childNode
-            newChildNode = self.Merge(visited, childNode)
+            newChildNode = self.Merge(visited, normURL2Node, childNode)
             #print("childNode", childNode.Debug())
             #print("newChildNode", newChildNode.Debug())
             #print()
