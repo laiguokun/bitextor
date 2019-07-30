@@ -351,6 +351,9 @@ class Env:
         self.Merge(visited, startNode)
         print("self.nodes", len(self.nodes))
 
+        for normURL, node in self.nodes.items():
+            print(normURL, node.Debug())
+
         print("graph created")
 
     def GetRedirectedURL(self, node):
@@ -363,8 +366,7 @@ class Env:
         if node.urlId not in visited:
             #processed already
             return
-
-        visited.remove(node)
+        del visited[node.urlId]
 
         if node.redirect is not None:
             redirectedNode = self.GetRedirectedURL(node)
