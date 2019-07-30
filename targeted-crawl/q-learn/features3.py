@@ -368,9 +368,8 @@ class Env:
         urlId = self.Url2UrlId(sqlconn, url)
         self.CreateGraphFromDB(sqlconn, visited, urlId, url)
         print("visited", len(visited))
-
-        for node in visited.values():
-            print(node.Debug())
+        #for node in visited.values():
+        #    print(node.Debug())
 
         startNode = visited[urlId]
         assert(startNode is not None)
@@ -378,13 +377,15 @@ class Env:
         print("Merging")
         normURL2Node = {}
         self.Merge(visited, normURL2Node, startNode)
-        print("self.nodes", len(normURL2Node))
+        print("normURL2Node", len(normURL2Node))
 
         visited = set() # set of nodes
         self.PruneEmptyNodes(startNode, visited)
 
         self.Visit(startNode)
         print("self.nodes", len(self.nodes))
+        for node in self.nodes.values():
+            print(node.Debug())
 
         print("graph created")
 
@@ -406,7 +407,7 @@ class Env:
         for link in linksCopy:
             childNode = link.childNode
             if len(childNode.docIds) == 0:
-                print("empty", childNode.Debug())
+                #print("empty", childNode.Debug())
                 node.links.remove(link)
 
             self.PruneEmptyNodes(childNode, visited)
@@ -457,11 +458,10 @@ class Env:
         docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
         node = Node2(urlId, url, docIds, langIds)
         visited[urlId] = node
-
-        print("Visit", urlId, \
-            "None" if docIds is None else len(docIds), \
-            "None" if redirectId is None else len(redirectId), \
-            url)
+        #print("CreateGraphFromDB", urlId, \
+        #    "None" if docIds is None else len(docIds), \
+        #    "None" if redirectId is None else len(redirectId), \
+        #    url)
 
         if redirectId is not None:
             assert(len(docIds) == 0)
