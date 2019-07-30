@@ -17,7 +17,7 @@ DROP TABLE IF EXISTS document;
 DROP TABLE IF EXISTS response;
 DROP TABLE IF EXISTS url;
 DROP TABLE IF EXISTS link;
-DROP TABLE IF EXISTS document_align;
+DROP TABLE IF EXISTS url_align;
 DROP TABLE IF EXISTS language;
 
 
@@ -56,16 +56,16 @@ ALTER TABLE link
    ADD CONSTRAINT UQ_link_doc_url UNIQUE (document_id, url_id)
 ;
 
-CREATE TABLE IF NOT EXISTS document_align
+CREATE TABLE IF NOT EXISTS url_align
 (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    document1 INT NOT NULL REFERENCES response(id),
-    document2 INT NOT NULL REFERENCES response(id),
+    url1 INT NOT NULL REFERENCES url(id),
+    url2 INT NOT NULL REFERENCES url(id),
     score FLOAT
 );
 
-ALTER TABLE document_align
-   ADD CONSTRAINT UQ_document_align_docs UNIQUE (document1, document2)
+ALTER TABLE url_align
+   ADD CONSTRAINT UQ_url_align_urls UNIQUE (url1, url2)
 ;
 
 CREATE TABLE IF NOT EXISTS language

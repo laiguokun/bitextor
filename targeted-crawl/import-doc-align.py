@@ -33,34 +33,29 @@ def NormalizeURL(url):
     return url
 ######################################################################################
 
-def GetDocId(mycursor, url):
+def GetURL(mycursor, url):
     c = hashlib.md5()
     c.update(url.lower().encode())
     hashURL = c.hexdigest()
     #print("url", url, hashURL)
 
-    sql = "SELECT t1.id, t2.id FROM url t1, response t2 " \
-        + "WHERE t2.url_id = t1.id " \
-        + "AND t1.md5 = %s LIMIT 1"
-    print(sql, hashURL)
+    sql = "SELECT id FROM url WHERE md5 = %s"
     val = (hashURL,)
     mycursor.execute(sql, val)
     res = mycursor.fetchone()
-    
-    assert(res is not None)
-    if res is not None:
-        docId = res[1]
-        if docId is not None:
-            return docId
 
-    print("WARNING: doc not found for URL", url)
-    return None
+    urlId = None
+    if res is not None:
+        # url exists
+        urlId = res[0]
+
+    return urlId
 
 ######################################################################################
-def SaveDocAlign(mycursor, doc1Id, doc2Id, score):
-    print("SaveDocAlign", doc1Id, doc2Id, score)
-    sql = "INSERT INTO document_align(document1, document2, score) VALUES (%s, %s, %s)"
-    val = (doc1Id, doc2Id, score)
+def SaveURLAlign(mycursor, urlId1, urlId2, score):
+    print("SaveURLAlign", urlId1, urlId2, score)
+    sql = "INSERT INTO url_align(url1, url2, score) VALUES (%s, %s, %s)"
+    val = (urlId1, urlId2, score)
 
     try:
         # duplicatess, possibly due to URL normalization
@@ -99,17 +94,17 @@ for line in sys.stdin:
     url1 = toks[1]
     url2 = toks[2]
 
-    doc1Id = GetDocId(mycursor, url1)
-    if doc1Id is None:
-        continue
+    urlId1 = GetURL(mycursor, url1)
+    if urlId1 is None:
+        raise Exception("URL not found:" + urlId1)
 
-    doc2Id = GetDocId(mycursor, url2)
-    if doc2Id is None:
-        continue
+    urlId2 = GetURL(mycursor, url2)
+    if urlId2 is None:
+        raise Exception("URL not found:" + urlId2)
 
-    print("   ", doc1Id, doc2Id, toks)
+    print("   ", urlId1, urlId2, toks)
 
-    SaveDocAlign(mycursor, doc1Id, doc2Id, score)
+    SaveURLAlign(mycursor, urlId1, urlId2, score)
 
 mydb.commit()
 
