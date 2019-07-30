@@ -349,7 +349,7 @@ class Env:
         visited = {} # urlId -> Node2
 
         urlId = self.Url2UrlId(sqlconn, url)
-        self.Visit(sqlconn, visited, urlId, url)
+        self.CreateGraphFromDB(sqlconn, visited, urlId, url)
         print("visited", len(visited))
 
         for node in visited.values():
@@ -362,15 +362,25 @@ class Env:
         self.Merge(visited, startNode)
         print("self.nodes", len(self.nodes))
 
-        visited = set()
+        visited = set() # set of nodes
         self.PruneEmptyNodes(startNode, visited)
         print("self.nodes", len(self.nodes))
 
-        #for normURL, node in self.nodes.items():
-        #    print(normURL, node.Debug())
+        visited = set() # set of nodes
+        self.Visit(startNode, visited)
+        print("visited", len(visited))
 
         print("graph created")
 
+    def Visit(self, node, visited):
+        if node in visited:
+            return
+        visited.add(node)
+
+        for link in node.links:
+            childNode = link.childNode
+            self.Visit(childNode, visited)
+            
     def PruneEmptyNodes(self, node, visited):
         if node in visited:
             return
@@ -424,7 +434,7 @@ class Env:
 
         return winningNode
 
-    def Visit(self, sqlconn, visited, urlId, url):
+    def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
         if urlId in visited:
             return visited[urlId]
 
@@ -440,7 +450,7 @@ class Env:
         if redirectId is not None:
             assert(len(docIds) == 0)
             redirectURL = self.UrlId2Url(sqlconn, redirectId)
-            redirectNode = self.Visit(sqlconn, visited, redirectId, redirectURL)
+            redirectNode = self.CreateGraphFromDB(sqlconn, visited, redirectId, redirectURL)
             node.redirect = redirectNode
         else:
             #for docId in docIds:
@@ -452,7 +462,7 @@ class Env:
             for linkStruct in linksStruct:
                 childURLId = linkStruct[0]
                 childUrl = self.UrlId2Url(sqlconn, childURLId)
-                childNode = self.Visit(sqlconn, visited, childURLId, childUrl)
+                childNode = self.CreateGraphFromDB(sqlconn, visited, childURLId, childUrl)
                 link = Link2(linkStruct[1], linkStruct[2], node, childNode)
                 node.links.add(link)
 
