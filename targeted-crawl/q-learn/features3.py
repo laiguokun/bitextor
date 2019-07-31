@@ -169,7 +169,7 @@ class Qnetwork():
         print(urlId, node.url, action, unvisited.urlIds, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
-        print("State         Q-values                          Next state")
+        print("State URL action unvisited  Q-values features")
         for node in env.nodes.values():
             urlId = node.urlId
             self.PrintQ(urlId, params, env, sess)
@@ -424,7 +424,7 @@ class Env:
         self.nodes[0] = node
 
         self.Visit(rootNode)
-        print("self.nodes", len(self.nodes))
+        print("self.nodes", len(self.nodes), self.numAligned)
         #for node in self.nodes.values():
         #    print(node.Debug())
 
@@ -465,6 +465,9 @@ class Env:
         if node.urlId in self.nodes:
             return
         self.nodes[node.urlId] = node
+
+        if node.alignedURLId > 0:
+            self.numAligned += 1
 
         for link in node.links:
             childNode = link.childNode
