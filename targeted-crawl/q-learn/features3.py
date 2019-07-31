@@ -323,7 +323,7 @@ class Node:
         self.recombURLIds = set()
         self.winningNode = None
         self.lang = 0 if len(langIds) == 0 else langIds[0]
-        self.alignedURLId = None
+        self.alignedURLId = 0
 
         #print("self.lang", self.lang)
         for lang in langIds:
@@ -362,11 +362,11 @@ class Node:
             if otherNode.lang != 0:
                 assert(self.lang == otherNode.lang)
 
-        if self.alignedURLId is None:
-            if otherNode.alignedURLId is not None:
+        if self.alignedURLId == 0:
+            if otherNode.alignedURLId != 0:
                 self.alignedURLId = otherNode.alignedURLId
         else:
-            if otherNode.alignedURLId is not None:
+            if otherNode.alignedURLId != 0:
                 assert(self.alignedURLId == otherNode.alignedURLId)
 
         #print("   ", self.Debug())
