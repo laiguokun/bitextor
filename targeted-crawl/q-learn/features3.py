@@ -321,7 +321,7 @@ class Node:
         self.redirect = None
         self.links = set()
         self.loserNodes = set()
-        self.winningNode = None
+        self.winningNode = self
         self.lang = 0 if len(langIds) == 0 else langIds[0]
         self.alignedURLId = 0
 
@@ -351,6 +351,7 @@ class Node:
         #print("   ", self.Debug())
         #print("   ", loserNode.Debug())
         
+        loserNode.winningNode = self
         self.docIds.update(loserNode.docIds)
         self.links.update(loserNode.links)
         self.loserNodes.add(loserNode)
@@ -381,7 +382,7 @@ class Node:
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedURLId),
                         StrNone(self.redirect), str(len(self.links)),
-                        str(self.loserIds) ] )
+                        str(self.loserNodes) ] )
 
 ######################################################################################
 class Env:
@@ -424,11 +425,10 @@ class Env:
 
         self.Visit(rootNode)
         print("self.nodes", len(self.nodes))
-        for node in self.nodes.values():
-            print(node.Debug())
+        #for node in self.nodes.values():
+        #    print(node.Debug())
 
         print("graph created")
-        sdsa
 
     def ImportURLAlign(self, sqlconn, visited):
         #print("visited", visited.keys())
@@ -510,7 +510,6 @@ class Env:
             else:
                 # we win
                 normURL2Node[normURL] = node
-                #node.winningNode = node
                 winningNode = node
 
                 # recursively merge
