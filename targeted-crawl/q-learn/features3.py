@@ -70,7 +70,7 @@ class LearningParams:
         self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 20001
+        self.max_epochs = 200001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -662,7 +662,7 @@ class Env:
 
             alignedStr = ""
             nextNode = self.nodes[nextURLId]
-            if nextNode.alignedDoc > 0:
+            if nextNode.alignedURLId > 0:
                 alignedStr = "*"
                 numAligned += 1
 
