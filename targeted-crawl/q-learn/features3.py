@@ -422,6 +422,7 @@ class Env:
         print("graph created")
 
     def ImportURLAlign(self, sqlconn, visited):
+        print("visited", visited.keys())
         sql = "SELECT id, url1, url2 FROM url_align"
         val = ()
         sqlconn.mycursor.execute(sql, val)
@@ -431,6 +432,17 @@ class Env:
         for res in ress:
             urlId1 = res[1]
             urlId2 = res[2]
+            print("urlId", urlId1, urlId2)
+
+            _, _, redirectId = self.UrlId2Responses(sqlconn, urlId1)
+            if redirectId is not None:
+                urlId1 = redirectId
+
+            _, _, redirectId = self.UrlId2Responses(sqlconn, urlId2)
+            if redirectId is not None:
+                urlId2 = redirectId
+
+            print("   ", urlId1, urlId2)
             node1 = visited[urlId1]
             node2 = visited[urlId2]
             node1.alignedURLId = urlId2
