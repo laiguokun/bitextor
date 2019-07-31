@@ -389,7 +389,7 @@ class Env:
         visited = {} # urlId -> Node
         rootURLId = self.Url2UrlId(sqlconn, url)
         self.CreateGraphFromDB(sqlconn, visited, rootURLId, url)
-        print("visited", len(visited))
+        print("CreateGraphFromDB", len(visited))
         #for node in visited.values():
         #    print(node.Debug())
 
@@ -397,11 +397,13 @@ class Env:
 
         rootNode = visited[rootURLId]
         assert(rootNode is not None)
+        print("rootNode", rootNode.url)
 
-        print("Merging")
+        print("Recombine")
         normURL2Node = {}
-        self.Recombine(visited, normURL2Node, rootNode)
+        rootNode = self.Recombine(visited, normURL2Node, rootNode)
         print("normURL2Node", len(normURL2Node))
+        print("rootNode", rootNode.url)
 
         visited = set() # set of nodes
         self.PruneEmptyNodes(rootNode, visited)
@@ -420,6 +422,7 @@ class Env:
             print(node.Debug())
 
         print("graph created")
+        sdsa
 
     def ImportURLAlign(self, sqlconn, visited):
         #print("visited", visited.keys())
