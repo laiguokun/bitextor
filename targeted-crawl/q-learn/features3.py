@@ -166,7 +166,7 @@ class Qnetwork():
         action, allQ = self.Predict(sess, featuresNP, siblings)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
-        print(urlId, action, unvisited.urlIds, allQ, featuresNP)
+        print(urlId, node.url, action, unvisited.urlIds, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
         print("State         Q-values                          Next state")
@@ -483,12 +483,6 @@ class Env:
                 node.links.remove(link)
 
             self.PruneEmptyNodes(childNode, visited)
-
-    def GetRedirectedURL(self, node):
-        assert(node.redirect is not None)
-        while node.redirect is not None:
-            node = node.redirect
-        return node
 
     def Recombine(self, visited, normURL2Node, node):
         if node.urlId not in visited:
