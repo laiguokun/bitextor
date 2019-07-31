@@ -102,7 +102,7 @@ for line in sys.stdin:
     if urlId2 is None:
         raise Exception("URL not found:" + urlId2)
 
-    print("   ", urlId1, urlId2, toks)
+    #print("   ", urlId1, urlId2, toks)
 
     SaveURLAlign(mycursor, urlId1, urlId2, score)
 

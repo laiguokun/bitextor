@@ -325,9 +325,9 @@ class Node:
         self.lang = 0 if len(langIds) == 0 else langIds[0]
         self.alignedURLId = 0
 
-        #print("self.lang", self.lang)
-        for lang in langIds:
-            assert(self.lang == lang)
+        #print("self.lang", self.lang, langIds, urlId, url, docIds)
+        #for lang in langIds:
+        #    assert(self.lang == lang)
 
     def CreateLink(self, text, textLang, childNode):            
         link = Link(text, textLang, self, childNode)
@@ -1001,9 +1001,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    hostName = "http://vade-retro.fr/"
+    #hostName = "http://vade-retro.fr/"
     #hostName = "www.visitbritain.com"
-    #hostName = "www.buchmann.ch"
+    hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
