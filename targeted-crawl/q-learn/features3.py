@@ -345,7 +345,7 @@ class Node:
 
         return ret
 
-    def Recombine(self, loserNode, visited):
+    def Recombine(self, loserNode):
         assert(loserNode is not None)
         #print("Recombining")
         #print("   ", self.Debug())
@@ -372,7 +372,7 @@ class Node:
 
         # losers of loser
         for loserNode2 in loserNode.loserNodes:
-            self.Recombine(loserNode2, visited)
+            self.Recombine(loserNode2)
             loserNode2.loserNodes.clear()
             loserNode2.winningNode = self
 
@@ -453,7 +453,7 @@ class Env:
 
             #print("   ", urlId1, urlId2)
             if urlId1 not in visited or urlId2 not in visited:
-                print("not in graph", urlId1, urlId2)
+                print("Alignment not in graph", urlId1, urlId2)
                 continue
 
             node1 = visited[urlId1]
@@ -499,14 +499,14 @@ class Env:
         if node.redirect is not None:
             # redirected node always lose
             #normURL = NormalizeURL(node.redirect.url)
-            node.redirect.Recombine(node, visited)
+            node.redirect.Recombine(node)
             winningNode = self.Recombine(visited, normURL2Node, node.redirect)
         else:
             normURL = NormalizeURL(node.url)
             if normURL in normURL2Node:
                 # already processed node wins
                 winningNode = normURL2Node[normURL]
-                winningNode.Recombine(node, visited)
+                winningNode.Recombine(node)
             else:
                 # we win
                 normURL2Node[normURL] = node
