@@ -320,7 +320,7 @@ class Node:
         self.docIds = set(docIds)
         self.redirect = None
         self.links = set()
-        self.recombURLIds = set()
+        self.loserIds = set()
         self.winningNode = None
         self.lang = 0 if len(langIds) == 0 else langIds[0]
         self.alignedURLId = 0
@@ -345,29 +345,38 @@ class Node:
 
         return ret
 
-    def Recombine(self, otherNode):
-        assert(otherNode is not None)
+    def Recombine(self, loserNode, visited):
+        assert(loserNode is not None)
         #print("Recombining")
         #print("   ", self.Debug())
-        #print("   ", otherNode.Debug())
+        #print("   ", loserNode.Debug())
         
-        self.docIds.update(otherNode.docIds)
-        self.links.update(otherNode.links)
-        self.recombURLIds.add(otherNode.urlId)
+        self.docIds.update(loserNode.docIds)
+        self.links.update(loserNode.links)
+        self.loserIds.add(loserNode.urlId)
         
         if self.lang == 0:
-            if otherNode.lang != 0:
-                self.lang = otherNode.lang
+            if loserNode.lang != 0:
+                self.lang = loserNode.lang
         else:
-            if otherNode.lang != 0:
-                assert(self.lang == otherNode.lang)
+            if loserNode.lang != 0:
+                assert(self.lang == loserNode.lang)
 
         if self.alignedURLId == 0:
-            if otherNode.alignedURLId != 0:
-                self.alignedURLId = otherNode.alignedURLId
+            if loserNode.alignedURLId != 0:
+                self.alignedURLId = loserNode.alignedURLId
         else:
-            if otherNode.alignedURLId != 0:
-                assert(self.alignedURLId == otherNode.alignedURLId)
+            if loserNode.alignedURLId != 0:
+                assert(self.alignedURLId == loserNode.alignedURLId)
+
+        # losers of loser
+        for loserId in loserNode.loserIds:
+            loserNode2 = visited[loserId]
+            self.Recombine(loserNode2, visited)
+            loserNode2.loserIds.clear()
+
+            loserNode2.winningNode = self
+            print("HH")
 
         #print("   ", self.Debug())
 
@@ -375,7 +384,7 @@ class Node:
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedURLId),
                         StrNone(self.redirect), str(len(self.links)),
-                        str(self.recombURLIds) ] )
+                        str(self.loserIds) ] )
 
 ######################################################################################
 class Env:
@@ -500,7 +509,7 @@ class Env:
         if normURL in normURL2Node:
             # already processed
             winningNode = normURL2Node[normURL]
-            winningNode.Recombine(node)
+            winningNode.Recombine(node, visited)
         else:
             normURL2Node[normURL] = node
             winningNode = node
