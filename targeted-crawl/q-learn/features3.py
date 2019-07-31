@@ -383,26 +383,26 @@ class Env:
         self.docId2URLIds = {}
 
         visited = {} # urlId -> Node
-        urlId = self.Url2UrlId(sqlconn, url)
-        self.CreateGraphFromDB(sqlconn, visited, urlId, url)
+        rootURLId = self.Url2UrlId(sqlconn, url)
+        self.CreateGraphFromDB(sqlconn, visited, rootURLId, url)
         print("visited", len(visited))
         #for node in visited.values():
         #    print(node.Debug())
 
         self.ImportURLAlign(sqlconn, visited)
 
-        startNode = visited[urlId]
-        assert(startNode is not None)
+        rootNode = visited[rootURLId]
+        assert(rootNode is not None)
 
         print("Merging")
         normURL2Node = {}
-        self.Recombine(visited, normURL2Node, startNode)
+        self.Recombine(visited, normURL2Node, rootNode)
         print("normURL2Node", len(normURL2Node))
 
         visited = set() # set of nodes
-        self.PruneEmptyNodes(startNode, visited)
+        self.PruneEmptyNodes(rootNode, visited)
 
-        self.Visit(startNode)
+        self.Visit(rootNode)
         print("self.nodes", len(self.nodes))
         for node in self.nodes.values():
             print(node.Debug())
