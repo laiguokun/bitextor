@@ -884,22 +884,17 @@ class Candidates:
 
     def GetMatchedSiblings(self, env, urlId, parentNode, visited):
         ret = []
-        numSiblings = 0
 
         #print("parentNode", urlId)
         for link in parentNode.links:
             sibling = link.childNode
             if sibling.urlId != urlId:
                 #print("   link", sibling.urlId, sibling.alignedDoc)
-                numSiblings += 1
-
                 if sibling.urlId in visited:
-                    # has the sibling AND it's matched doc been crawled?
-                    if sibling.alignedDoc > 0:
-                        matchedURLIds = env.GetURLIdsFromDocId(sibling.alignedDoc)
-                        intersect = matchedURLIds & visited
-                        if len(intersect) > 0:
-                            ret.append(sibling.urlId)      
+                    # sibling has been crawled
+                    if sibling.alignedURLId > 0 and sibling.alignedURLId in visited:
+                        # sibling has been matched
+                        ret.append(sibling.urlId)      
 
         return ret
 
