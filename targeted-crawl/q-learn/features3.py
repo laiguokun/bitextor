@@ -312,7 +312,7 @@ class Link:
         self.childNode = childNode
 ######################################################################################
 
-class Node2:
+class Node:
     def __init__(self, urlId, url, docIds, langIds):
         assert(len(docIds) == len(langIds))
         self.urlId = urlId
@@ -322,7 +322,7 @@ class Node2:
         self.links = set()
         self.recombURLIds = set()
         self.winningNode = None
-        self.lang = None if len(langIds) == 0 else langIds[0]
+        self.lang = 0 if len(langIds) == 0 else langIds[0]
         self.alignedURLId = None
 
         #print("self.lang", self.lang)
@@ -355,11 +355,11 @@ class Node2:
         self.links.update(otherNode.links)
         self.recombURLIds.add(otherNode.urlId)
         
-        if self.lang is None:
-            if otherNode.lang is not None:
+        if self.lang == 0:
+            if otherNode.lang != 0:
                 self.lang = otherNode.lang
         else:
-            if otherNode.lang is not None:
+            if otherNode.lang != 0:
                 assert(self.lang == otherNode.lang)
 
         if self.alignedURLId is None:
@@ -406,9 +406,13 @@ class Env:
         visited = set() # set of nodes
         self.PruneEmptyNodes(rootNode, visited)
 
-        startNode = Node2(sys.maxsize, "START", [], [])
+        startNode = Node(sys.maxsize, "START", [], [])
         startNode.CreateLink("", 0, rootNode)
         self.nodes[startNode.urlId] = startNode
+
+        # stop node
+        node = Node(0, "STOP", [], [])
+        self.nodes[0] = node
 
         self.Visit(rootNode)
         print("self.nodes", len(self.nodes))
@@ -499,7 +503,7 @@ class Env:
             return visited[urlId]
 
         docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-        node = Node2(urlId, url, docIds, langIds)
+        node = Node(urlId, url, docIds, langIds)
         visited[urlId] = node
         #print("CreateGraphFromDB", urlId, \
         #    "None" if docIds is None else len(docIds), \
