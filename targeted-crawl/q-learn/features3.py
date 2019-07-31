@@ -320,7 +320,7 @@ class Node:
         self.docIds = set(docIds)
         self.redirect = None
         self.links = set()
-        self.loserIds = set()
+        self.loserNodes = set()
         self.winningNode = None
         self.lang = 0 if len(langIds) == 0 else langIds[0]
         self.alignedURLId = 0
@@ -353,7 +353,7 @@ class Node:
         
         self.docIds.update(loserNode.docIds)
         self.links.update(loserNode.links)
-        self.loserIds.add(loserNode.urlId)
+        self.loserNodes.add(loserNode)
         
         if self.lang == 0:
             if loserNode.lang != 0:
@@ -370,13 +370,10 @@ class Node:
                 assert(self.alignedURLId == loserNode.alignedURLId)
 
         # losers of loser
-        for loserId in loserNode.loserIds:
-            loserNode2 = visited[loserId]
+        for loserNode2 in loserNode.loserNodes:
             self.Recombine(loserNode2, visited)
-            loserNode2.loserIds.clear()
-
+            loserNode2.loserNodes.clear()
             loserNode2.winningNode = self
-            print("HH")
 
         #print("   ", self.Debug())
 
@@ -500,29 +497,30 @@ class Env:
         del visited[node.urlId]
 
         if node.redirect is not None:
-            redirectedNode = self.GetRedirectedURL(node)
-            assert(redirectedNode is not None)
-            normURL = NormalizeURL(redirectedNode.url)
+            # redirected node always lose
+            #normURL = NormalizeURL(node.redirect.url)
+            node.redirect.Recombine(node, visited)
+            winningNode = self.Recombine(visited, normURL2Node, node.redirect)
         else:
             normURL = NormalizeURL(node.url)
+            if normURL in normURL2Node:
+                # already processed node wins
+                winningNode = normURL2Node[normURL]
+                winningNode.Recombine(node, visited)
+            else:
+                # we win
+                normURL2Node[normURL] = node
+                #node.winningNode = node
+                winningNode = node
 
-        if normURL in normURL2Node:
-            # already processed
-            winningNode = normURL2Node[normURL]
-            winningNode.Recombine(node, visited)
-        else:
-            normURL2Node[normURL] = node
-            winningNode = node
-        node.winningNode = winningNode
-
-        # recursively merge
-        for link in node.links:
-            childNode = link.childNode
-            newChildNode = self.Recombine(visited, normURL2Node, childNode)
-            #print("childNode", childNode.Debug())
-            #print("newChildNode", newChildNode.Debug())
-            #print()
-            link.childNode = newChildNode
+                # recursively merge
+                for link in node.links:
+                    childNode = link.childNode
+                    newChildNode = self.Recombine(visited, normURL2Node, childNode)
+                    #print("childNode", childNode.Debug())
+                    #print("newChildNode", newChildNode.Debug())
+                    #print()
+                    link.childNode = newChildNode
 
         return winningNode
 
