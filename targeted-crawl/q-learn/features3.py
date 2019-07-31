@@ -607,26 +607,17 @@ class Env:
         return res[0]
 
     ########################################################################
-    def GetNextState(self, action, visited, unvisited, docsVisited):
+    def GetNextState(self, action, visited, unvisited):
+        #print("visited", visited)
         #nextNodeId = childIds[0, action]
         nextURLId = unvisited.GetNextState(action)
         #print("   nextNodeId", nextNodeId)
         nextNode = self.nodes[nextURLId]
-        docId = nextNode.docId
         if nextURLId == 0:
             #print("   stop")
             reward = 0.0
-        elif nextNode.alignedDoc > 0:
-            reward = -1.0
-
-            # has this doc been crawled?
-            if docId not in docsVisited:
-                # has the other doc been crawled?
-                urlIds = self.GetURLIdsFromDocId(nextNode.alignedDoc)
-                for urlId in urlIds:
-                    if urlId in visited:
-                        reward = 17.0 #170.0
-                        break
+        elif nextNode.alignedURLId > 0 and nextNode.alignedURLId in visited:
+                reward = 17.0 #170.0
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
             #print("   reward", reward)
@@ -635,12 +626,11 @@ class Env:
             #print("   non-rewarding")
             reward = -1.0
 
-        return nextURLId, docId, reward
+        return nextURLId, reward
 
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
         unvisited = Candidates()
-        docsVisited = set()
         
         curr = start
         i = 0
@@ -664,12 +654,11 @@ class Env:
             if printQ: unvisitedStr = str(unvisited.urlIds)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings)
-            nextURLId, nextDocId, reward = self.GetNextState(action, visited, unvisited, docsVisited)
+            nextURLId, reward = self.GetNextState(action, visited, unvisited)
             totReward += reward
             totDiscountedReward += discount * reward
             visited.add(nextURLId)
             unvisited.RemoveLink(nextURLId)
-            docsVisited.add(nextDocId)
 
             alignedStr = ""
             nextNode = self.nodes[nextURLId]
@@ -737,7 +726,7 @@ class Env:
         timer.Pause("Neural.2")
         
         timer.Start("Neural.3")
-        nextURLId, nextDocId, r = self.GetNextState(action, visited, unvisited, docsVisited)
+        nextURLId, r = self.GetNextState(action, visited, unvisited)
         nextNode = self.nodes[nextURLId]
         #if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
@@ -746,7 +735,6 @@ class Env:
         visited.add(nextURLId)
         unvisited.RemoveLink(nextURLId)
         nextUnvisited = unvisited.copy()
-        docsVisited.add(nextDocId)
         timer.Pause("Neural.4")
 
         timer.Start("Neural.5")
