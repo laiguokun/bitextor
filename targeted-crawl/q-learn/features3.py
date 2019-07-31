@@ -329,6 +329,10 @@ class Node2:
         for lang in langIds:
             assert(self.lang == lang)
 
+    def CreateLink(self, text, textLang, childNode):            
+        link = Link(text, textLang, self, childNode)
+        self.links.add(link)
+
     def GetLinks(self, visited, params):
         ret = []
         for link in self.links:
@@ -401,6 +405,10 @@ class Env:
 
         visited = set() # set of nodes
         self.PruneEmptyNodes(rootNode, visited)
+
+        startNode = Node2(sys.maxsize, "START", [], [])
+        startNode.CreateLink("", 0, rootNode)
+        self.nodes[startNode.urlId] = startNode
 
         self.Visit(rootNode)
         print("self.nodes", len(self.nodes))
