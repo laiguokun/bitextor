@@ -4,6 +4,7 @@
 #sudo pip3 install mysql-connector-python
 import os
 import sys
+import configparser
 from warcio.archiveiterator import ArchiveIterator
 import mysql.connector
 import cchardet
@@ -26,7 +27,10 @@ from lxml import etree
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-BITEXTOR = "/home/hieu/workspace/github/paracrawl/bitextor.hieu.targeted"
+config = configparser.ConfigParser()
+config.read('configuration.ini')
+
+BITEXTOR = os.environ['BITEXTOR']
 
 sys.path.append(BITEXTOR)
 from external_processor import ExternalTextProcessor
@@ -396,7 +400,7 @@ def Main():
 
     magic.Magic(mime=True)
 
-    mtProc = subprocess.Popen(["/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh",
+    mtProc = subprocess.Popen([config['moses']['path'],
                              languages[0]
                              ],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)

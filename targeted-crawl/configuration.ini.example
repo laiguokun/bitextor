@@ -1,0 +1,8 @@
+[mysql]
+host = "localhost",
+user = "paracrawl_user"
+passwd = "paracrawl_password"
+database = "paracrawl"
+
+[moses]
+path = "/home/hieu/workspace/experiment/issues/paracrawl/phi-system/translate-pipe.sh"

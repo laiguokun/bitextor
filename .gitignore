@@ -35,3 +35,8 @@ utils/Makefile.in
 .snakemake/
 __pycache__/
 utils/__pycache__/
+.venv/
+.idea/
+output/
+journal
+configuration.ini
