@@ -5,6 +5,7 @@
 import os
 import sys
 import configparser
+from pathlib import Path
 from warcio.archiveiterator import ArchiveIterator
 import mysql.connector
 import cchardet
@@ -27,12 +28,12 @@ from lxml import etree
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-config = configparser.ConfigParser()
-config.read('configuration.ini')
-
 BITEXTOR = os.environ['BITEXTOR']
-
 sys.path.append(BITEXTOR)
+
+config = configparser.ConfigParser()
+config.read(Path(BITEXTOR) / 'targeted-crawl' / 'configuration.ini')
+
 from external_processor import ExternalTextProcessor
 
 ######################################################################################
@@ -386,10 +387,10 @@ def Main():
     assert(len(languages) == 2)
 
     mydb = mysql.connector.connect(
-        host="localhost",
-        user="paracrawl_user",
-        passwd="paracrawl_password",
-        database="paracrawl",
+        host=config["mysql"]["host"],
+        user=config["mysql"]["user"],
+        passwd=config["mysql"]["password"],
+        database=config["mysql"]["database"],
         charset='utf8'
     )
     mydb.autocommit = True #False
