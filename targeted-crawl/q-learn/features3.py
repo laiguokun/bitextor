@@ -786,8 +786,8 @@ class Env:
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, nextNode.urlId, visited, params)
             nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params, visited)
-            # TODO nextNumNodes is incorrect
             nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes)        
+            #print("nextNumNodes", numNodes, nextNumNodes)
             #print("  nextAction", nextAction, nextQ)
 
             #assert(qnB == None)
