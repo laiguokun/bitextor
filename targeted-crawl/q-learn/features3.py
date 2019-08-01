@@ -106,14 +106,16 @@ class Qnetwork():
         self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
         self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
 
-        # SIBLINGS
-        #self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.int32)
+        # NUMBER OF SIBLINGS
         self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
 
-        # HIDDEN 1
-        self.hidden1 = tf.concat([self.embedding, self.siblings], 1) 
+        # NUMBER OF NODES
+        self.numNodes = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
-        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS, EMBED_DIM], 0, 0.01))
+        # HIDDEN 1
+        self.hidden1 = tf.concat([self.embedding, self.siblings, self.numNodes], 1) 
+
+        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 1, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
         self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
@@ -159,11 +161,11 @@ class Qnetwork():
 
         node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
-        featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
+        featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
         #print("featuresNP", featuresNP)
         
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
-        action, allQ = self.Predict(sess, featuresNP, siblings)
+        action, allQ = self.Predict(sess, featuresNP, siblings, numNodes)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
         print(urlId, node.url, action, unvisited.urlIds, allQ, featuresNP)
@@ -174,15 +176,18 @@ class Qnetwork():
             urlId = node.urlId
             self.PrintQ(urlId, params, env, sess)
 
-    def Predict(self, sess, input, siblings):
-        #print("input",input.shape, siblings.shape)
-        action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: input, self.siblings: siblings})
+    def Predict(self, sess, input, siblings, numNodes):
+        #print("input",input.shape, siblings.shape, numNodes.shape)
+        #print("input", numNodes)
+        action, allQ = sess.run([self.predict, self.Qout], 
+                                feed_dict={self.input: input, self.siblings: siblings, self.numNodes: numNodes})
         action = action[0]
         
         return action, allQ
 
-    def Update(self, sess, input, siblings, targetQ):
-        _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], feed_dict={self.input: input, self.siblings: siblings, self.nextQ: targetQ})
+    def Update(self, sess, input, siblings, numNodes, targetQ):
+        _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
+                                    feed_dict={self.input: input, self.siblings: siblings, self.numNodes: numNodes, self.nextQ: targetQ})
         return loss, sumWeight
 
 ######################################################################################
@@ -253,6 +258,7 @@ class Corpus:
         features = np.empty([batchSize, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=np.int)
         siblings = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
+        numNodes = np.empty([batchSize, 1])
 
         i = 0
         for transition in batch:
@@ -262,12 +268,13 @@ class Corpus:
             features[i, :] = transition.features
             targetQ[i, :] = transition.targetQ
             siblings[i, :] = transition.siblings
-        
+            numNodes[i, :] = transition.numNodes
+
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         timer.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, features, siblings, targetQ)
+        loss, sumWeight = self.qn.Update(sess, features, siblings, numNodes, targetQ)
         timer.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -291,12 +298,13 @@ class MySQL:
 ######################################################################################
 
 class Transition:
-    def __init__(self, currURLId, nextURLId, done, features, siblings, targetQ):
+    def __init__(self, currURLId, nextURLId, done, features, siblings, numNodes, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.done = done
         self.features = features 
         self.siblings = siblings
+        self.numNodes = numNodes
         self.targetQ = targetQ
 
     def DebugTransition(self):
@@ -677,13 +685,13 @@ class Env:
             # print("hh", next, hh)
             currNode = self.nodes[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
-            featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
+            featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
             #print("featuresNP", featuresNP)
             #print("siblings", siblings)
 
             if printQ: unvisitedStr = str(unvisited.urlIds)
 
-            action, allQ = qn.Predict(sess, featuresNP, siblings)
+            action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes)
             nextURLId, reward = self.GetNextState(action, visited, unvisited)
             totReward += reward
             totDiscountedReward += discount * reward
@@ -743,13 +751,13 @@ class Env:
         #DEBUG = False
 
         unvisited.AddLinks(self, currURLId, visited, params)
-        featuresNP, siblings = unvisited.GetFeaturesNP(self, params, visited)
+        featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
         nextStates = unvisited.GetNextStates(params)
         #print("   childIds", childIds, unvisited)
         timer.Pause("Neural.1")
 
         timer.Start("Neural.2")
-        action, Qs = qnA.Predict(sess, featuresNP, siblings)
+        action, Qs = qnA.Predict(sess, featuresNP, siblings, numNodes)
         if np.random.rand(1) < params.eps:
             #if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
@@ -777,14 +785,15 @@ class Env:
 
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, nextNode.urlId, visited, params)
-            nextFeaturesNP, nextSiblings = nextUnvisited.GetFeaturesNP(self, params, visited)
-            nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings)        
+            nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params, visited)
+            # TODO nextNumNodes is incorrect
+            nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes)        
             #print("  nextAction", nextAction, nextQ)
 
             #assert(qnB == None)
             #maxNextQ = np.max(nextQs)
 
-            _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings)        
+            _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes)        
             maxNextQ = nextQsB[0, nextAction]
         timer.Pause("Neural.5")
             
@@ -800,7 +809,13 @@ class Env:
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
 
-        transition = Transition(currURLId, nextNode.urlId, done, np.array(featuresNP, copy=True), np.array(siblings, copy=True), np.array(targetQ, copy=True))
+        transition = Transition(currURLId, 
+                                nextNode.urlId, 
+                                done, 
+                                np.array(featuresNP, copy=True), 
+                                np.array(siblings, copy=True), 
+                                numNodes,
+                                np.array(targetQ, copy=True))
         timer.Pause("Neural.6")
 
         return transition
@@ -909,8 +924,10 @@ class Candidates:
         ret = ret.reshape([1, params.NUM_ACTIONS * params.FEATURES_PER_ACTION])
         #print("AFTER", ret)
         #print()
+        numNodes = np.empty([1,1])
+        numNodes[0,0] = len(visited)
 
-        return ret, siblings
+        return ret, siblings, numNodes
 
     def GetMatchedSiblings(self, env, urlId, parentNode, visited):
         ret = []
