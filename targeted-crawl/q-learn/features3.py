@@ -97,8 +97,7 @@ class Qnetwork():
         HIDDEN_DIM = 128
 
         # EMBEDDINGS
-        ns = len(env.nodes)
-        self.embeddings = tf.Variable(tf.random_uniform([ns, INPUT_DIM], 0, 0.01))
+        self.embeddings = tf.Variable(tf.random_uniform([env.maxLangId + 1, INPUT_DIM], 0, 0.01))
         #print("self.embeddings", self.embeddings)
 
         self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=tf.int32)
@@ -161,7 +160,8 @@ class Qnetwork():
         node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
         featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
-
+        #print("featuresNP", featuresNP)
+        
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         action, allQ = self.Predict(sess, featuresNP, siblings)
         
@@ -175,7 +175,7 @@ class Qnetwork():
             self.PrintQ(urlId, params, env, sess)
 
     def Predict(self, sess, input, siblings):
-        #print("input",input.shape)
+        #print("input",input.shape, siblings.shape)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: input, self.siblings: siblings})
         action = action[0]
         
@@ -392,6 +392,7 @@ class Env:
         self.nodes = {} # urlId -> Node
         self.url2urlId = {}
         self.docId2URLIds = {}
+        self.maxLangId = 0
 
         visited = {} # urlId -> Node
         rootURLId = self.Url2UrlId(sqlconn, url)
@@ -469,7 +470,13 @@ class Env:
         if node.alignedURLId > 0:
             self.numAligned += 1
 
+        if node.lang > self.maxLangId:
+            self.maxLangId = node.lang
+
         for link in node.links:
+            if link.textLang > self.maxLangId:
+                self.maxLangId = link.textLang
+
             childNode = link.childNode
             self.Visit(childNode)
             
@@ -1024,9 +1031,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    #hostName = "http://vade-retro.fr/"
+    hostName = "http://vade-retro.fr/"
     #hostName = "www.visitbritain.com"
-    hostName = "http://www.buchmann.ch/"
+    #hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
