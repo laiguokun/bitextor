@@ -963,14 +963,6 @@ class Candidates:
 
         return ret
 
-    def GetNextURLId(self, action):
-        if action >= len(self.urlIds):
-            ret = 0
-        else:
-            #print("action", action, len(self.urlIds), self.urlIds)
-            ret = self.urlIds[action]
-        return ret
-
 ######################################################################################
 
 def Train(params, sess, saver, env, qns):
