@@ -28,12 +28,11 @@ from lxml import etree
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-BITEXTOR = os.environ['BITEXTOR']
-sys.path.append(BITEXTOR)
+bitextorRoot = os.path.dirname(os.path.abspath(__file__))
+bitextorRoot = bitextorRoot + "/.."
+#print("bitextorRoot", bitextorRoot)
 
-config = configparser.ConfigParser()
-config.read(Path(BITEXTOR) / 'targeted-crawl' / 'configuration.ini')
-
+sys.path.append(bitextorRoot)
 from external_processor import ExternalTextProcessor
 
 ######################################################################################
@@ -321,7 +320,7 @@ def ProcessPage(options, mycursor, languages, mtProc, statusCode, orig_encoding,
             textFile.write(plaintext)
 
         #print("plaintext", len(plaintext))
-        splitterCmd = "{BITEXTOR}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(BITEXTOR=BITEXTOR, lang1=lang)
+        splitterCmd = "{bitextorRoot}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(bitextorRoot=bitextorRoot, lang1=lang)
         extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
         # write splitted file
@@ -369,6 +368,7 @@ def Main():
     print("Starting")
 
     oparser = argparse.ArgumentParser(description="import-mysql")
+    oparser.add_argument("--config-file", dest="configFile", required=True, help="Path to config file (containing mysql login etc")
     oparser.add_argument("--boilerpipe", action="store_true", default=False, help="Use boilerpipe bodytext to do the de-boiling")
     oparser.add_argument("--alcazar", action="store_true", default=False, help="Use alcazar bodytext extract relevant text from HTML. By default BeautifulSoup4is used")
     oparser.add_argument('--langs', dest='langs', help='Languages in the crawl. Last is the dest language', required=True)
@@ -385,6 +385,9 @@ def Main():
 
     languages = options.langs.split(",")
     assert(len(languages) == 2)
+
+    config = configparser.ConfigParser()
+    config.read(options.configFile)
 
     mydb = mysql.connector.connect(
         host=config["mysql"]["host"],

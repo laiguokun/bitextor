@@ -67,7 +67,7 @@ def NormalizeURL(url):
 ######################################################################################
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
-        self.gamma = 0.9 #0.99
+        self.gamma = 1.0 #0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 200001
@@ -78,7 +78,7 @@ class LearningParams:
         
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 30
+        self.NUM_ACTIONS = 200
         self.FEATURES_PER_ACTION = 2
 
         self.saveDir = saveDir
@@ -94,7 +94,7 @@ class Qnetwork():
         EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * params.FEATURES_PER_ACTION
         #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
-        HIDDEN_DIM = 128
+        HIDDEN_DIM = 1024
 
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.maxLangId + 1, INPUT_DIM], 0, 0.01))
@@ -655,7 +655,7 @@ class Env:
             #print("   stop")
             reward = 0.0
         elif nextNode.alignedURLId > 0 and nextNode.alignedURLId in visited:
-                reward = 17.0 #170.0
+                reward = 1000.0
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
             #print("   reward", reward)
@@ -1048,9 +1048,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    hostName = "http://vade-retro.fr/"
+    #hostName = "http://vade-retro.fr/"
     #hostName = "www.visitbritain.com"
-    #hostName = "http://www.buchmann.ch/"
+    hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
