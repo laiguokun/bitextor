@@ -176,7 +176,9 @@ class Qnetwork():
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
         numURLsScalar = int(numURLs[0,0])
-        print(urlId, node.url, action, urlIds, numURLs, allQ, featuresNP)
+        urlIdsTruncate = urlIds[0, 0:numURLsScalar]                
+
+        print(urlId, node.url, action, numURLsScalar, urlIdsTruncate, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
         print("State URL action unvisited  Q-values features")
@@ -826,7 +828,7 @@ class Env:
         newVal = r + params.gamma * maxNextQ
         targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
         #targetQ[0, action] = newVal
-        self.ZeroOutStop(targetQ, urlIds)
+        self.ZeroOutStop(targetQ, urlIds, numURLs)
 
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
@@ -869,13 +871,21 @@ class Env:
             if transition.done: break
         #print("unvisited", unvisited)
         
-    def ZeroOutStop(self, targetQ, nextStates):
-        assert(targetQ.shape == nextStates.shape)
+    def ZeroOutStop(self, targetQ, urlIds, numURLs):
+        #print("urlIds", numURLs, targetQ, urlIds)
+        assert(targetQ.shape == urlIds.shape)
+        
+        #i = 0
+        #for i in range(urlIds.shape[1]):
+        #    if urlIds[0, i] == 0:
+        #        targetQ[0, i] = 0
 
-        i = 0
-        for i in range(nextStates.shape[1]):
-            if nextStates[0, i] == 0:
-                targetQ[0, i] = 0
+        numURLsScalar = int(numURLs[0,0])
+        for i in range(numURLsScalar, targetQ.shape[1]):
+            targetQ[0, i] = -555.0
+
+        #print("targetQ", targetQ)
+        
 
 ######################################################################################
 
