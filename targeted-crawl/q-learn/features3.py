@@ -67,7 +67,7 @@ def NormalizeURL(url):
 ######################################################################################
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
-        self.gamma = 1.0 #0.9 #0.99
+        self.gamma = 0.9 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 200001
@@ -78,11 +78,14 @@ class LearningParams:
         
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 200
+        self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 2
 
         self.saveDir = saveDir
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
+        
+        self.reward = 17.0
+        self.cost = -1.0
         
 ######################################################################################
 class Qnetwork():
@@ -94,7 +97,7 @@ class Qnetwork():
         EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * params.FEATURES_PER_ACTION
         #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
-        HIDDEN_DIM = 1024
+        HIDDEN_DIM = 128 #1024
 
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.maxLangId + 1, INPUT_DIM], 0, 0.01))
@@ -645,7 +648,7 @@ class Env:
         return res[0]
 
     ########################################################################
-    def GetNextState(self, action, visited, unvisited):
+    def GetNextState(self, params, action, visited, unvisited):
         #print("visited", visited)
         #nextNodeId = childIds[0, action]
         nextURLId = unvisited.GetNextState(action)
@@ -655,14 +658,14 @@ class Env:
             #print("   stop")
             reward = 0.0
         elif nextNode.alignedURLId > 0 and nextNode.alignedURLId in visited:
-                reward = 1000.0
+                reward = params.reward
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
             #print("   reward", reward)
             #print()
         else:
             #print("   non-rewarding")
-            reward = -1.0
+            reward = params.cost
 
         return nextURLId, reward
 
@@ -692,7 +695,7 @@ class Env:
             if printQ: unvisitedStr = str(unvisited.urlIds)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes)
-            nextURLId, reward = self.GetNextState(action, visited, unvisited)
+            nextURLId, reward = self.GetNextState(params, action, visited, unvisited)
             totReward += reward
             totDiscountedReward += discount * reward
             visited.add(nextURLId)
@@ -764,7 +767,7 @@ class Env:
         timer.Pause("Neural.2")
         
         timer.Start("Neural.3")
-        nextURLId, r = self.GetNextState(action, visited, unvisited)
+        nextURLId, r = self.GetNextState(params, action, visited, unvisited)
         nextNode = self.nodes[nextURLId]
         #if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
@@ -1048,9 +1051,9 @@ def Main():
 
     sqlconn = MySQL()
 
-    #hostName = "http://vade-retro.fr/"
+    hostName = "http://vade-retro.fr/"
     #hostName = "www.visitbritain.com"
-    hostName = "http://www.buchmann.ch/"
+    #hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
