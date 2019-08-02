@@ -119,9 +119,9 @@ class Qnetwork():
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # HIDDEN 1
-        self.hidden1 = tf.concat([self.embedding, self.siblings, self.numNodes], 1) 
+        self.hidden1 = tf.concat([self.embedding, self.siblings, self.numNodes, self.numActions], 1) 
 
-        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 1, EMBED_DIM], 0, 0.01))
+        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 2, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
         self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
@@ -175,7 +175,8 @@ class Qnetwork():
         action, allQ = self.Predict(sess, featuresNP, siblings, numNodes, numURLs)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
-        print(urlId, node.url, action, urlIds, allQ, featuresNP)
+        numURLsScalar = int(numURLs[0,0])
+        print(urlId, node.url, action, urlIds, numURLs, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
         print("State URL action unvisited  Q-values features")
@@ -185,26 +186,23 @@ class Qnetwork():
 
     def Predict(self, sess, input, siblings, numNodes, numURLs):
         #print("input",input.shape, siblings.shape, numNodes.shape)
-        numURLsTmp = np.empty([1,1])
-        numURLsTmp[0,0] = numURLs
-        #print("numURLs", numURLsTmp)
+        #print("numURLs", numURLs)
         action, allQ = sess.run([self.predict, self.Qout], 
                                 feed_dict={self.input: input, 
                                         self.siblings: siblings, 
                                         self.numNodes: numNodes,
-                                        self.numActions: numURLsTmp})
+                                        self.numActions: numURLs})
         action = action[0]
         
         return action, allQ
 
     def Update(self, sess, input, siblings, numNodes, numURLs, targetQ):
-        numURLsTmp = np.empty([1,1])
-        numURLsTmp[0,0] = numURLs
+        #print("numURLs", numURLs.shape)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
                                     feed_dict={self.input: input, 
                                             self.siblings: siblings, 
                                             self.numNodes: numNodes, 
-                                            self.numActions: numURLsTmp,
+                                            self.numActions: numURLs,
                                             self.nextQ: targetQ})
         return loss, sumWeight
 
@@ -277,6 +275,7 @@ class Corpus:
         siblings = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
         numNodes = np.empty([batchSize, 1])
+        numURLs = np.empty([batchSize, 1])
 
         i = 0
         for transition in batch:
@@ -287,7 +286,7 @@ class Corpus:
             targetQ[i, :] = transition.targetQ
             siblings[i, :] = transition.siblings
             numNodes[i, :] = transition.numNodes
-            numURLs = transition.numNodes
+            numURLs[i, :] = transition.numURLs
 
             i += 1
 
@@ -708,7 +707,10 @@ class Env:
             #print("featuresNP", featuresNP)
             #print("siblings", siblings)
 
-            if printQ: unvisitedStr = str(urlIds)
+            if printQ: 
+                numURLsScalar = int(numURLs[0,0])
+                urlIdsTruncate = urlIds[0, 0:numURLsScalar]                
+                unvisitedStr =  str(urlIdsTruncate)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
             nextURLId, reward = self.GetNextState(params, action, visited, urlIds)
@@ -725,7 +727,9 @@ class Env:
 
             if printQ:
                 debugStr += "   " + str(curr) + "->" + str(nextURLId) + " " \
-                         + str(action) + " " + unvisitedStr + " " \
+                         + str(action) + " " \
+                         + str(numURLsScalar) + " " \
+                         + unvisitedStr + " " \
                          + str(allQ) + " " \
                          + str(featuresNP) + " " \
                          + "\n"
@@ -962,8 +966,11 @@ class Candidates:
         #print()
         numNodes = np.empty([1,1])
         numNodes[0,0] = len(visited)
+        
+        numURLsRet = np.empty([1,1])
+        numURLsRet[0,0] = numURLs
 
-        return urlIds, numURLs, langFeatures, siblings, numNodes
+        return urlIds, numURLsRet, langFeatures, siblings, numNodes
 
     def GetMatchedSiblings(self, env, urlId, parentNode, visited):
         ret = []
