@@ -165,14 +165,14 @@ class Qnetwork():
         node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
 
-        _, _, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+        urlIds, _, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
         #print("featuresNP", featuresNP)
         
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         action, allQ = self.Predict(sess, featuresNP, siblings, numNodes)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
-        print(urlId, node.url, action, unvisited.urlIds, allQ, featuresNP)
+        print(urlId, node.url, action, urlIds, allQ, featuresNP)
 
     def PrintAllQ(self, params, env, sess):
         print("State URL action unvisited  Q-values features")
@@ -692,7 +692,7 @@ class Env:
             #print("featuresNP", featuresNP)
             #print("siblings", siblings)
 
-            if printQ: unvisitedStr = str(unvisited.urlIds)
+            if printQ: unvisitedStr = str(urlIds)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes)
             nextURLId, reward = self.GetNextState(params, action, visited, urlIds)
@@ -861,26 +861,26 @@ class Env:
 class Candidates:
     def __init__(self):
         self.dict = {} # nodeid -> link
-        self.urlIds = []
+        self._urlIds = []
 
         self.dict[0] = []
-        self.urlIds.append(0)
+        self._urlIds.append(0)
 
     def AddLink(self, link):
         urlLId = link.childNode.urlId
         if urlLId not in self.dict:
             self.dict[urlLId] = []
-            self.urlIds.append(link.childNode.urlId)
+            self._urlIds.append(link.childNode.urlId)
         self.dict[urlLId].append(link)
 
     def RemoveLink(self, nextURLId):
         del self.dict[nextURLId]
-        self.urlIds.remove(nextURLId)
+        self._urlIds.remove(nextURLId)
 
     def copy(self):
         ret = Candidates()
         ret.dict = self.dict.copy()
-        ret.urlIds = self.urlIds.copy()
+        ret._urlIds = self._urlIds.copy()
 
         return ret
 
@@ -895,13 +895,14 @@ class Candidates:
     def GetNextURLIdsInternal(self, params):
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
-        i = 0
-        for urlId in self.urlIds:
+        urlIds = self._urlIds[1:]
+        #random.shuffle(urlIds)
+        i = 1
+        for urlId in urlIds:
             ret[0, i] = urlId
             i += 1
             if i >= params.NUM_ACTIONS:
                 break
-
 
         return ret, i
 
