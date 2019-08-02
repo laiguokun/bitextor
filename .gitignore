@@ -40,3 +40,4 @@ utils/__pycache__/
 output/
 journal
 configuration.ini
+targeted-crawl/external_processor.py

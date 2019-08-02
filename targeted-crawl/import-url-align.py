@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import configparser
 import mysql.connector
 import hashlib
 import urllib
@@ -68,15 +69,20 @@ def SaveURLAlign(mycursor, urlId1, urlId2, score):
 print("Starting")
 
 oparser = argparse.ArgumentParser(description="import-mysql")
+oparser.add_argument("--config-file", dest="configFile", required=True,
+                     help="Path to config file (containing MySQL login etc.")
 oparser.add_argument('--lang1', dest='l1', help='Language l1 in the crawl', required=True)
 oparser.add_argument('--lang2', dest='l2', help='Language l2 in the crawl', required=True)
 options = oparser.parse_args()
 
+config = configparser.ConfigParser()
+config.read(options.configFile)
+
 mydb = mysql.connector.connect(
-    host="localhost",
-    user="paracrawl_user",
-    passwd="paracrawl_password",
-    database="paracrawl",
+    host=config["mysql"]["host"],
+    user=config["mysql"]["user"],
+    passwd=config["mysql"]["password"],
+    database=config["mysql"]["database"],
     charset='utf8'
 )
 mydb.autocommit = False
