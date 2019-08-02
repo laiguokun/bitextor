@@ -97,7 +97,7 @@ class Qnetwork():
         EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * params.FEATURES_PER_ACTION
         #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
         
-        HIDDEN_DIM = 128 #1024
+        HIDDEN_DIM = 1024
 
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.maxLangId + 1, INPUT_DIM], 0, 0.01))
@@ -164,7 +164,8 @@ class Qnetwork():
 
         node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
-        featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+
+        _, _, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
         #print("featuresNP", featuresNP)
         
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
@@ -648,10 +649,9 @@ class Env:
         return res[0]
 
     ########################################################################
-    def GetNextState(self, params, action, visited, unvisited):
-        #print("visited", visited)
-        #nextNodeId = childIds[0, action]
-        nextURLId = unvisited.GetNextState(action)
+    def GetNextState(self, params, action, visited, urlIds):
+        assert(urlIds.shape[1] > action)
+        nextURLId = urlIds[0, action]
         #print("   nextNodeId", nextNodeId)
         nextNode = self.nodes[nextURLId]
         if nextURLId == 0:
@@ -688,14 +688,14 @@ class Env:
             # print("hh", next, hh)
             currNode = self.nodes[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
-            featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
+            urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
             #print("featuresNP", featuresNP)
             #print("siblings", siblings)
 
             if printQ: unvisitedStr = str(unvisited.urlIds)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes)
-            nextURLId, reward = self.GetNextState(params, action, visited, unvisited)
+            nextURLId, reward = self.GetNextState(params, action, visited, urlIds)
             totReward += reward
             totDiscountedReward += discount * reward
             visited.add(nextURLId)
@@ -754,8 +754,7 @@ class Env:
         #DEBUG = False
 
         unvisited.AddLinks(self, currURLId, visited, params)
-        featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
-        nextStates = unvisited.GetNextStates(params)
+        urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
         #print("   childIds", childIds, unvisited)
         timer.Pause("Neural.1")
 
@@ -767,7 +766,7 @@ class Env:
         timer.Pause("Neural.2")
         
         timer.Start("Neural.3")
-        nextURLId, r = self.GetNextState(params, action, visited, unvisited)
+        nextURLId, r = self.GetNextState(params, action, visited, urlIds)
         nextNode = self.nodes[nextURLId]
         #if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
@@ -788,7 +787,7 @@ class Env:
 
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, nextNode.urlId, visited, params)
-            nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params, visited)
+            _, _, nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params, visited)
             nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes)        
             #print("nextNumNodes", numNodes, nextNumNodes)
             #print("  nextAction", nextAction, nextQ)
@@ -807,7 +806,7 @@ class Env:
         newVal = r + params.gamma * maxNextQ
         targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
         #targetQ[0, action] = newVal
-        self.ZeroOutStop(targetQ, nextStates)
+        self.ZeroOutStop(targetQ, urlIds)
 
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
@@ -893,23 +892,39 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
-    def GetFeaturesNP(self, env, params, visited):
-        ret = np.zeros([params.NUM_ACTIONS, params.FEATURES_PER_ACTION], dtype=np.int)
-        siblings = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+    def GetNextURLIdsInternal(self, params):
+        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
         for urlId in self.urlIds:
-            #ret[0, i] = childId
+            ret[0, i] = urlId
+            i += 1
+            if i >= params.NUM_ACTIONS:
+                break
 
+
+        return ret, i
+
+    def GetFeaturesNP(self, env, params, visited):
+        urlIds, numURLs = self.GetNextURLIdsInternal(params)
+        #print("urlIds", urlIds)
+
+        langFeatures = np.zeros([params.NUM_ACTIONS, params.FEATURES_PER_ACTION], dtype=np.int)
+        siblings = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
+
+        i = 0
+        for urlId in urlIds[0]:
+            #print("urlId", urlId)
+            
             links = self.dict[urlId]
             if len(links) > 0:
                 link = links[0]
                 #print("link", link.parentNode.urlId, link.childNode.urlId, link.text, link.textLang)
-                ret[i, 0] = link.textLang
+                langFeatures[i, 0] = link.textLang
 
                 parentNode = link.parentNode
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
-                ret[i, 1] = parentNode.lang
+                langFeatures[i, 1] = parentNode.lang
 
                 matchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
                 numMatchedSiblings = len(matchedSiblings)
@@ -919,18 +934,18 @@ class Candidates:
                 siblings[0, i] = numMatchedSiblings
                 
             i += 1
-            if i >= params.NUM_ACTIONS:
+            if i >= numURLs:
                 #print("overloaded", len(self.dict), self.dict)
                 break
 
         #print("BEFORE", ret)
-        ret = ret.reshape([1, params.NUM_ACTIONS * params.FEATURES_PER_ACTION])
+        langFeatures = langFeatures.reshape([1, params.NUM_ACTIONS * params.FEATURES_PER_ACTION])
         #print("AFTER", ret)
         #print()
         numNodes = np.empty([1,1])
         numNodes[0,0] = len(visited)
 
-        return ret, siblings, numNodes
+        return urlIds, numURLs, langFeatures, siblings, numNodes
 
     def GetMatchedSiblings(self, env, urlId, parentNode, visited):
         ret = []
@@ -948,25 +963,12 @@ class Candidates:
 
         return ret
 
-    def GetNextState(self, action):
+    def GetNextURLId(self, action):
         if action >= len(self.urlIds):
             ret = 0
         else:
             #print("action", action, len(self.urlIds), self.urlIds)
             ret = self.urlIds[action]
-        return ret
-
-    def GetNextStates(self, params):
-        ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
-
-        i = 0
-        for urlId in self.urlIds:
-            ret[0, i] = urlId
-            i += 1
-            if i >= params.NUM_ACTIONS:
-                break
-
-
         return ret
 
 ######################################################################################
