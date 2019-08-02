@@ -197,9 +197,15 @@ class Qnetwork():
         
         return action, allQ
 
-    def Update(self, sess, input, siblings, numNodes, targetQ):
+    def Update(self, sess, input, siblings, numNodes, numURLs, targetQ):
+        numURLsTmp = np.empty([1,1])
+        numURLsTmp[0,0] = numURLs
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
-                                    feed_dict={self.input: input, self.siblings: siblings, self.numNodes: numNodes, self.nextQ: targetQ})
+                                    feed_dict={self.input: input, 
+                                            self.siblings: siblings, 
+                                            self.numNodes: numNodes, 
+                                            self.numActions: numURLsTmp,
+                                            self.nextQ: targetQ})
         return loss, sumWeight
 
 ######################################################################################
@@ -281,12 +287,13 @@ class Corpus:
             targetQ[i, :] = transition.targetQ
             siblings[i, :] = transition.siblings
             numNodes[i, :] = transition.numNodes
+            numURLs = transition.numNodes
 
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         timer.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, features, siblings, numNodes, targetQ)
+        loss, sumWeight = self.qn.Update(sess, features, siblings, numNodes, numURLs, targetQ)
         timer.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -310,13 +317,14 @@ class MySQL:
 ######################################################################################
 
 class Transition:
-    def __init__(self, currURLId, nextURLId, done, features, siblings, numNodes, targetQ):
+    def __init__(self, currURLId, nextURLId, done, features, siblings, numNodes, numURLs, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.done = done
         self.features = features 
         self.siblings = siblings
         self.numNodes = numNodes
+        self.numURLs = numURLs
         self.targetQ = targetQ
 
     def DebugTransition(self):
@@ -825,6 +833,7 @@ class Env:
                                 np.array(featuresNP, copy=True), 
                                 np.array(siblings, copy=True), 
                                 numNodes,
+                                numURLs,
                                 np.array(targetQ, copy=True))
         timer.Pause("Neural.6")
 
