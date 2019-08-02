@@ -67,10 +67,10 @@ def NormalizeURL(url):
 ######################################################################################
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
-        self.gamma = 0.99
+        self.gamma = 1.0 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 200001
+        self.max_epochs = 50001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -874,6 +874,7 @@ class Env:
     def ZeroOutStop(self, targetQ, urlIds, numURLs):
         #print("urlIds", numURLs, targetQ, urlIds)
         assert(targetQ.shape == urlIds.shape)
+        targetQ[0,0] = 0.0
         
         #i = 0
         #for i in range(urlIds.shape[1]):
