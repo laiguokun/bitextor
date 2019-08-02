@@ -323,6 +323,12 @@ def ProcessPage(options, mycursor, languages, mtProc, statusCode, orig_encoding,
         splitterCmd = "{bitextorRoot}/preprocess/moses/ems/support/split-sentences.perl -b -l {lang1}".format(bitextorRoot=bitextorRoot, lang1=lang)
         extractedLines = split_sentences(plaintext, splitterCmd, options.prune_type, options.prune_threshold)
 
+        if os.path.exists(options.outDir):
+            if not os.path.isdir(options.outDir):
+                sys.stderr.write("Must be a directory: " + options.outDir)
+        else:
+            os.mkdir(options.outDir)
+
         # write splitted file
         extractPath = options.outDir + "/" + str(docId) + "." + lang + ".extracted.xz"
         with lzma.open(extractPath, 'wt') as extractFile:
