@@ -115,6 +115,9 @@ class Qnetwork():
         # NUMBER OF NODES
         self.numNodes = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
+        # number of possible action. <= NUM_ACTIONS
+        self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+
         # HIDDEN 1
         self.hidden1 = tf.concat([self.embedding, self.siblings, self.numNodes], 1) 
 
@@ -165,11 +168,11 @@ class Qnetwork():
         node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
 
-        urlIds, _, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+        urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
         #print("featuresNP", featuresNP)
         
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
-        action, allQ = self.Predict(sess, featuresNP, siblings, numNodes)
+        action, allQ = self.Predict(sess, featuresNP, siblings, numNodes, numURLs)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
         print(urlId, node.url, action, urlIds, allQ, featuresNP)
@@ -180,11 +183,16 @@ class Qnetwork():
             urlId = node.urlId
             self.PrintQ(urlId, params, env, sess)
 
-    def Predict(self, sess, input, siblings, numNodes):
+    def Predict(self, sess, input, siblings, numNodes, numURLs):
         #print("input",input.shape, siblings.shape, numNodes.shape)
-        #print("input", numNodes)
+        numURLsTmp = np.empty([1,1])
+        numURLsTmp[0,0] = numURLs
+        #print("numURLs", numURLsTmp)
         action, allQ = sess.run([self.predict, self.Qout], 
-                                feed_dict={self.input: input, self.siblings: siblings, self.numNodes: numNodes})
+                                feed_dict={self.input: input, 
+                                        self.siblings: siblings, 
+                                        self.numNodes: numNodes,
+                                        self.numActions: numURLsTmp})
         action = action[0]
         
         return action, allQ
@@ -694,7 +702,7 @@ class Env:
 
             if printQ: unvisitedStr = str(urlIds)
 
-            action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes)
+            action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
             nextURLId, reward = self.GetNextState(params, action, visited, urlIds)
             totReward += reward
             totDiscountedReward += discount * reward
@@ -759,7 +767,7 @@ class Env:
         timer.Pause("Neural.1")
 
         timer.Start("Neural.2")
-        action, Qs = qnA.Predict(sess, featuresNP, siblings, numNodes)
+        action, Qs = qnA.Predict(sess, featuresNP, siblings, numNodes, numURLs)
         if np.random.rand(1) < params.eps:
             #if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
@@ -787,15 +795,15 @@ class Env:
 
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, nextNode.urlId, visited, params)
-            _, _, nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params, visited)
-            nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes)        
+            _, nextNumURLs, nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params, visited)
+            nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)        
             #print("nextNumNodes", numNodes, nextNumNodes)
             #print("  nextAction", nextAction, nextQ)
 
             #assert(qnB == None)
             #maxNextQ = np.max(nextQs)
 
-            _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes)        
+            _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)
             maxNextQ = nextQsB[0, nextAction]
         timer.Pause("Neural.5")
             
