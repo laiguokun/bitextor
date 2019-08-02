@@ -892,7 +892,7 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
-    def GetNextURLIdsInternal(self, params):
+    def _GetNextURLIds(self, params):
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         urlIds = self._urlIds[1:]
@@ -907,7 +907,7 @@ class Candidates:
         return ret, i
 
     def GetFeaturesNP(self, env, params, visited):
-        urlIds, numURLs = self.GetNextURLIdsInternal(params)
+        urlIds, numURLs = self._GetNextURLIds(params)
         #print("urlIds", urlIds)
 
         langFeatures = np.zeros([params.NUM_ACTIONS, params.FEATURES_PER_ACTION], dtype=np.int)
