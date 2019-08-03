@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import pylab as plt
 
 
 ######################################################################################
@@ -55,8 +54,8 @@ class Env:
             next = curr - 1
         elif action == 4:
             next = curr
-        #assert(next >= 0)
-        #print("next", next)
+        # assert(next >= 0)
+        # print("next", next)
 
         die = False
         if action == 4:
@@ -81,7 +80,7 @@ class Env:
         actions.append(3)
         actions.append(4)
 
-        #print("  actions", actions)
+        # print("  actions", actions)
         return actions
 
 
@@ -113,12 +112,12 @@ def Walk(start, Q, env):
     totReward = 0
     print(str(curr) + "->", end="")
     while True:
-        #print("curr", curr)
+        # print("curr", curr)
         action = np.argmax(Q[curr])
         next, reward, die = env.GetNextState(curr, action)
         totReward += reward
 
-        #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+        # print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
         print(str(next) + "->", end="")
         curr = next
 
@@ -135,7 +134,7 @@ def Walk(start, Q, env):
 
 ######################################################################################
 def GetMaxQ(next_s, actions, Q, env):
-    #if actions == 4:
+    # if actions == 4:
     #    return 0
 
     max_Q = -9999.99
@@ -148,14 +147,15 @@ def GetMaxQ(next_s, actions, Q, env):
             max_Q = q
     return max_Q
 
+
 def Trajectory(curr_s, Q, gamma, lrn_rate, env):
     while (True):
         next_s, action, reward, die = get_rnd_next_state(curr_s, env)
         actions = env.get_poss_next_actions(next_s)
 
         DEBUG = False
-        #DEBUG = action == 4
-        #DEBUG = curr_s == 0
+        # DEBUG = action == 4
+        # DEBUG = curr_s == 0
 
         max_Q = GetMaxQ(next_s, actions, Q, env)
 
@@ -182,6 +182,7 @@ def Trajectory(curr_s, Q, gamma, lrn_rate, env):
         score = (0)
 
     return score
+
 
 def Train(Q, gamma, lrn_rate, max_epochs, env):
     scores = []
@@ -224,12 +225,12 @@ def Main():
 
     #
     # plt.plot(scores)
-    #plt.show()
+    # plt.show()
 
-    #print("Using Q to go from 0 to goal (14)")
-    #Walk(start, goal, Q)
+    # print("Using Q to go from 0 to goal (14)")
+    # Walk(start, goal, Q)
 
-    for start in range(0,env.ns):
+    for start in range(0, env.ns):
         Walk(start, Q, env)
 
     print("Finished")

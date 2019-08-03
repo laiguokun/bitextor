@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
-import os
-import sys
 import argparse
 import configparser
-import mysql.connector
 import hashlib
+import sys
 import urllib
-import html5lib
+
+import mysql.connector
+
 
 ######################################################################################
 def strip_scheme(url):
@@ -15,30 +15,33 @@ def strip_scheme(url):
     scheme = "%s://" % parsed.scheme
     return parsed.geturl().replace(scheme, '', 1)
 
+
 def NormalizeURL(url):
     url = url.lower()
     ind = url.find("#")
     if ind >= 0:
         url = url[:ind]
-        #print("pageURL", pageURL)
+        # print("pageURL", pageURL)
     if url[-1:] == "/":
         url = url[:-1]
     if url[-5:] == ".html":
         url = url[:-5] + ".htm"
-        #print("pageURL", pageURL)
+        # print("pageURL", pageURL)
     if url[-9:] == "index.htm":
         url = url[:-9]
 
     url = strip_scheme(url)
 
     return url
+
+
 ######################################################################################
 
 def GetURL(mycursor, url):
     c = hashlib.md5()
     c.update(url.lower().encode())
     hashURL = c.hexdigest()
-    #print("url", url, hashURL)
+    # print("url", url, hashURL)
 
     sql = "SELECT id FROM url WHERE md5 = %s"
     val = (hashURL,)
@@ -52,6 +55,7 @@ def GetURL(mycursor, url):
 
     return urlId
 
+
 ######################################################################################
 def SaveURLAlign(mycursor, urlId1, urlId2, score):
     print("SaveURLAlign", urlId1, urlId2, score)
@@ -63,6 +67,7 @@ def SaveURLAlign(mycursor, urlId1, urlId2, score):
         mycursor.execute(sql, val)
     except:
         sys.stderr.write("encoding error")
+
 
 ######################################################################################
 
@@ -90,11 +95,11 @@ mycursor = mydb.cursor()
 
 for line in sys.stdin:
     line = line.strip()
-    #print(line)
+    # print(line)
 
     toks = line.split("\t")
-    #print("toks", toks)
-    assert(len(toks) == 3)
+    # print("toks", toks)
+    assert (len(toks) == 3)
 
     score = toks[0]
     url1 = toks[1]
@@ -108,7 +113,7 @@ for line in sys.stdin:
     if urlId2 is None:
         raise Exception("URL not found:" + urlId2)
 
-    #print("   ", urlId1, urlId2, toks)
+    # print("   ", urlId1, urlId2, toks)
 
     SaveURLAlign(mycursor, urlId1, urlId2, score)
 

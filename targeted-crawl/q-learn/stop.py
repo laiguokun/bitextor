@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import pylab as plt
 
 
 ######################################################################################
@@ -17,7 +16,7 @@ def GetNextState(curr, action, goal):
         next = curr - 1
     elif action == 4:
         next = curr
-    assert(next >= 0)
+    assert (next >= 0)
 
     if next == goal:
         reward = 5
@@ -27,11 +26,12 @@ def GetNextState(curr, action, goal):
         reward = -1
     return next, reward
 
+
 def get_poss_next_actions(s, F, ns):
-    #print("s", s)
+    # print("s", s)
     actions = []
     for j in range(ns):
-        #print("s", s, j)
+        # print("s", s, j)
         if F[s, j] == 1:
             if s - 1 == j:
                 actions.append(3)
@@ -42,13 +42,13 @@ def get_poss_next_actions(s, F, ns):
             elif s > j:
                 actions.append(0)
             else:
-                assert(s == j)
+                assert (s == j)
                 actions.append(4)
 
     if s != j:
         actions.append(4)
 
-    #print("  actions", actions)
+    # print("  actions", actions)
     return actions
 
 
@@ -80,13 +80,13 @@ def Walk(start, goal, Q):
     totReward = 0
     print(str(curr) + "->", end="")
     while True:
-        #print("curr", curr)
+        # print("curr", curr)
         action = np.argmax(Q[curr])
         next, reward = GetNextState(curr, action, goal)
         totReward += reward
 
         print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
-        #print(str(next) + "->", end="")
+        # print(str(next) + "->", end="")
         curr = next
 
         if action == 4: break
@@ -108,7 +108,7 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
         actions = get_poss_next_actions(next_s, F, ns)
 
         DEBUG = False
-        #DEBUG = action == 4
+        # DEBUG = action == 4
 
         max_Q = -9999.99
         for j in range(len(actions)):
@@ -142,6 +142,7 @@ def Trajectory(curr_s, F, Q, gamma, lrn_rate, goal, ns):
 
     return score
 
+
 def Train(F, Q, gamma, lrn_rate, goal, ns, max_epochs):
     scores = []
 
@@ -174,8 +175,8 @@ def Main():
     F[5, 6] = 1;
     F[5, 10] = 1;
     F[6, 5] = 1;
-    #F[6, 7] = 1; # hole
-    #F[7, 6] = 1; # hole
+    # F[6, 7] = 1; # hole
+    # F[7, 6] = 1; # hole
     F[7, 8] = 1;
     F[7, 12] = 1
     F[8, 3] = 1;
@@ -216,12 +217,12 @@ def Main():
 
     #
     # plt.plot(scores)
-    #plt.show()
+    # plt.show()
 
-    #print("Using Q to go from 0 to goal (14)")
-    #Walk(start, goal, Q)
+    # print("Using Q to go from 0 to goal (14)")
+    # Walk(start, goal, Q)
 
-    for start in range(0,ns):
+    for start in range(0, ns):
         Walk(start, goal, Q)
 
     print("Finished")

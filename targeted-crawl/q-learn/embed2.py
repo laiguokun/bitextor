@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import pylab as plt
 import tensorflow as tf
+
 
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.99 #0.1
+        self.gamma = 0.99  # 0.1
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
+
 
 ######################################################################################
 class Qnetwork():
@@ -23,67 +24,67 @@ class Qnetwork():
         self.embeddings = tf.Variable(tf.random_uniform([env.ns, 16], 0, 0.01))
 
         self.input = tf.placeholder(shape=[4], dtype=tf.int32)
-        #self.input1Hot = tf.one_hot(self.input, env.ns)
+        # self.input1Hot = tf.one_hot(self.input, env.ns)
 
         self.embedConcat = tf.nn.embedding_lookup(self.embeddings, self.input)
         self.embedConcat = tf.reshape(self.embedConcat, [1, EMBED_DIM])
         self.embedding = self.embedConcat
 
-        #self.embedding = tf.matmul(self.input1Hot, self.embeddings)
-        #self.embedding = tf.math.multiply(self.embedding, 0.1)
+        # self.embedding = tf.matmul(self.input1Hot, self.embeddings)
+        # self.embedding = tf.math.multiply(self.embedding, 0.1)
         self.embedding = tf.math.l2_normalize(self.embedding, axis=1)
 
         # HIDDEN 1
-        #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
+        # self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden1 = self.embedding
 
         self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM, EMBED_DIM], 0, 0.01))
-        #self.Whidden1 = tf.nn.softmax(self.Whidden1, axis=1)
-        #self.Whidden1 = tf.nn.sigmoid(self.Whidden1)
-        #self.Whidden1 = tf.math.l2_normalize(self.Whidden1, axis=1)
+        # self.Whidden1 = tf.nn.softmax(self.Whidden1, axis=1)
+        # self.Whidden1 = tf.nn.sigmoid(self.Whidden1)
+        # self.Whidden1 = tf.math.l2_normalize(self.Whidden1, axis=1)
 
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
-        #self.hidden1 = tf.nn.softmax(self.hidden1, axis=1)
-        #self.hidden1 = tf.nn.sigmoid(self.hidden1)
+        # self.hidden1 = tf.nn.softmax(self.hidden1, axis=1)
+        # self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
-        #self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
-        #self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
+        # self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
+        # self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
 
         self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
-        #self.hidden1 = tf.nn.relu(self.hidden1)
+        # self.hidden1 = tf.nn.relu(self.hidden1)
 
         # HIDDEN
-        #self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
+        # self.embedding = tf.placeholder(shape=[1, env.ns], dtype=tf.float32)
         self.hidden2 = self.hidden1
 
         self.Whidden2 = tf.Variable(tf.random_uniform([EMBED_DIM, HIDDEN_DIM], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.nn.sigmoid(self.Whidden)
-        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        # self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        # self.Whidden = tf.nn.sigmoid(self.Whidden)
+        # self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
         self.hidden2 = tf.matmul(self.hidden2, self.Whidden2)
 
-        #self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
-        #self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.nn.sigmoid(self.Whidden)
-        #self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
-        #self.hidden = tf.multiply(self.hidden, self.Whidden)
+        # self.Whidden = tf.Variable(tf.random_uniform([1, env.ns], 0, 0.01))
+        # self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
+        # self.Whidden = tf.nn.sigmoid(self.Whidden)
+        # self.Whidden = tf.clip_by_value(self.Whidden, -10, 10)
+        # self.hidden = tf.multiply(self.hidden, self.Whidden)
 
         self.BiasHidden2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        #self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
-        #self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
-        #self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
+        # self.BiasHidden = tf.nn.softmax(self.BiasHidden, axis=1)
+        # self.BiasHidden = tf.nn.sigmoid(self.BiasHidden)
+        # self.BiasHidden = tf.math.l2_normalize(self.BiasHidden, axis=1)
         self.hidden2 = tf.add(self.hidden2, self.BiasHidden2)
 
         # OUTPUT
         self.Wout = tf.Variable(tf.random_uniform([HIDDEN_DIM, 5], 0, 0.01))
-        #self.W = tf.math.l2_normalize(self.W, axis=1)
-        #self.W = tf.nn.sigmoid(self.W)
-        #self.W = tf.math.multiply(self.W, 2)
-        #self.W = tf.clip_by_value(self.W, -10, 10)
+        # self.W = tf.math.l2_normalize(self.W, axis=1)
+        # self.W = tf.nn.sigmoid(self.W)
+        # self.W = tf.math.multiply(self.W, 2)
+        # self.W = tf.clip_by_value(self.W, -10, 10)
 
         self.Qout = tf.matmul(self.hidden2, self.Wout)
-        #self.Qout = tf.clip_by_value(self.Qout, -10, 10)
-        #self.Qout = tf.nn.sigmoid(self.Qout)
+        # self.Qout = tf.clip_by_value(self.Qout, -10, 10)
+        # self.Qout = tf.nn.sigmoid(self.Qout)
         self.Qout = tf.math.multiply(self.Qout, 0.1)
 
         self.predict = tf.argmax(self.Qout, 1)
@@ -103,6 +104,7 @@ class Qnetwork():
     def my_print(self, env, sess):
         for curr in range(env.ns):
             self.my_print1(curr, env, sess)
+
 
 ######################################################################################
 # helpers
@@ -144,7 +146,7 @@ class Env:
 
         for i in range(self.ns):
             self.F[i, self.ns - 1] = 1
-        #print("F", self.F)
+        # print("F", self.F)
 
     def GetNextState(self, curr, action):
         if action == 1:
@@ -157,8 +159,8 @@ class Env:
             next = curr - 1
         elif action == 0:
             next = self.ns - 1
-        #assert(next >= 0)
-        #print("next", next)
+        # assert(next >= 0)
+        # print("next", next)
 
         die = False
         if next < 0 or next >= self.ns or self.F[curr, next] == 0:
@@ -170,7 +172,7 @@ class Env:
             reward = 8.5
             die = True
         elif action == 0:
-            assert(next != self.goal)
+            assert (next != self.goal)
             reward = 0
             die = True
         else:
@@ -188,7 +190,7 @@ class Env:
         for i in range(len(ret), 4):
             ret.append(self.ns - 1)
 
-        #print("GetNeighBours", curr, ret)
+        # print("GetNeighBours", curr, ret)
         return ret
 
     def get_poss_next_actions(self, s):
@@ -199,7 +201,7 @@ class Env:
         actions.append(3)
         actions.append(4)
 
-        #print("  actions", actions)
+        # print("  actions", actions)
         return actions
 
     def Walk(self, start, sess, qn):
@@ -243,7 +245,7 @@ def Neural(epoch, curr, params, env, sess, qn):
         a = np.random.randint(0, 5)
 
     next, r, die = env.GetNextState(curr, a)
-    #print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
+    # print("curr=", curr, "a=", a, "next=", next, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
     if curr == env.ns - 1:
@@ -256,38 +258,39 @@ def Neural(epoch, curr, params, env, sess, qn):
         # print("  Q1", Q1)
         maxQ1 = np.max(Q1)
 
-        #targetQ = allQ
+        # targetQ = allQ
         targetQ = np.array(allQ, copy=True)
-        #print("  targetQ", targetQ)
+        # print("  targetQ", targetQ)
         targetQ[0, a] = r + params.gamma * maxQ1
-        #print("  targetQ", targetQ)
+        # print("  targetQ", targetQ)
 
-    #print("  targetQ", targetQ, maxQ1)
+    # print("  targetQ", targetQ, maxQ1)
 
     if epoch % 10000 == 0:
         print("neighbours", neighbours)
         outs = [qn.updateModel, qn.Wout, qn.Whidden2, qn.BiasHidden2, qn.Qout, qn.embeddings, qn.embedConcat]
         _, W, Whidden, BiasHidden, Qout, embeddings, embedConcat = sess.run(outs,
-                                              feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
+                                                                            feed_dict={qn.input: neighbours,
+                                                                                       qn.nextQ: targetQ})
         print("epoch", epoch)
         print("embeddings", embeddings)
         print("embedConcat", embedConcat.shape)
 
-        #print("  W\n", W)
-        #print("  Whidden\n", Whidden)
-        #print("  BiasHidden\n", BiasHidden)
+        # print("  W\n", W)
+        # print("  Whidden\n", Whidden)
+        # print("  BiasHidden\n", BiasHidden)
         qn.my_print(env, sess)
 
-        #print("curr", curr, "next", next, "action", a)
-        #print("allQ", allQ)
-        #print("targetQ", targetQ)
-        #print("Qout", Qout)
+        # print("curr", curr, "next", next, "action", a)
+        # print("allQ", allQ)
+        # print("targetQ", targetQ)
+        # print("Qout", Qout)
 
         print()
     else:
         sess.run([qn.updateModel], feed_dict={qn.input: neighbours, qn.nextQ: targetQ})
 
-    #print("  new Q", a, allQ)
+    # print("  new Q", a, allQ)
 
     return next, die
 
@@ -295,25 +298,26 @@ def Neural(epoch, curr, params, env, sess, qn):
 def Trajectory(epoch, curr, params, env, sess, qn):
     while (True):
         next, done = Neural(epoch, curr, params, env, sess, qn)
-        #next, done = Tabular(curr, Q, gamma, lrn_rate, env)
+        # next, done = Tabular(curr, Q, gamma, lrn_rate, env)
         curr = next
 
         if done: break
-    #print()
+    # print()
+
 
 def Train(params, env, sess, qn):
-
     scores = []
 
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns)  # random start state
         Trajectory(epoch, curr, params, env, sess, qn)
 
-        #eps = 1. / ((i/50) + 10)
-        #eps *= .99
-        #print("eps", eps)
+        # eps = 1. / ((i/50) + 10)
+        # eps *= .99
+        # print("eps", eps)
 
     return scores
+
 
 ######################################################################################
 
@@ -344,7 +348,7 @@ def Main():
 
         qn.my_print(env, sess)
 
-        for start in range(0,env.ns):
+        for start in range(0, env.ns):
             env.Walk(start, sess, qn)
 
         # plt.plot(scores)

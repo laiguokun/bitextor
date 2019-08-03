@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 
+import argparse
+import hashlib
 import sys
-import os
+import time
+
+import mysql.connector
 import numpy as np
 import pylab as plt
 import tensorflow as tf
-import random
-from collections import namedtuple
-import mysql.connector
-import time
-import argparse
-import pickle
-import hashlib
+
 
 ######################################################################################
 class Timer:
@@ -35,7 +33,8 @@ class Timer:
             self.cumm[str] += now - then
         else:
             self.cumm[str] = now - then
-        
+
+
 ######################################################################################
 def StrNone(arg):
     if arg is None:
@@ -43,39 +42,42 @@ def StrNone(arg):
     else:
         return str(arg)
 
+
 def NormalizeURL(url):
     url = url.lower()
     ind = url.find("#")
     if ind >= 0:
         url = url[:ind]
-        #print("pageURL", pageURL)
-    #if url[-5:] == ".html":
+        # print("pageURL", pageURL)
+    # if url[-5:] == ".html":
     #    url = url[:-5] + ".htm"
-    #if url[-9:] == "index.htm":
+    # if url[-9:] == "index.htm":
     #    url = url[:-9]
     if url[-1:] == "/":
         url = url[:-1]
 
     if url[:7] == "http://":
-        #print("   strip protocol1", url, url[7:])
+        # print("   strip protocol1", url, url[7:])
         url = url[7:]
     elif url[:8] == "https://":
-        #print("   strip protocol2", url, url[8:])
+        # print("   strip protocol2", url, url[8:])
         url = url[8:]
 
     return url
+
+
 ######################################################################################
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
-        self.gamma = 1.0 #0.99
+        self.gamma = 1.0  # 0.99
         self.lrn_rate = 0.1
-        self.alpha = 1.0 # 0.7
+        self.alpha = 1.0  # 0.7
         self.max_epochs = 50001
-        self.eps = 1 # 0.7
+        self.eps = 1  # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
         self.trainNumIter = 10
-        
+
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 100
@@ -83,10 +85,11 @@ class LearningParams:
 
         self.saveDir = saveDir
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
-        
-        self.reward = 1000.0 #17.0
+
+        self.reward = 1000.0  # 17.0
         self.cost = -1.0
-        
+
+
 ######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
@@ -95,16 +98,16 @@ class Qnetwork():
         # These lines establish the feed-forward part of the network used to choose actions
         INPUT_DIM = 20
         EMBED_DIM = INPUT_DIM * params.NUM_ACTIONS * params.FEATURES_PER_ACTION
-        #print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
-        
+        # print("INPUT_DIM", INPUT_DIM, EMBED_DIM)
+
         HIDDEN_DIM = 1024
 
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([env.maxLangId + 1, INPUT_DIM], 0, 0.01))
-        #print("self.embeddings", self.embeddings)
+        # print("self.embeddings", self.embeddings)
 
         self.input = tf.placeholder(shape=[None, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=tf.int32)
-        #print("self.input", self.input)
+        # print("self.input", self.input)
 
         self.embedding = tf.nn.embedding_lookup(self.embeddings, self.input)
         self.embedding = tf.reshape(self.embedding, [tf.shape(self.input)[0], EMBED_DIM])
@@ -119,7 +122,7 @@ class Qnetwork():
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # HIDDEN 1
-        self.hidden1 = tf.concat([self.embedding, self.siblings, self.numNodes, self.numActions], 1) 
+        self.hidden1 = tf.concat([self.embedding, self.siblings, self.numNodes, self.numActions], 1)
 
         self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 2, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
@@ -128,7 +131,7 @@ class Qnetwork():
         self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
 
         self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
-        #self.hidden1 = tf.nn.relu(self.hidden1)
+        # self.hidden1 = tf.nn.relu(self.hidden1)
 
         # HIDDEN 2
         self.hidden2 = self.hidden1
@@ -148,20 +151,20 @@ class Qnetwork():
         self.predict = tf.argmax(self.Qout, 1)
 
         self.sumWeight = tf.reduce_sum(self.Wout) \
-                        + tf.reduce_sum(self.BiasHidden2) \
-                        + tf.reduce_sum(self.Whidden2) \
-                        + tf.reduce_sum(self.Whidden1)
+                         + tf.reduce_sum(self.BiasHidden2) \
+                         + tf.reduce_sum(self.Whidden2) \
+                         + tf.reduce_sum(self.Whidden1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
-        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
-        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
-        
+        # self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        self.trainer = tf.train.AdamOptimizer()  # learning_rate=lrn_rate)
+
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PrintQ(self, urlId, params, env, sess):
-        #print("hh", urlId, env.nodes)
+        # print("hh", urlId, env.nodes)
         visited = set()
         unvisited = Candidates()
 
@@ -169,14 +172,14 @@ class Qnetwork():
         unvisited.AddLinks(env, node.urlId, visited, params)
 
         urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
-        #print("featuresNP", featuresNP)
-        
-        #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
+        # print("featuresNP", featuresNP)
+
+        # action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
         action, allQ = self.Predict(sess, featuresNP, siblings, numNodes, numURLs)
-        
-        #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
-        numURLsScalar = int(numURLs[0,0])
-        urlIdsTruncate = urlIds[0, 0:numURLsScalar]                
+
+        # print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
+        numURLsScalar = int(numURLs[0, 0])
+        urlIdsTruncate = urlIds[0, 0:numURLsScalar]
 
         print(urlId, node.url, action, numURLsScalar, urlIdsTruncate, allQ, featuresNP)
 
@@ -187,26 +190,27 @@ class Qnetwork():
             self.PrintQ(urlId, params, env, sess)
 
     def Predict(self, sess, input, siblings, numNodes, numURLs):
-        #print("input",input.shape, siblings.shape, numNodes.shape)
-        #print("numURLs", numURLs)
-        action, allQ = sess.run([self.predict, self.Qout], 
-                                feed_dict={self.input: input, 
-                                        self.siblings: siblings, 
-                                        self.numNodes: numNodes,
-                                        self.numActions: numURLs})
+        # print("input",input.shape, siblings.shape, numNodes.shape)
+        # print("numURLs", numURLs)
+        action, allQ = sess.run([self.predict, self.Qout],
+                                feed_dict={self.input: input,
+                                           self.siblings: siblings,
+                                           self.numNodes: numNodes,
+                                           self.numActions: numURLs})
         action = action[0]
-        
+
         return action, allQ
 
     def Update(self, sess, input, siblings, numNodes, numURLs, targetQ):
-        #print("numURLs", numURLs.shape)
-        _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
-                                    feed_dict={self.input: input, 
-                                            self.siblings: siblings, 
-                                            self.numNodes: numNodes, 
-                                            self.numActions: numURLs,
-                                            self.nextQ: targetQ})
+        # print("numURLs", numURLs.shape)
+        _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight],
+                                      feed_dict={self.input: input,
+                                                 self.siblings: siblings,
+                                                 self.numNodes: numNodes,
+                                                 self.numActions: numURLs,
+                                                 self.nextQ: targetQ})
         return loss, sumWeight
+
 
 ######################################################################################
 class Qnets():
@@ -214,6 +218,7 @@ class Qnets():
         self.q = []
         self.q.append(Qnetwork(params, env))
         self.q.append(Qnetwork(params, env))
+
 
 ######################################################################################
 class Corpus:
@@ -229,15 +234,14 @@ class Corpus:
                 if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
                     return
             # completely new trans
-    
+
         self.transitions.append(transition)
 
     def AddPath(self, path, deleteDuplicateTransitions):
         for transition in path:
             self.AddTransition(transition, deleteDuplicateTransitions)
 
-
-    def GetBatch(self, maxBatchSize):        
+    def GetBatch(self, maxBatchSize):
         batch = self.transitions[0:maxBatchSize]
         self.transitions = self.transitions[maxBatchSize:]
 
@@ -260,7 +264,7 @@ class Corpus:
 
     def Train(self, sess, env, params):
         if len(self.transitions) >= params.minCorpusSize:
-            #for transition in self.transitions:
+            # for transition in self.transitions:
             #    print(DebugTransition(transition))
 
             for i in range(params.trainNumIter):
@@ -272,7 +276,7 @@ class Corpus:
 
     def UpdateQN(self, params, env, sess, batch):
         batchSize = len(batch)
-        #print("batchSize", batchSize)
+        # print("batchSize", batchSize)
         features = np.empty([batchSize, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=np.int)
         siblings = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
@@ -281,8 +285,8 @@ class Corpus:
 
         i = 0
         for transition in batch:
-            #curr = transition.curr
-            #next = transition.next
+            # curr = transition.curr
+            # next = transition.next
 
             features[i, :] = transition.features
             targetQ[i, :] = transition.targetQ
@@ -292,13 +296,14 @@ class Corpus:
 
             i += 1
 
-        #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
+        # _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         timer.Start("UpdateQN.1")
         loss, sumWeight = self.qn.Update(sess, features, siblings, numNodes, numURLs, targetQ)
         timer.Pause("UpdateQN.1")
 
-        #print("loss", loss)
+        # print("loss", loss)
         return loss, sumWeight
+
 
 ######################################################################################
 # helpers
@@ -306,23 +311,24 @@ class MySQL:
     def __init__(self):
         # paracrawl
         self.mydb = mysql.connector.connect(
-        host="localhost",
-        user="paracrawl_user",
-        passwd="paracrawl_password",
-        database="paracrawl",
-        charset='utf8'
+            host="localhost",
+            user="paracrawl_user",
+            passwd="paracrawl_password",
+            database="paracrawl",
+            charset='utf8'
         )
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
+
 
 ######################################################################################
 
 class Transition:
     def __init__(self, currURLId, nextURLId, done, features, siblings, numNodes, numURLs, targetQ):
         self.currURLId = currURLId
-        self.nextURLId = nextURLId 
+        self.nextURLId = nextURLId
         self.done = done
-        self.features = features 
+        self.features = features
         self.siblings = siblings
         self.numNodes = numNodes
         self.numURLs = numURLs
@@ -332,18 +338,21 @@ class Transition:
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
         return ret
 
+
 ######################################################################################
 class Link:
     def __init__(self, text, textLang, parentNode, childNode):
-        self.text = text 
-        self.textLang = textLang 
+        self.text = text
+        self.textLang = textLang
         self.parentNode = parentNode
         self.childNode = childNode
+
+
 ######################################################################################
 
 class Node:
     def __init__(self, urlId, url, docIds, langIds):
-        assert(len(docIds) == len(langIds))
+        assert (len(docIds) == len(langIds))
         self.urlId = urlId
         self.url = url
         self.docIds = set(docIds)
@@ -354,11 +363,11 @@ class Node:
         self.lang = 0 if len(langIds) == 0 else langIds[0]
         self.alignedURLId = 0
 
-        #print("self.lang", self.lang, langIds, urlId, url, docIds)
-        #for lang in langIds:
+        # print("self.lang", self.lang, langIds, urlId, url, docIds)
+        # for lang in langIds:
         #    assert(self.lang == lang)
 
-    def CreateLink(self, text, textLang, childNode):            
+    def CreateLink(self, text, textLang, childNode):
         link = Link(text, textLang, self, childNode)
         self.links.add(link)
 
@@ -367,37 +376,37 @@ class Node:
         for link in self.links:
             childNode = link.childNode
             childURLId = childNode.urlId
-            #print("   ", childNode.Debug())
+            # print("   ", childNode.Debug())
             if childURLId != self.urlId and childURLId not in visited:
                 ret.append(link)
-        #print("   childIds", childIds)
+        # print("   childIds", childIds)
 
         return ret
 
     def Recombine(self, loserNode):
-        assert(loserNode is not None)
-        #print("Recombining")
-        #print("   ", self.Debug())
-        #print("   ", loserNode.Debug())
-        
+        assert (loserNode is not None)
+        # print("Recombining")
+        # print("   ", self.Debug())
+        # print("   ", loserNode.Debug())
+
         loserNode.winningNode = self
         self.docIds.update(loserNode.docIds)
         self.links.update(loserNode.links)
         self.loserNodes.add(loserNode)
-        
+
         if self.lang == 0:
             if loserNode.lang != 0:
                 self.lang = loserNode.lang
         else:
             if loserNode.lang != 0:
-                assert(self.lang == loserNode.lang)
+                assert (self.lang == loserNode.lang)
 
         if self.alignedURLId == 0:
             if loserNode.alignedURLId != 0:
                 self.alignedURLId = loserNode.alignedURLId
         else:
             if loserNode.alignedURLId != 0:
-                assert(self.alignedURLId == loserNode.alignedURLId)
+                assert (self.alignedURLId == loserNode.alignedURLId)
 
         # losers of loser
         for loserNode2 in loserNode.loserNodes:
@@ -405,35 +414,36 @@ class Node:
             loserNode2.loserNodes.clear()
             loserNode2.winningNode = self
 
-        #print("   ", self.Debug())
+        # print("   ", self.Debug())
 
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
-                        StrNone(self.lang), StrNone(self.alignedURLId),
-                        StrNone(self.redirect), str(len(self.links)),
-                        str(self.loserNodes) ] )
+                         StrNone(self.lang), StrNone(self.alignedURLId),
+                         StrNone(self.redirect), str(len(self.links)),
+                         str(self.loserNodes)])
+
 
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
         self.url = url
         self.numAligned = 0
-        self.nodes = {} # urlId -> Node
+        self.nodes = {}  # urlId -> Node
         self.url2urlId = {}
         self.docId2URLIds = {}
         self.maxLangId = 0
 
-        visited = {} # urlId -> Node
+        visited = {}  # urlId -> Node
         rootURLId = self.Url2UrlId(sqlconn, url)
         self.CreateGraphFromDB(sqlconn, visited, rootURLId, url)
         print("CreateGraphFromDB", len(visited))
-        #for node in visited.values():
+        # for node in visited.values():
         #    print(node.Debug())
 
         self.ImportURLAlign(sqlconn, visited)
 
         rootNode = visited[rootURLId]
-        assert(rootNode is not None)
+        assert (rootNode is not None)
         print("rootNode", rootNode.url)
 
         print("Recombine")
@@ -442,7 +452,7 @@ class Env:
         print("normURL2Node", len(normURL2Node))
         print("rootNode", rootNode.url)
 
-        visited = set() # set of nodes
+        visited = set()  # set of nodes
         self.PruneEmptyNodes(rootNode, visited)
 
         startNode = Node(sys.maxsize, "START", [], [])
@@ -455,13 +465,13 @@ class Env:
 
         self.Visit(rootNode)
         print("self.nodes", len(self.nodes), self.numAligned)
-        #for node in self.nodes.values():
+        # for node in self.nodes.values():
         #    print(node.Debug())
 
         print("graph created")
 
     def ImportURLAlign(self, sqlconn, visited):
-        #print("visited", visited.keys())
+        # print("visited", visited.keys())
         sql = "SELECT id, url1, url2 FROM url_align"
         val = ()
         sqlconn.mycursor.execute(sql, val)
@@ -471,7 +481,7 @@ class Env:
         for res in ress:
             urlId1 = res[1]
             urlId2 = res[2]
-            #print("urlId", urlId1, urlId2)
+            # print("urlId", urlId1, urlId2)
 
             _, _, redirectId = self.UrlId2Responses(sqlconn, urlId1)
             if redirectId is not None:
@@ -481,7 +491,7 @@ class Env:
             if redirectId is not None:
                 urlId2 = redirectId
 
-            #print("   ", urlId1, urlId2)
+            # print("   ", urlId1, urlId2)
             if urlId1 not in visited or urlId2 not in visited:
                 print("Alignment not in graph", urlId1, urlId2)
                 continue
@@ -508,7 +518,7 @@ class Env:
 
             childNode = link.childNode
             self.Visit(childNode)
-            
+
     def PruneEmptyNodes(self, node, visited):
         if node in visited:
             return
@@ -518,20 +528,20 @@ class Env:
         for link in linksCopy:
             childNode = link.childNode
             if len(childNode.docIds) == 0:
-                #print("empty", childNode.Debug())
+                # print("empty", childNode.Debug())
                 node.links.remove(link)
 
             self.PruneEmptyNodes(childNode, visited)
 
     def Recombine(self, visited, normURL2Node, node):
         if node.urlId not in visited:
-            #processed already
+            # processed already
             return node.winningNode
         del visited[node.urlId]
 
         if node.redirect is not None:
             # redirected node always lose
-            #normURL = NormalizeURL(node.redirect.url)
+            # normURL = NormalizeURL(node.redirect.url)
             node.redirect.Recombine(node)
             winningNode = self.Recombine(visited, normURL2Node, node.redirect)
         else:
@@ -549,33 +559,33 @@ class Env:
                 for link in node.links:
                     childNode = link.childNode
                     newChildNode = self.Recombine(visited, normURL2Node, childNode)
-                    #print("childNode", childNode.Debug())
-                    #print("newChildNode", newChildNode.Debug())
-                    #print()
+                    # print("childNode", childNode.Debug())
+                    # print("newChildNode", newChildNode.Debug())
+                    # print()
                     link.childNode = newChildNode
 
         return winningNode
 
     def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
-        #print("urlId", urlId)
+        # print("urlId", urlId)
         if urlId in visited:
             return visited[urlId]
 
         docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
         node = Node(urlId, url, docIds, langIds)
         visited[urlId] = node
-        #print("CreateGraphFromDB", urlId, \
+        # print("CreateGraphFromDB", urlId, \
         #    "None" if docIds is None else len(docIds), \
         #    "None" if redirectId is None else len(redirectId), \
         #    url)
 
         if redirectId is not None:
-            assert(len(docIds) == 0)
+            assert (len(docIds) == 0)
             redirectURL = self.UrlId2Url(sqlconn, redirectId)
             redirectNode = self.CreateGraphFromDB(sqlconn, visited, redirectId, redirectURL)
             node.redirect = redirectNode
         else:
-            #for docId in docIds:
+            # for docId in docIds:
             #    #urlId, url =  self.RespId2URL(sqlconn, docId)
             #    print("   ", urlId, url)
 
@@ -620,25 +630,24 @@ class Env:
         redirectId = None
         for res in ress:
             if res[1] == 200:
-                assert(redirectId == None)
+                assert (redirectId == None)
                 docIds.append(res[0])
                 langIds.append(res[3])
             elif res[1] in (301, 302):
-                assert(len(docIds) == 0)
+                assert (len(docIds) == 0)
                 redirectId = res[2]
 
         return docIds, langIds, redirectId
 
     def RespId2URL(self, sqlconn, respId):
         sql = "SELECT T1.id, T1.val FROM url T1, response T2 " \
-            + "WHERE T1.id = T2.url_id AND T2.id = %s"
+              + "WHERE T1.id = T2.url_id AND T2.id = %s"
         val = (respId,)
         sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchone()
         assert (res is not None)
 
         return res[0], res[1]
-
 
     def UrlId2Url(self, sqlconn, urlId):
         sql = "SELECT val FROM url WHERE id = %s"
@@ -667,21 +676,21 @@ class Env:
 
     ########################################################################
     def GetNextState(self, params, action, visited, urlIds):
-        assert(urlIds.shape[1] > action)
+        assert (urlIds.shape[1] > action)
         nextURLId = urlIds[0, action]
-        #print("   nextNodeId", nextNodeId)
+        # print("   nextNodeId", nextNodeId)
         nextNode = self.nodes[nextURLId]
         if nextURLId == 0:
-            #print("   stop")
+            # print("   stop")
             reward = 0.0
         elif nextNode.alignedURLId > 0 and nextNode.alignedURLId in visited:
-                reward = params.reward
-            #print("   visited", visited)
-            #print("   nodeIds", nodeIds)
-            #print("   reward", reward)
-            #print()
+            reward = params.reward
+        # print("   visited", visited)
+        # print("   nodeIds", nodeIds)
+        # print("   reward", reward)
+        # print()
         else:
-            #print("   non-rewarding")
+            # print("   non-rewarding")
             reward = params.cost
 
         return nextURLId, reward
@@ -689,7 +698,7 @@ class Env:
     def Walk(self, start, params, sess, qn, printQ):
         visited = set()
         unvisited = Candidates()
-        
+
         curr = start
         i = 0
         numAligned = 0
@@ -706,13 +715,13 @@ class Env:
             currNode = self.nodes[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
             urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
-            #print("featuresNP", featuresNP)
-            #print("siblings", siblings)
+            # print("featuresNP", featuresNP)
+            # print("siblings", siblings)
 
-            if printQ: 
-                numURLsScalar = int(numURLs[0,0])
-                urlIdsTruncate = urlIds[0, 0:numURLsScalar]                
-                unvisitedStr =  str(urlIdsTruncate)
+            if printQ:
+                numURLsScalar = int(numURLs[0, 0])
+                urlIdsTruncate = urlIds[0, 0:numURLsScalar]
+                unvisitedStr = str(urlIdsTruncate)
 
             action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
             nextURLId, reward = self.GetNextState(params, action, visited, urlIds)
@@ -729,14 +738,14 @@ class Env:
 
             if printQ:
                 debugStr += "   " + str(curr) + "->" + str(nextURLId) + " " \
-                         + str(action) + " " \
-                         + str(numURLsScalar) + " " \
-                         + unvisitedStr + " " \
-                         + str(allQ) + " " \
-                         + str(featuresNP) + " " \
-                         + "\n"
+                            + str(action) + " " \
+                            + str(numURLsScalar) + " " \
+                            + unvisitedStr + " " \
+                            + str(allQ) + " " \
+                            + str(featuresNP) + " " \
+                            + "\n"
 
-            #print("(" + str(action) + ")", str(nextURLId) + "(" + str(reward) + ") -> ", end="")
+            # print("(" + str(action) + ")", str(nextURLId) + "(" + str(reward) + ") -> ", end="")
             mainStr += str(nextURLId) + alignedStr + "->"
             rewardStr += str(reward) + "->"
             curr = nextURLId
@@ -755,8 +764,6 @@ class Env:
 
         return numAligned, totReward, totDiscountedReward
 
-
-
     def WalkAll(self, params, sess, qn):
         for node in self.nodes.values():
             self.Walk(node.urlId, params, sess, qn, False)
@@ -770,27 +777,26 @@ class Env:
                 ret += 1
         return ret
 
-
     def Neural(self, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
         timer.Start("Neural.1")
-        #DEBUG = False
+        # DEBUG = False
 
         unvisited.AddLinks(self, currURLId, visited, params)
         urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
-        #print("   childIds", childIds, unvisited)
+        # print("   childIds", childIds, unvisited)
         timer.Pause("Neural.1")
 
         timer.Start("Neural.2")
         action, Qs = qnA.Predict(sess, featuresNP, siblings, numNodes, numURLs)
         if np.random.rand(1) < params.eps:
-            #if DEBUG: print("   random")
+            # if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
         timer.Pause("Neural.2")
-        
+
         timer.Start("Neural.3")
         nextURLId, r = self.GetNextState(params, action, visited, urlIds)
         nextNode = self.nodes[nextURLId]
-        #if DEBUG: print("   action", action, next, Qs)
+        # if DEBUG: print("   action", action, next, Qs)
         timer.Pause("Neural.3")
 
         timer.Start("Neural.4")
@@ -804,40 +810,41 @@ class Env:
             done = True
             maxNextQ = 0.0
         else:
-            assert(nextURLId != 0)
+            assert (nextURLId != 0)
             done = False
 
             # Obtain the Q' values by feeding the new state through our network
             nextUnvisited.AddLinks(self, nextNode.urlId, visited, params)
-            _, nextNumURLs, nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params, visited)
-            nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)        
-            #print("nextNumNodes", numNodes, nextNumNodes)
-            #print("  nextAction", nextAction, nextQ)
+            _, nextNumURLs, nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(self, params,
+                                                                                                     visited)
+            nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)
+            # print("nextNumNodes", numNodes, nextNumNodes)
+            # print("  nextAction", nextAction, nextQ)
 
-            #assert(qnB == None)
-            #maxNextQ = np.max(nextQs)
+            # assert(qnB == None)
+            # maxNextQ = np.max(nextQs)
 
             _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)
             maxNextQ = nextQsB[0, nextAction]
         timer.Pause("Neural.5")
-            
+
         timer.Start("Neural.6")
         targetQ = Qs
-        #targetQ = np.array(Qs, copy=True)
-        #print("  targetQ", targetQ)
+        # targetQ = np.array(Qs, copy=True)
+        # print("  targetQ", targetQ)
         newVal = r + params.gamma * maxNextQ
         targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
-        #targetQ[0, action] = newVal
+        # targetQ[0, action] = newVal
         self.ZeroOutStop(targetQ, urlIds, numURLs)
 
-        #if DEBUG: print("   nextStates", nextStates)
-        #if DEBUG: print("   targetQ", targetQ)
+        # if DEBUG: print("   nextStates", nextStates)
+        # if DEBUG: print("   targetQ", targetQ)
 
-        transition = Transition(currURLId, 
-                                nextNode.urlId, 
-                                done, 
-                                np.array(featuresNP, copy=True), 
-                                np.array(siblings, copy=True), 
+        transition = Transition(currURLId,
+                                nextNode.urlId,
+                                done,
+                                np.array(featuresNP, copy=True),
+                                np.array(siblings, copy=True),
                                 numNodes,
                                 numURLs,
                                 np.array(targetQ, copy=True))
@@ -858,41 +865,41 @@ class Env:
             else:
                 qnA = qns.q[1]
                 qnB = qns.q[0]
-            #qnA = qns.q[0]
-            #qnB = None
+            # qnA = qns.q[0]
+            # qnB = None
 
             transition = self.Neural(epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited)
-            
+
             qnA.corpus.AddTransition(transition, params.deleteDuplicateTransitions)
 
             currURLId = transition.nextURLId
-            #print("visited", visited)
+            # print("visited", visited)
 
             if transition.done: break
-        #print("unvisited", unvisited)
-        
+        # print("unvisited", unvisited)
+
     def ZeroOutStop(self, targetQ, urlIds, numURLs):
-        #print("urlIds", numURLs, targetQ, urlIds)
-        assert(targetQ.shape == urlIds.shape)
-        targetQ[0,0] = 0.0
-        
-        #i = 0
-        #for i in range(urlIds.shape[1]):
+        # print("urlIds", numURLs, targetQ, urlIds)
+        assert (targetQ.shape == urlIds.shape)
+        targetQ[0, 0] = 0.0
+
+        # i = 0
+        # for i in range(urlIds.shape[1]):
         #    if urlIds[0, i] == 0:
         #        targetQ[0, i] = 0
 
-        numURLsScalar = int(numURLs[0,0])
+        numURLsScalar = int(numURLs[0, 0])
         for i in range(numURLsScalar, targetQ.shape[1]):
             targetQ[0, i] = -555.0
 
-        #print("targetQ", targetQ)
-        
+        # print("targetQ", targetQ)
+
 
 ######################################################################################
 
 class Candidates:
     def __init__(self):
-        self.dict = {} # nodeid -> link
+        self.dict = {}  # nodeid -> link
         self._urlIds = []
 
         self.dict[0] = []
@@ -918,7 +925,7 @@ class Candidates:
 
     def AddLinks(self, env, urlId, visited, params):
         currNode = env.nodes[urlId]
-        #print("   currNode", curr, currNode.Debug())
+        # print("   currNode", curr, currNode.Debug())
         newLinks = currNode.GetLinks(visited, params)
 
         for link in newLinks:
@@ -928,7 +935,7 @@ class Candidates:
         ret = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         urlIds = self._urlIds[1:]
-        #random.shuffle(urlIds)
+        # random.shuffle(urlIds)
         i = 1
         for urlId in urlIds:
             ret[0, i] = urlId
@@ -940,64 +947,65 @@ class Candidates:
 
     def GetFeaturesNP(self, env, params, visited):
         urlIds, numURLs = self._GetNextURLIds(params)
-        #print("urlIds", urlIds)
+        # print("urlIds", urlIds)
 
         langFeatures = np.zeros([params.NUM_ACTIONS, params.FEATURES_PER_ACTION], dtype=np.int)
         siblings = np.zeros([1, params.NUM_ACTIONS], dtype=np.int)
 
         i = 0
         for urlId in urlIds[0]:
-            #print("urlId", urlId)
-            
+            # print("urlId", urlId)
+
             links = self.dict[urlId]
             if len(links) > 0:
                 link = links[0]
-                #print("link", link.parentNode.urlId, link.childNode.urlId, link.text, link.textLang)
+                # print("link", link.parentNode.urlId, link.childNode.urlId, link.text, link.textLang)
                 langFeatures[i, 0] = link.textLang
 
                 parentNode = link.parentNode
-                #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
+                # print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
                 langFeatures[i, 1] = parentNode.lang
 
                 matchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
                 numMatchedSiblings = len(matchedSiblings)
-                #if numMatchedSiblings > 1:
+                # if numMatchedSiblings > 1:
                 #    print("matchedSiblings", urlId, parentNode.urlId, matchedSiblings, visited)
-                
+
                 siblings[0, i] = numMatchedSiblings
-                
+
             i += 1
             if i >= numURLs:
-                #print("overloaded", len(self.dict), self.dict)
+                # print("overloaded", len(self.dict), self.dict)
                 break
 
-        #print("BEFORE", ret)
+        # print("BEFORE", ret)
         langFeatures = langFeatures.reshape([1, params.NUM_ACTIONS * params.FEATURES_PER_ACTION])
-        #print("AFTER", ret)
-        #print()
-        numNodes = np.empty([1,1])
-        numNodes[0,0] = len(visited)
-        
-        numURLsRet = np.empty([1,1])
-        numURLsRet[0,0] = numURLs
+        # print("AFTER", ret)
+        # print()
+        numNodes = np.empty([1, 1])
+        numNodes[0, 0] = len(visited)
+
+        numURLsRet = np.empty([1, 1])
+        numURLsRet[0, 0] = numURLs
 
         return urlIds, numURLsRet, langFeatures, siblings, numNodes
 
     def GetMatchedSiblings(self, env, urlId, parentNode, visited):
         ret = []
 
-        #print("parentNode", urlId)
+        # print("parentNode", urlId)
         for link in parentNode.links:
             sibling = link.childNode
             if sibling.urlId != urlId:
-                #print("   link", sibling.urlId, sibling.alignedDoc)
+                # print("   link", sibling.urlId, sibling.alignedDoc)
                 if sibling.urlId in visited:
                     # sibling has been crawled
                     if sibling.alignedURLId > 0 and sibling.alignedURLId in visited:
                         # sibling has been matched
-                        ret.append(sibling.urlId)      
+                        ret.append(sibling.urlId)
 
         return ret
+
 
 ######################################################################################
 
@@ -1006,9 +1014,9 @@ def Train(params, sess, saver, env, qns):
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
-        #print("epoch", epoch)
-        #startState = 30
-        
+        # print("epoch", epoch)
+        # startState = 30
+
         timer.Start("Trajectory")
         env.Trajectory(epoch, sys.maxsize, params, sess, qns)
         timer.Pause("Trajectory")
@@ -1021,7 +1029,7 @@ def Train(params, sess, saver, env, qns):
         if epoch > 0 and epoch % params.walk == 0:
             if len(qns.q[0].corpus.losses) > 0:
                 # trained at least once
-                #qns.q[0].PrintAllQ(params, env, sess)
+                # qns.q[0].PrintAllQ(params, env, sess)
                 qns.q[0].PrintQ(0, params, env, sess)
                 qns.q[0].PrintQ(sys.maxsize, params, env, sess)
                 print()
@@ -1033,26 +1041,26 @@ def Train(params, sess, saver, env, qns):
                 print()
                 sys.stdout.flush()
 
-                #saver.save(sess, "{}/hh".format(params.saveDir), global_step=epoch)
+                # saver.save(sess, "{}/hh".format(params.saveDir), global_step=epoch)
 
-                #numAligned = env.GetNumberAligned(path)
-                #print("path", numAligned, env.numAligned)
+                # numAligned = env.GetNumberAligned(path)
+                # print("path", numAligned, env.numAligned)
                 if numAligned >= env.numAligned - 5:
-                    #print("got them all!")
-                    #eps = 1. / ((i/50) + 10)
+                    # print("got them all!")
+                    # eps = 1. / ((i/50) + 10)
                     params.eps *= .99
                     params.eps = max(0.1, params.eps)
-                    
-                    #params.alpha *= 0.99
-                    #params.alpha = max(0.3, params.alpha)
-                
-            #print("epoch", epoch, \
+
+                    # params.alpha *= 0.99
+                    # params.alpha = max(0.3, params.alpha)
+
+            # print("epoch", epoch, \
             #     len(qns.q[0].corpus.transitions), len(qns.q[1].corpus.transitions)) #, \
             #     #DebugTransitions(qns.q[0].corpus.transitions))
-                
 
     return totRewards, totDiscountedRewards
-            
+
+
 def DebugTransitions(transitions):
     ret = ""
     for transition in transitions:
@@ -1060,18 +1068,20 @@ def DebugTransitions(transitions):
         ret += str + " "
     return ret
 
+
 ######################################################################################
- 
+
 timer = Timer()
- 
+
+
 def Main():
     print("Starting")
 
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
-                     help="Directory that model WIP are saved to. If existing model exists then load it")
+                         help="Directory that model WIP are saved to. If existing model exists then load it")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions", default=False,
-                     help="If True then only unique transition are used in each batch")
+                         help="If True then only unique transition are used in each batch")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -1081,8 +1091,8 @@ def Main():
 
     sqlconn = MySQL()
 
-    #hostName = "http://vade-retro.fr/"
-    #hostName = "www.visitbritain.com"
+    # hostName = "http://vade-retro.fr/"
+    # hostName = "www.visitbritain.com"
     hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
@@ -1096,7 +1106,6 @@ def Main():
     #     with open(pickleName, 'wb') as f:
     #         print("pickling")
     #         pickle.dump(env,f)
-        
 
     params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
 
@@ -1106,19 +1115,19 @@ def Main():
 
     saver = tf.train.Saver()
     with tf.Session() as sess:
-    #with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+        # with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
         sess.run(init)
 
         qns.q[0].PrintAllQ(params, env, sess)
-        #env.WalkAll(params, sess, qn)
+        # env.WalkAll(params, sess, qn)
         print()
 
         timer.Start("Train")
         totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
         timer.Pause("Train")
-        
-        #qn.PrintAllQ(params, env, sess)
-        #env.WalkAll(params, sess, qn)
+
+        # qn.PrintAllQ(params, env, sess)
+        # env.WalkAll(params, sess, qn)
 
         env.Walk(sys.maxsize, params, sess, qns.q[0], True)
 
@@ -1137,6 +1146,7 @@ def Main():
         plt.show()
 
     print("Finished")
+
 
 if __name__ == "__main__":
     Main()

@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import math
-import pylab as plt
 import tensorflow as tf
+
 
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 0.9 #0.1
+        self.gamma = 0.9  # 0.1
         self.lrn_rate = 0.1
         self.max_epochs = 20001
         self.eps = 1  # 0.7
+
 
 ######################################################################################
 class Qnetwork():
@@ -22,16 +22,16 @@ class Qnetwork():
 
         self.Whidden = tf.Variable(tf.random_uniform([env.ns, env.ns], 0, 0.01))
         self.Whidden = tf.nn.softmax(self.Whidden, axis=1)
-        #self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
+        # self.Whidden = tf.math.l2_normalize(self.Whidden, axis=1)
 
-        #self.hidden = tf.matmul(self.hidden, self.Whidden)
+        # self.hidden = tf.matmul(self.hidden, self.Whidden)
 
         self.W = tf.Variable(tf.random_uniform([env.ns, 5], 0, 0.01))
-        #self.W = tf.nn.softmax(self.W, axis=1)
-        #self.W = tf.math.l2_normalize(self.W, axis=1)
+        # self.W = tf.nn.softmax(self.W, axis=1)
+        # self.W = tf.math.l2_normalize(self.W, axis=1)
 
         self.Qout = tf.matmul(self.hidden, self.W)
-        #self.Qout = tf.nn.softmax(self.Qout)
+        # self.Qout = tf.nn.softmax(self.Qout)
 
         self.predict = tf.argmax(self.Qout, 1)
 
@@ -53,7 +53,7 @@ class Qnetwork():
 
     def UpdateQN(self, path, params, env, sess, epoch):
         batchSize = len(path)
-        #print("path", batchSize)
+        # print("path", batchSize)
 
         inputs = np.empty([batchSize, env.ns])
         outputs = np.empty([batchSize, env.ns])
@@ -68,12 +68,12 @@ class Qnetwork():
             r = tuple[4]
             allQ = tuple[5]
             curr1Hot = Int2Arrray(curr, env.ns)
-            #print("  curr_1Hot", curr1Hot.shape, inputs.shape)
+            # print("  curr_1Hot", curr1Hot.shape, inputs.shape)
             inputs[i, :] = curr1Hot
 
             # Obtain the Q' values by feeding the new state through our network
             next1Hot = Int2Arrray(next, env.ns)
-            #print("  next1Hot", type(next1Hot))
+            # print("  next1Hot", type(next1Hot))
             outputs[i, :] = next1Hot
 
             Q1 = sess.run(self.Qout, feed_dict={self.inputs: next1Hot})
@@ -81,20 +81,20 @@ class Qnetwork():
 
             if action == 0:
                 maxQ1 = 0
-                targetQ[i, :] = np.zeros([1,5])
+                targetQ[i, :] = np.zeros([1, 5])
             else:
                 maxQ1 = np.max(Q1)
                 targetQ[i, :] = allQ
-                #print("  targetQ", type(targetQ), targetQ.shape)
+                # print("  targetQ", type(targetQ), targetQ.shape)
                 targetQ[i, action] = r + params.gamma * maxQ1
-            #print("  targetQ", targetQ)
-            #print("  Q1", curr, next, action, Q1, maxQ1, targetQ[i, :])
+            # print("  targetQ", targetQ)
+            # print("  Q1", curr, next, action, Q1, maxQ1, targetQ[i, :])
 
             i += 1
 
-        #print("path\n", path)
-        #print("targetQ", targetQ)
-        #self.my_print1(0, env, sess)
+        # print("path\n", path)
+        # print("targetQ", targetQ)
+        # self.my_print1(0, env, sess)
 
         # _, W1 = sess.run([self.updateModel, self.W], feed_dict={self.inputs: inputs, self.nextQ: targetQ})
 
@@ -105,10 +105,11 @@ class Qnetwork():
         # sumhidden = np.sum(hidden)
         # print("sums", sumWhidden, sumhidden)
         # sdssess
-        #if epoch % 1000 == 0:
+        # if epoch % 1000 == 0:
         #   print("  Whidden\n", Whidden)
-        #self.my_print1(0, env, sess)
-        #print()
+        # self.my_print1(0, env, sess)
+        # print()
+
 
 ######################################################################################
 # helpers
@@ -150,7 +151,7 @@ class Env:
 
         for i in range(self.ns):
             self.F[i, self.ns - 1] = 1
-        #print("F", self.F)
+        # print("F", self.F)
 
     def GetNextState(self, curr, action):
         if action == 1:
@@ -163,8 +164,8 @@ class Env:
             next = curr - 1
         elif action == 0:
             next = self.ns - 1
-        #assert(next >= 0)
-        #print("next", next)
+        # assert(next >= 0)
+        # print("next", next)
 
         die = False
         if next < 0 or next >= self.ns or self.F[curr, next] == 0:
@@ -176,7 +177,7 @@ class Env:
             reward = 8.5
             die = True
         elif action == 0:
-            assert(next != self.goal)
+            assert (next != self.goal)
             reward = 0
             die = True
         else:
@@ -192,7 +193,7 @@ class Env:
         actions.append(3)
         actions.append(4)
 
-        #print("  actions", actions)
+        # print("  actions", actions)
         return actions
 
     def Walk(self, start, sess, qn):
@@ -232,61 +233,63 @@ def Int2Arrray(num, size):
     str = np.binary_repr(num).zfill(size)
     l = list(str)
     ret = np.array(l, ndmin=2).astype(np.float)
-    #print("num", num, ret)
+    # print("num", num, ret)
     return ret
 
 
 def Neural(epoch, curr, params, env, sess, qn):
     # NEURAL
-    #startNode = env.GetStartNode("www.vade-retro.fr/")
-    #curr_1Hot = Int2Arrray(startNode, env.ns)
+    # startNode = env.GetStartNode("www.vade-retro.fr/")
+    # curr_1Hot = Int2Arrray(startNode, env.ns)
 
     curr_1Hot = Int2Arrray(curr, env.ns)
-    #print("curr", curr, curr_1Hot)
+    # print("curr", curr, curr_1Hot)
 
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs: curr_1Hot})
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, 5)
-    #print("action", curr, action, allQ)
+    # print("action", curr, action, allQ)
 
     next, r, die = env.GetNextState(curr, action)
-    #print("curr=", curr, next, action, r, allQ)
+    # print("curr=", curr, next, action, r, allQ)
 
     return (die, curr, next, action, r, allQ)
+
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
     while (True):
         tuple = Neural(epoch, curr, params, env, sess, qn)
         path.append(tuple)
-        #print("tuple", tuple)
+        # print("tuple", tuple)
 
         curr = tuple[2]
         if tuple[0]: break
 
-    #print(path)
+    # print(path)
     qn.UpdateQN(path, params, env, sess, epoch)
 
     stopState = tuple[2]
     return stopState
 
-def Train(params, env, sess, qn):
 
+def Train(params, env, sess, qn):
     scores = []
 
     for epoch in range(params.max_epochs):
         curr = np.random.randint(0, env.ns - 1)  # random start state
         stopState = Trajectory(epoch, curr, params, env, sess, qn)
-        #print("stopState", stopState)
+        # print("stopState", stopState)
 
         if stopState == env.goal:
             pass
-            #params.eps = max(.999 * params.eps, .1)
-            #params.gamma = min(params.gamma * 1.001, .9)
-            #print("eps", params.eps, params.gamma)
+            # params.eps = max(.999 * params.eps, .1)
+            # params.gamma = min(params.gamma * 1.001, .9)
+            # print("eps", params.eps, params.gamma)
 
     return scores
+
 
 ######################################################################################
 
@@ -297,7 +300,6 @@ def Main():
     print("Setting up maze in memory")
 
     # =============================================================
-
 
     # =============================================================
     print("Analyzing maze with RL Q-learning")

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import pylab as plt
 import tensorflow as tf
+
 
 ######################################################################################
 class Qnetwork():
@@ -18,6 +18,7 @@ class Qnetwork():
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
         self.trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
         self.updateModel = self.trainer.minimize(self.loss)
+
 
 ######################################################################################
 # helpers
@@ -57,7 +58,7 @@ class Env:
         self.F[12, 13] = 1;
         self.F[13, 12] = 1;
         self.F[14, 14] = 1
-        #print("F", self.F)
+        # print("F", self.F)
 
     def GetNextState(self, curr, action):
         if action == 0:
@@ -70,8 +71,8 @@ class Env:
             next = curr - 1
         elif action == 4:
             next = curr
-        #assert(next >= 0)
-        #print("next", next)
+        # assert(next >= 0)
+        # print("next", next)
 
         die = False
         if action == 4:
@@ -96,8 +97,9 @@ class Env:
         actions.append(3)
         actions.append(4)
 
-        #print("  actions", actions)
+        # print("  actions", actions)
         return actions
+
 
 ######################################################################################
 def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
@@ -110,7 +112,7 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
         a = np.random.randint(0, 5)
 
     next_s, r, die = env.GetNextState(curr_s, a)
-    #print("curr_s=", curr_s, "a=", a, "next_s=", next_s, "r=", r, "allQ=", allQ)
+    # print("curr_s=", curr_s, "a=", a, "next_s=", next_s, "r=", r, "allQ=", allQ)
 
     # Obtain the Q' values by feeding the new state through our network
     next1Hot = np.identity(env.ns)[next_s:next_s + 1]
@@ -121,15 +123,15 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     # print("  Q1", Q1, maxQ1)
 
     targetQ = allQ
-    #print("  targetQ", targetQ)
+    # print("  targetQ", targetQ)
     targetQ[0, a] = r + gamma * maxQ1
-    #print("  targetQ", targetQ)
+    # print("  targetQ", targetQ)
 
     inputs = np.identity(env.ns)[curr_s: curr_s + 1]
     _, W1 = sess.run([qn.updateModel, qn.W], feed_dict={qn.inputs1: inputs, qn.nextQ: targetQ})
 
     a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
-    #print("  new Q", a, allQ)
+    # print("  new Q", a, allQ)
 
     return next_s, die
 
@@ -137,25 +139,26 @@ def Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn):
 def Trajectory(curr_s, eps, gamma, lrn_rate, env, sess, qn):
     while (True):
         next_s, done = Neural(curr_s, eps, gamma, lrn_rate, env, sess, qn)
-        #next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
+        # next_s, done = Tabular(curr_s, Q, gamma, lrn_rate, env)
         curr_s = next_s
 
         if done: break
-    #print()
+    # print()
+
 
 def Train(eps, gamma, lrn_rate, max_epochs, env, sess, qn):
-
     scores = []
 
     for i in range(0, max_epochs):
         curr_s = np.random.randint(0, env.ns)  # random start state
         Trajectory(curr_s, eps, gamma, lrn_rate, env, sess, qn)
 
-        #eps = 1. / ((i/50) + 10)
-        #eps *= .99
-        #print("eps", eps)
+        # eps = 1. / ((i/50) + 10)
+        # eps *= .99
+        # print("eps", eps)
 
     return scores
+
 
 ######################################################################################
 
@@ -165,6 +168,7 @@ def my_print(env, sess, qn):
         # print("hh", next_s, hh)
         a, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
         print("curr_s=", curr_s, "a=", a, "allQ=", allQ)
+
 
 def Walk(start, env, sess, qn):
     curr_s = start
@@ -176,7 +180,7 @@ def Walk(start, env, sess, qn):
         curr_1Hot = np.identity(env.ns)[curr_s:curr_s + 1]
         # print("hh", next_s, hh)
         action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.inputs1: curr_1Hot})
-        action= action[0]
+        action = action[0]
         next, reward, die = env.GetNextState(curr_s, action)
         totReward += reward
 
@@ -210,7 +214,7 @@ def Main():
     lrn_rate = 0.5
     max_epochs = 20000
     env = Env()
-    eps = 1 #0.7
+    eps = 1  # 0.7
 
     tf.reset_default_graph()
     qn = Qnetwork()
@@ -225,7 +229,7 @@ def Main():
 
         my_print(env, sess, qn)
 
-        for start in range(0,env.ns):
+        for start in range(0, env.ns):
             Walk(start, env, sess, qn)
 
         # plt.plot(scores)
