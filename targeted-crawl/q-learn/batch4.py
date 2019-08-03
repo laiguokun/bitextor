@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import argparse
+import configparser
 import numpy as np
 import pylab as plt
 import tensorflow as tf
@@ -392,14 +394,16 @@ def Train(params, env, sess, qn):
 
 ######################################################################################
 class MySQL:
-    def __init__(self):
+    def __init__(self, config_file):
+        config = configparser.ConfigParser()
+        config.read(config_file)
         # paracrawl
         self.mydb = mysql.connector.connect(
-        host="localhost",
-        user="paracrawl_user",
-        passwd="paracrawl_password",
-        database="paracrawl",
-        charset='utf8'
+            host=config["mysql"]["host"],
+            user=config["mysql"]["user"],
+            passwd=config["mysql"]["password"],
+            database=config["mysql"]["database"],
+            charset='utf8'
         )
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
@@ -527,13 +531,20 @@ class Node:
 
 ######################################################################################
 
+
 def Main():
     print("Starting")
+
+    oparser = argparse.ArgumentParser(description="import-mysql")
+    oparser.add_argument("--config-file", dest="configFile", required=True,
+                         help="Path to config file (containing MySQL login etc.")
+    options = oparser.parse_args()
+
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.2f}".format(x)})
 
     # =============================================================
-    sqlconn = MySQL()
+    sqlconn = MySQL(options.configFile)
     #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     siteMap = Sitemap(sqlconn, "www.vade-retro.fr/")
     # =============================================================
