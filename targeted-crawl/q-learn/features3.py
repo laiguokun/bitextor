@@ -460,13 +460,11 @@ class Env:
 
         print("graph created")
 
-    def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
-        #print("urlId", urlId)
-        if urlId in visited:
-            return visited[urlId]
-
+    def CreateNode(self, sqlconn, visited, urlId, url):
         docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
         node = Node(urlId, url, docIds, langIds)
+
+        assert(urlId not in visited)
         visited[urlId] = node
         #print("CreateGraphFromDB", urlId, \
         #    "None" if docIds is None else len(docIds), \
@@ -478,12 +476,18 @@ class Env:
             redirectURL = self.UrlId2Url(sqlconn, redirectId)
             redirectNode = self.CreateGraphFromDB(sqlconn, visited, redirectId, redirectURL)
             node.redirect = redirectNode
-        else:
-            #for docId in docIds:
-            #    #urlId, url =  self.RespId2URL(sqlconn, docId)
-            #    print("   ", urlId, url)
 
-            linksStruct = self.DocIds2Links(sqlconn, docIds)
+        return node
+
+    def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
+        #print("urlId", urlId)
+        if urlId in visited:
+            return visited[urlId]
+
+        node = self.CreateNode(sqlconn, visited, urlId, url)
+
+        if node.redirect is None:
+            linksStruct = self.DocIds2Links(sqlconn, node.docIds)
 
             for linkStruct in linksStruct:
                 #print("   ", urlId, "->", linkStruct)
@@ -1083,8 +1087,8 @@ def Main():
     sqlconn = MySQL()
 
     #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.visitbritain.com/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://www.visitbritain.com/"
+    hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
