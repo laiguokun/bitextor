@@ -557,7 +557,7 @@ class Env:
         return winningNode
 
     def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
-        #print("urlId", urlId)
+        print("urlId", urlId)
         if urlId in visited:
             return visited[urlId]
 
@@ -582,6 +582,7 @@ class Env:
             linksStruct = self.DocIds2Links(sqlconn, docIds)
 
             for linkStruct in linksStruct:
+                print("   ", urlId, "->", linkStruct)
                 childURLId = linkStruct[0]
                 childUrl = self.UrlId2Url(sqlconn, childURLId)
                 childNode = self.CreateGraphFromDB(sqlconn, visited, childURLId, childUrl)
@@ -1082,8 +1083,8 @@ def Main():
     sqlconn = MySQL()
 
     #hostName = "http://vade-retro.fr/"
-    #hostName = "www.visitbritain.com"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
