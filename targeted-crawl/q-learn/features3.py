@@ -436,7 +436,7 @@ class Env:
         assert(rootNode is not None)
         print("rootNode", rootNode.Debug())
 
-        self.PruneEmptyNodes(normURL2Node)
+        self.PruneNodes(normURL2Node)
 
         startNode = Node(sys.maxsize, "START", [], [], None)
         startNode.CreateLink("", 0, rootNode)
@@ -446,33 +446,19 @@ class Env:
         node = Node(0, "STOP", [], [], None)
         self.nodes[0] = node
 
-        self.Visit(rootNode)
         print("self.nodes", len(self.nodes), self.numAligned)
         #for node in self.nodes.values():
         #    print(node.Debug())
 
         print("graph created")
 
-    def Visit(self, node):
-        if node.urlId in self.nodes:
-            return
-        self.nodes[node.urlId] = node
-
-        if node.alignedURLId > 0:
-            self.numAligned += 1
-
-        if node.lang > self.maxLangId:
-            self.maxLangId = node.lang
-
-        for link in node.links:
-            if link.textLang > self.maxLangId:
-                self.maxLangId = link.textLang
-
-            childNode = link.childNode
-            self.Visit(childNode)
-
-    def PruneEmptyNodes(self, normURL2Node):
+    def PruneNodes(self, normURL2Node):
         for node in normURL2Node.values():
+            # add to class var
+            assert(node.urlId not in self.nodes)
+            self.nodes[node.urlId] = node
+
+            # prune links to non-docs
             linksCopy = set(node.links)
             for link in linksCopy:
                 childNode = link.childNode
@@ -480,6 +466,16 @@ class Env:
                     #print("empty", childNode.Debug())
                     node.links.remove(link)
 
+            # update states
+            if node.alignedURLId > 0:
+                self.numAligned += 1
+
+            if node.lang > self.maxLangId:
+                self.maxLangId = node.lang
+
+            for link in node.links:
+                if link.textLang > self.maxLangId:
+                    self.maxLangId = link.textLang
 
     def GetRedirectedNormURL(self, node):
         while node.redirect is not None:
