@@ -377,6 +377,29 @@ class Node:
 
         return ret
 
+    def Recombine(self, loserNode):
+        assert (loserNode is not None)
+        # print("Recombining")
+        # print("   ", self.Debug())
+        # print("   ", loserNode.Debug())
+
+        self.docIds.update(loserNode.docIds)
+        self.links.update(loserNode.links)
+
+        if self.lang == 0:
+            if loserNode.lang != 0:
+                self.lang = loserNode.lang
+        else:
+            if loserNode.lang != 0:
+                assert (self.lang == loserNode.lang)
+
+        if self.alignedURLId == 0:
+            if loserNode.alignedURLId != 0:
+                self.alignedURLId = loserNode.alignedURLId
+        else:
+            if loserNode.alignedURLId != 0:
+                assert (self.alignedURLId == loserNode.alignedURLId)
+
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedURLId),
@@ -404,7 +427,7 @@ class Env:
 
         self.ImportURLAlign(sqlconn, visited)
 
-        print("rootNode", rootNode.Debug())
+        #print("rootNode", rootNode.Debug())
         print("Recombine")
         normURL2Node = {}
         self.Recombine(visited, normURL2Node)
@@ -444,6 +467,9 @@ class Env:
             node.normURL = self.GetRedirectedNormURL(node)
             if node.normURL not in normURL2Node:
                 normURL2Node[node.normURL] = node
+            else:
+                winner = normURL2Node[node.normURL]
+                winner.Recombine(node)
 
         # relink child nodes to winning nodes
         for node in visited.values():
@@ -1047,8 +1073,8 @@ def Main():
     sqlconn = MySQL()
 
     #hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.visitbritain.com/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
