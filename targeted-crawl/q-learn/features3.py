@@ -436,7 +436,7 @@ class Env:
         assert(rootNode is not None)
         print("rootNode", rootNode.Debug())
 
-        self.PruneNodes(normURL2Node)
+        self.PruneNodes(rootNode)
 
         startNode = Node(sys.maxsize, "START", [], [], None)
         startNode.CreateLink("", 0, rootNode)
@@ -452,19 +452,13 @@ class Env:
 
         print("graph created")
 
-    def PruneNodes(self, normURL2Node):
-        for node in normURL2Node.values():
-            # add to class var
-            assert(node.urlId not in self.nodes)
-            self.nodes[node.urlId] = node
+    def PruneNodes(self, rootNode):
+        visit = []
+        visit.append(rootNode)
 
-            # prune links to non-docs
-            linksCopy = set(node.links)
-            for link in linksCopy:
-                childNode = link.childNode
-                if len(childNode.docIds) == 0:
-                    #print("empty", childNode.Debug())
-                    node.links.remove(link)
+        while len(visit) > 0:
+            node = visit.pop()
+            self.nodes[node.urlId] = node
 
             # update states
             if node.alignedURLId > 0:
@@ -473,9 +467,19 @@ class Env:
             if node.lang > self.maxLangId:
                 self.maxLangId = node.lang
 
-            for link in node.links:
-                if link.textLang > self.maxLangId:
-                    self.maxLangId = link.textLang
+            # prune links to non-docs
+            linksCopy = set(node.links)
+            for link in linksCopy:
+                childNode = link.childNode
+                if len(childNode.docIds) == 0:
+                    #print("empty", childNode.Debug())
+                    node.links.remove(link)
+                elif childNode.urlId not in self.nodes:
+                    visit.append(childNode)
+
+                    if link.textLang > self.maxLangId:
+                        self.maxLangId = link.textLang
+
 
     def GetRedirectedNormURL(self, node):
         while node.redirect is not None:
