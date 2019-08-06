@@ -464,21 +464,21 @@ class Env:
         print("graph created")
 
     def CreateNode(self, sqlconn, visited, urlId, url):
-        dfsdfs
+        docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
+        node = Node(urlId, url, docIds, langIds, redirectId)
+        return node
 
     def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
         #print("urlId", urlId)
         if urlId in visited:
             return visited[urlId]
 
-        docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-        node = Node(urlId, url, docIds, langIds, redirectId)
-
+        node = self.CreateNode(sqlconn, visited, urlId, url)
         assert(urlId not in visited)
         visited[urlId] = node
 
         if node.redirectId is not None:
-            assert(len(docIds) == 0)
+            assert(len(node.docIds) == 0)
             redirectURL = self.UrlId2Url(sqlconn, node.redirectId)
             redirectNode = self.CreateGraphFromDB(sqlconn, visited, node.redirectId, redirectURL)
             node.redirect = redirectNode
