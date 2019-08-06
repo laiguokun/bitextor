@@ -436,8 +436,7 @@ class Env:
         assert(rootNode is not None)
         print("rootNode", rootNode.Debug())
 
-        visited = set() # set of nodes
-        self.PruneEmptyNodes(rootNode, visited)
+        self.PruneEmptyNodes(normURL2Node)
 
         startNode = Node(sys.maxsize, "START", [], [], None)
         startNode.CreateLink("", 0, rootNode)
@@ -453,6 +452,34 @@ class Env:
         #    print(node.Debug())
 
         print("graph created")
+
+    def Visit(self, node):
+        if node.urlId in self.nodes:
+            return
+        self.nodes[node.urlId] = node
+
+        if node.alignedURLId > 0:
+            self.numAligned += 1
+
+        if node.lang > self.maxLangId:
+            self.maxLangId = node.lang
+
+        for link in node.links:
+            if link.textLang > self.maxLangId:
+                self.maxLangId = link.textLang
+
+            childNode = link.childNode
+            self.Visit(childNode)
+
+    def PruneEmptyNodes(self, normURL2Node):
+        for node in normURL2Node.values():
+            linksCopy = set(node.links)
+            for link in linksCopy:
+                childNode = link.childNode
+                if len(childNode.docIds) == 0:
+                    #print("empty", childNode.Debug())
+                    node.links.remove(link)
+
 
     def GetRedirectedNormURL(self, node):
         while node.redirect is not None:
@@ -548,39 +575,7 @@ class Env:
             node2 = visited[urlId2]
             node1.alignedURLId = urlId2
             node2.alignedURLId = urlId1
-
-    def Visit(self, node):
-        if node.urlId in self.nodes:
-            return
-        self.nodes[node.urlId] = node
-
-        if node.alignedURLId > 0:
-            self.numAligned += 1
-
-        if node.lang > self.maxLangId:
-            self.maxLangId = node.lang
-
-        for link in node.links:
-            if link.textLang > self.maxLangId:
-                self.maxLangId = link.textLang
-
-            childNode = link.childNode
-            self.Visit(childNode)
             
-    def PruneEmptyNodes(self, node, visited):
-        if node in visited:
-            return
-        visited.add(node)
-
-        linksCopy = set(node.links)
-        for link in linksCopy:
-            childNode = link.childNode
-            if len(childNode.docIds) == 0:
-                #print("empty", childNode.Debug())
-                node.links.remove(link)
-
-            self.PruneEmptyNodes(childNode, visited)
-
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
         for docId in docIds:
