@@ -461,32 +461,25 @@ class Env:
         print("graph created")
 
     def CreateNode(self, sqlconn, visited, urlId, url):
-        docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-        node = Node(urlId, url, docIds, langIds)
-
-        assert(urlId not in visited)
-        visited[urlId] = node
-        #print("CreateGraphFromDB", urlId, \
-        #    "None" if docIds is None else len(docIds), \
-        #    "None" if redirectId is None else len(redirectId), \
-        #    url)
-
-        if redirectId is not None:
-            assert(len(docIds) == 0)
-            redirectURL = self.UrlId2Url(sqlconn, redirectId)
-            redirectNode = self.CreateGraphFromDB(sqlconn, visited, redirectId, redirectURL)
-            node.redirect = redirectNode
-
-        return node
+        dfsdfs
 
     def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
         #print("urlId", urlId)
         if urlId in visited:
             return visited[urlId]
 
-        node = self.CreateNode(sqlconn, visited, urlId, url)
+        docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
+        node = Node(urlId, url, docIds, langIds)
 
-        if node.redirect is None:
+        assert(urlId not in visited)
+        visited[urlId] = node
+
+        if redirectId is not None:
+            assert(len(docIds) == 0)
+            redirectURL = self.UrlId2Url(sqlconn, redirectId)
+            redirectNode = self.CreateGraphFromDB(sqlconn, visited, redirectId, redirectURL)
+            node.redirect = redirectNode
+        else:
             linksStruct = self.DocIds2Links(sqlconn, node.docIds)
 
             for linkStruct in linksStruct:
