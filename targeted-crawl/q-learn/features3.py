@@ -437,10 +437,8 @@ class Env:
 
         self.ImportURLAlign(sqlconn, visited)
 
-        rootNode = visited[rootURLId]
         assert(rootNode is not None)
         print("rootNode", rootNode.url)
-
         print("Recombine")
         normURL2Node = {}
         rootNode = self.Recombine(visited, normURL2Node, rootNode)
@@ -464,6 +462,39 @@ class Env:
         #    print(node.Debug())
 
         print("graph created")
+
+    def Recombine(self, visited, normURL2Node, node):
+        if node.urlId not in visited:
+            #processed already
+            return node.winningNode
+        del visited[node.urlId]
+
+        if node.redirect is not None:
+            # redirected node always lose
+            #normURL = NormalizeURL(node.redirect.url)
+            node.redirect.Recombine(node)
+            winningNode = self.Recombine(visited, normURL2Node, node.redirect)
+        else:
+            normURL = NormalizeURL(node.url)
+            if normURL in normURL2Node:
+                # already processed node wins
+                winningNode = normURL2Node[normURL]
+                winningNode.Recombine(node)
+            else:
+                # we win
+                normURL2Node[normURL] = node
+                winningNode = node
+
+                # recursively merge
+                for link in node.links:
+                    childNode = link.childNode
+                    newChildNode = self.Recombine(visited, normURL2Node, childNode)
+                    #print("childNode", childNode.Debug())
+                    #print("newChildNode", newChildNode.Debug())
+                    #print()
+                    link.childNode = newChildNode
+
+        return winningNode
 
     def CreateNode(self, sqlconn, visited, unvisited, urlId, url):
         if urlId in visited:
@@ -563,39 +594,6 @@ class Env:
                 node.links.remove(link)
 
             self.PruneEmptyNodes(childNode, visited)
-
-    def Recombine(self, visited, normURL2Node, node):
-        if node.urlId not in visited:
-            #processed already
-            return node.winningNode
-        del visited[node.urlId]
-
-        if node.redirect is not None:
-            # redirected node always lose
-            #normURL = NormalizeURL(node.redirect.url)
-            node.redirect.Recombine(node)
-            winningNode = self.Recombine(visited, normURL2Node, node.redirect)
-        else:
-            normURL = NormalizeURL(node.url)
-            if normURL in normURL2Node:
-                # already processed node wins
-                winningNode = normURL2Node[normURL]
-                winningNode.Recombine(node)
-            else:
-                # we win
-                normURL2Node[normURL] = node
-                winningNode = node
-
-                # recursively merge
-                for link in node.links:
-                    childNode = link.childNode
-                    newChildNode = self.Recombine(visited, normURL2Node, childNode)
-                    #print("childNode", childNode.Debug())
-                    #print("newChildNode", newChildNode.Debug())
-                    #print()
-                    link.childNode = newChildNode
-
-        return winningNode
 
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
