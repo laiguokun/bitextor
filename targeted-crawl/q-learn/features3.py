@@ -428,7 +428,9 @@ class Env:
 
         visited = {} # urlId -> Node
         rootURLId = self.Url2UrlId(sqlconn, url)
-        self.CreateGraphFromDB(sqlconn, visited, rootURLId, url)
+        newNode, rootNode = self.CreateNode(sqlconn, visited, rootURLId, url)
+        assert(newNode)
+        self.CreateGraphFromDB(sqlconn, visited, rootNode)
         print("CreateGraphFromDB", len(visited))
         #for node in visited.values():
         #    print(node.Debug())
@@ -464,36 +466,45 @@ class Env:
         print("graph created")
 
     def CreateNode(self, sqlconn, visited, urlId, url):
-        docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-        node = Node(urlId, url, docIds, langIds, redirectId)
-        return node
-
-    def CreateGraphFromDB(self, sqlconn, visited, urlId, url):
-        #print("urlId", urlId)
         if urlId in visited:
-            return visited[urlId]
+            return False, visited[urlId]
         else:
-            node = self.CreateNode(sqlconn, visited, urlId, url)
+            docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
+            node = Node(urlId, url, docIds, langIds, redirectId)
             assert(urlId not in visited)
             visited[urlId] = node
+            return True, node
 
-            if node.redirectId is not None:
-                assert(len(node.docIds) == 0)
-                redirectURL = self.UrlId2Url(sqlconn, node.redirectId)
-                redirectNode = self.CreateGraphFromDB(sqlconn, visited, node.redirectId, redirectURL)
-                node.redirect = redirectNode
-            else:
-                linksStruct = self.DocIds2Links(sqlconn, node.docIds)
+    def CreateGraphFromDB(self, sqlconn, visited, node):
+        #print("urlId", urlId)
+        if node.redirectId is not None:
+            assert(len(node.docIds) == 0)
+            redirectURL = self.UrlId2Url(sqlconn, node.redirectId)
+            newNode, redirectNode = self.CreateNode(sqlconn, visited, node.redirectId, redirectURL)
+            node.redirect = redirectNode
+            if newNode:
+                self.CreateGraphFromDB(sqlconn, visited, redirectNode)
+        else:
+            linksStruct = self.DocIds2Links(sqlconn, node.docIds)
 
-                for linkStruct in linksStruct:
-                    #print("   ", urlId, "->", linkStruct)
-                    childURLId = linkStruct[0]
-                    childUrl = self.UrlId2Url(sqlconn, childURLId)
-                    childNode = self.CreateGraphFromDB(sqlconn, visited, childURLId, childUrl)
-                    link = Link(linkStruct[1], linkStruct[2], node, childNode)
-                    node.links.add(link)
+            nodes = []
+            for linkStruct in linksStruct:
+                #print("   ", urlId, "->", linkStruct)
+                childURLId = linkStruct[0]
+                childUrl = self.UrlId2Url(sqlconn, childURLId)
+                newNode, childNode = self.CreateNode(sqlconn, visited, childURLId, childUrl)
+                link = Link(linkStruct[1], linkStruct[2], node, childNode)
+                node.links.add(link)
 
-            return node
+                nodePair = (newNode, childNode)
+                nodes.append(nodePair)
+
+            for nodePair in nodes:
+                if nodePair[0]:
+                    node = nodePair[1]
+                    self.CreateGraphFromDB(sqlconn, visited, node)
+
+        return node
 
     def ImportURLAlign(self, sqlconn, visited):
         #print("visited", visited.keys())
@@ -1083,8 +1094,8 @@ def Main():
     sqlconn = MySQL()
 
     #hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.visitbritain.com/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
