@@ -438,12 +438,13 @@ class Env:
         self.ImportURLAlign(sqlconn, visited)
 
         assert(rootNode is not None)
+        rootNodeNormURL = self.GetRedirectedNormURL(rootNode)
         print("rootNode", rootNode.url)
         print("Recombine")
         normURL2Node = {}
         rootNode = self.Recombine(visited, normURL2Node, rootNode)
         print("normURL2Node", len(normURL2Node))
-        print("rootNode", rootNode.url)
+        print("rootNode", rootNode.url, rootNodeNormURL)
 
         visited = set() # set of nodes
         self.PruneEmptyNodes(rootNode, visited)
@@ -462,6 +463,12 @@ class Env:
         #    print(node.Debug())
 
         print("graph created")
+
+    def GetRedirectedNormURL(self, node):
+        while node.redirect is not None:
+            node =  node.redirect
+        normURL = NormalizeURL(node.url)
+        return normURL
 
     def Recombine(self, visited, normURL2Node, node):
         if node.urlId not in visited:
@@ -1087,8 +1094,8 @@ def Main():
     sqlconn = MySQL()
 
     #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.visitbritain.com/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://www.visitbritain.com/"
+    hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
