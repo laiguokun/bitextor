@@ -352,10 +352,10 @@ class Node:
         self.redirect = None
 
         self.links = set()
-        self.loserNodes = set()
-        self.winningNode = self
         self.lang = 0 if len(langIds) == 0 else langIds[0]
         self.alignedURLId = 0
+
+        self.normURL = None
 
         #print("self.lang", self.lang, langIds, urlId, url, docIds)
         #for lang in langIds:
@@ -377,44 +377,11 @@ class Node:
 
         return ret
 
-    def Recombine(self, loserNode):
-        assert(loserNode is not None)
-        #print("Recombining")
-        #print("   ", self.Debug())
-        #print("   ", loserNode.Debug())
-        
-        loserNode.winningNode = self
-        self.docIds.update(loserNode.docIds)
-        self.links.update(loserNode.links)
-        self.loserNodes.add(loserNode)
-        
-        if self.lang == 0:
-            if loserNode.lang != 0:
-                self.lang = loserNode.lang
-        else:
-            if loserNode.lang != 0:
-                assert(self.lang == loserNode.lang)
-
-        if self.alignedURLId == 0:
-            if loserNode.alignedURLId != 0:
-                self.alignedURLId = loserNode.alignedURLId
-        else:
-            if loserNode.alignedURLId != 0:
-                assert(self.alignedURLId == loserNode.alignedURLId)
-
-        # losers of loser
-        for loserNode2 in loserNode.loserNodes:
-            self.Recombine(loserNode2)
-            loserNode2.loserNodes.clear()
-            loserNode2.winningNode = self
-
-        #print("   ", self.Debug())
-
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedURLId),
                         StrNone(self.redirect), str(len(self.links)),
-                        str(self.loserNodes) ] )
+                        StrNone(self.normURL) ] )
 
 ######################################################################################
 class Env:
@@ -437,14 +404,14 @@ class Env:
 
         self.ImportURLAlign(sqlconn, visited)
 
-        assert(rootNode is not None)
-        rootNodeNormURL = self.GetRedirectedNormURL(rootNode)
-        print("rootNode", rootNode.url)
+        print("rootNode", rootNode.Debug())
         print("Recombine")
         normURL2Node = {}
-        rootNode = self.Recombine(visited, normURL2Node, rootNode)
-        print("normURL2Node", len(normURL2Node))
-        print("rootNode", rootNode.url, rootNodeNormURL)
+        self.Recombine(visited, normURL2Node)
+        
+        rootNode = normURL2Node[rootNode.normURL]
+        assert(rootNode is not None)
+        print("rootNode", rootNode.Debug())
 
         visited = set() # set of nodes
         self.PruneEmptyNodes(rootNode, visited)
@@ -470,38 +437,23 @@ class Env:
         normURL = NormalizeURL(node.url)
         return normURL
 
-    def Recombine(self, visited, normURL2Node, node):
-        if node.urlId not in visited:
-            #processed already
-            return node.winningNode
-        del visited[node.urlId]
+    def Recombine(self, visited, normURL2Node):
+        #print("visited", visited.keys())
+        # create winning node for each norm url
+        for node in visited.values():
+            node.normURL = self.GetRedirectedNormURL(node)
+            if node.normURL not in normURL2Node:
+                normURL2Node[node.normURL] = node
 
-        if node.redirect is not None:
-            # redirected node always lose
-            #normURL = NormalizeURL(node.redirect.url)
-            node.redirect.Recombine(node)
-            winningNode = self.Recombine(visited, normURL2Node, node.redirect)
-        else:
-            normURL = NormalizeURL(node.url)
-            if normURL in normURL2Node:
-                # already processed node wins
-                winningNode = normURL2Node[normURL]
-                winningNode.Recombine(node)
-            else:
-                # we win
-                normURL2Node[normURL] = node
-                winningNode = node
-
-                # recursively merge
-                for link in node.links:
-                    childNode = link.childNode
-                    newChildNode = self.Recombine(visited, normURL2Node, childNode)
-                    #print("childNode", childNode.Debug())
-                    #print("newChildNode", newChildNode.Debug())
-                    #print()
-                    link.childNode = newChildNode
-
-        return winningNode
+        # relink child nodes to winning nodes
+        for node in visited.values():
+            for link in node.links:
+                childNode = link.childNode
+                #print("childNode", childNode.Debug())
+                newChildNode = normURL2Node[childNode.normURL]
+                #print("newChildNode", newChildNode.Debug())
+                #print()
+                link.childNode = newChildNode
 
     def CreateNode(self, sqlconn, visited, unvisited, urlId, url):
         if urlId in visited:
@@ -512,12 +464,14 @@ class Env:
             docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
             node = Node(urlId, url, docIds, langIds, redirectId)
             assert(urlId not in visited)
+            assert(urlId not in unvisited)
             unvisited[urlId] = node
             return node
 
     def CreateGraphFromDB(self, sqlconn, visited, unvisited):
         while len(unvisited) > 0:
             (urlId, node) = unvisited.popitem()
+            visited[node.urlId] = node
             #print("node", node.Debug())
             assert(node.urlId == urlId)
 
@@ -537,7 +491,6 @@ class Env:
                     node.links.add(link)
 
             #print("   ", node.Debug())
-            visited[node.urlId] = node
 
     def ImportURLAlign(self, sqlconn, visited):
         #print("visited", visited.keys())
