@@ -472,28 +472,28 @@ class Env:
         #print("urlId", urlId)
         if urlId in visited:
             return visited[urlId]
-
-        node = self.CreateNode(sqlconn, visited, urlId, url)
-        assert(urlId not in visited)
-        visited[urlId] = node
-
-        if node.redirectId is not None:
-            assert(len(node.docIds) == 0)
-            redirectURL = self.UrlId2Url(sqlconn, node.redirectId)
-            redirectNode = self.CreateGraphFromDB(sqlconn, visited, node.redirectId, redirectURL)
-            node.redirect = redirectNode
         else:
-            linksStruct = self.DocIds2Links(sqlconn, node.docIds)
+            node = self.CreateNode(sqlconn, visited, urlId, url)
+            assert(urlId not in visited)
+            visited[urlId] = node
 
-            for linkStruct in linksStruct:
-                #print("   ", urlId, "->", linkStruct)
-                childURLId = linkStruct[0]
-                childUrl = self.UrlId2Url(sqlconn, childURLId)
-                childNode = self.CreateGraphFromDB(sqlconn, visited, childURLId, childUrl)
-                link = Link(linkStruct[1], linkStruct[2], node, childNode)
-                node.links.add(link)
+            if node.redirectId is not None:
+                assert(len(node.docIds) == 0)
+                redirectURL = self.UrlId2Url(sqlconn, node.redirectId)
+                redirectNode = self.CreateGraphFromDB(sqlconn, visited, node.redirectId, redirectURL)
+                node.redirect = redirectNode
+            else:
+                linksStruct = self.DocIds2Links(sqlconn, node.docIds)
 
-        return node
+                for linkStruct in linksStruct:
+                    #print("   ", urlId, "->", linkStruct)
+                    childURLId = linkStruct[0]
+                    childUrl = self.UrlId2Url(sqlconn, childURLId)
+                    childNode = self.CreateGraphFromDB(sqlconn, visited, childURLId, childUrl)
+                    link = Link(linkStruct[1], linkStruct[2], node, childNode)
+                    node.links.add(link)
+
+            return node
 
     def ImportURLAlign(self, sqlconn, visited):
         #print("visited", visited.keys())
