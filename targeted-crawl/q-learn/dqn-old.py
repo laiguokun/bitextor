@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 
-import numpy as np
-import random
-import tensorflow as tf
-import matplotlib.pyplot as plt
-import scipy.misc
-import os
 import csv
-import itertools
-import tensorflow.contrib.slim as slim
+import os
+import random
 
-from helper import *
+import numpy as np
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
 from gridworld import gameEnv
+from helper import *
+
 
 ######################################################################################
 class Qnetwork():
@@ -79,6 +77,7 @@ class Qnetwork():
         self.trainer = tf.train.AdamOptimizer(learning_rate=0.0001)
         self.updateModel = self.trainer.minimize(self.loss)
 
+
 #####################################################################################
 class experience_buffer():
     def __init__(self, buffer_size=1000):
@@ -98,6 +97,7 @@ class experience_buffer():
             sampledTraces.append(episode[point:point + trace_length])
         sampledTraces = np.array(sampledTraces)
         return np.reshape(sampledTraces, [batch_size * trace_length, 5])
+
 
 ######################################################################################
 def Train(env):
@@ -157,7 +157,7 @@ def Train(env):
 
     with tf.Session() as sess:
         if load_model == True:
-            print ('Loading Model...')
+            print('Loading Model...')
             ckpt = tf.train.get_checkpoint_state(path)
             saver.restore(sess, ckpt.model_checkpoint_path)
         sess.run(init)
@@ -235,12 +235,13 @@ def Train(env):
             # Periodically save the model.
             if i % 1000 == 0 and i != 0:
                 saver.save(sess, path + '/model-' + str(i) + '.cptk')
-                print ("Saved Model")
+                print("Saved Model")
             if len(rList) % summaryLength == 0 and len(rList) != 0:
-                print (total_steps, np.mean(rList[-summaryLength:]), e)
+                print(total_steps, np.mean(rList[-summaryLength:]), e)
                 saveToCenter(i, rList, jList, np.reshape(np.array(episodeBuffer), [len(episodeBuffer), 5]), \
                              summaryLength, h_size, sess, mainQN, time_per_step)
         saver.save(sess, path + '/model-' + str(i) + '.cptk')
+
 
 ######################################################################################
 def Test(env):
@@ -282,7 +283,7 @@ def Test(env):
         # wr = csv.writer(open('./Center/log.csv', 'a'), quoting=csv.QUOTE_ALL)
     with tf.Session() as sess:
         if load_model == True:
-            print ('Loading Model...')
+            print('Loading Model...')
             ckpt = tf.train.get_checkpoint_state(path)
             saver.restore(sess, ckpt.model_checkpoint_path)
         else:
@@ -329,10 +330,10 @@ def Test(env):
 
             # Periodically save the model.
             if len(rList) % summaryLength == 0 and len(rList) != 0:
-                print (total_steps, np.mean(rList[-summaryLength:]), e)
+                print(total_steps, np.mean(rList[-summaryLength:]), e)
                 saveToCenter(i, rList, jList, np.reshape(np.array(episodeBuffer), [len(episodeBuffer), 5]), \
                              summaryLength, h_size, sess, mainQN, time_per_step)
-    print ("Percent of succesful episodes: " + str(sum(rList) / num_episodes) + "%")
+    print("Percent of succesful episodes: " + str(sum(rList) / num_episodes) + "%")
 
 
 ######################################################################################
@@ -351,4 +352,3 @@ def Main():
 
 if __name__ == "__main__":
     Main()
-

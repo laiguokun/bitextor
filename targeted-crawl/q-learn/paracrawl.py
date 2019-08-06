@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+from collections import namedtuple
+
+import mysql.connector
 import numpy as np
 import pylab as plt
 import tensorflow as tf
-import random
-from collections import namedtuple
-import mysql.connector
+
 
 ######################################################################################
 def StrNone(arg):
@@ -13,10 +14,12 @@ def StrNone(arg):
         return "None"
     else:
         return str(arg)
+
+
 ######################################################################################
 class LearningParams:
     def __init__(self):
-        self.gamma = 1 #0.99
+        self.gamma = 1  # 0.99
         self.lrn_rate = 0.1
         self.q_lrn_rate = 1
         self.max_epochs = 50001
@@ -24,10 +27,11 @@ class LearningParams:
         self.maxBatchSize = 64
         self.minCorpusSize = 200
         self.trainNumIter = 10
-        
+
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 15
+
 
 ######################################################################################
 class Qnetwork():
@@ -53,11 +57,11 @@ class Qnetwork():
         self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
-        #self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
-        #self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
+        # self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
+        # self.hidden1 = tf.add(self.hidden1, self.BiasHidden1)
 
         self.hidden1 = tf.math.l2_normalize(self.hidden1, axis=1)
-        #self.hidden1 = tf.nn.relu(self.hidden1)
+        # self.hidden1 = tf.nn.relu(self.hidden1)
 
         # HIDDEN 2
         self.hidden2 = self.hidden1
@@ -78,16 +82,16 @@ class Qnetwork():
         self.predict = tf.argmax(self.Qout, 1)
 
         self.sumWeight = tf.reduce_sum(self.Wout) \
-                        + tf.reduce_sum(self.BiasHidden2) \
-                        + tf.reduce_sum(self.Whidden2) \
-                        + tf.reduce_sum(self.Whidden1)
+                         + tf.reduce_sum(self.BiasHidden2) \
+                         + tf.reduce_sum(self.Whidden2) \
+                         + tf.reduce_sum(self.Whidden1)
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
         self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
-        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
-        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
-        
+        # self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        self.trainer = tf.train.AdamOptimizer()  # learning_rate=lrn_rate)
+
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PrintQ(self, curr, params, env, sess):
@@ -96,7 +100,7 @@ class Qnetwork():
 
         childNodeIds = env.GetChildNodes(curr, visited, params)
         action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childNodeIds})
-        #print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
+        # print("curr=", curr, "a=", a, "allQ=", allQ, childNodeIds)
         print("state", curr, action, allQ, childNodeIds)
 
     def PrintAllQ(self, params, env, sess):
@@ -104,20 +108,22 @@ class Qnetwork():
         for curr in range(env.ns):
             self.PrintQ(curr, params, env, sess)
 
+
 ######################################################################################
 # helpers
 class MySQL:
     def __init__(self):
         # paracrawl
         self.mydb = mysql.connector.connect(
-        host="localhost",
-        user="paracrawl_user",
-        passwd="paracrawl_password",
-        database="paracrawl",
-        charset='utf8'
+            host="localhost",
+            user="paracrawl_user",
+            passwd="paracrawl_password",
+            database="paracrawl",
+            charset='utf8'
         )
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
+
 
 ######################################################################################
 class Env:
@@ -133,18 +139,18 @@ class Env:
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
 
-        self.nodes = {} # indexed by URL id
-        self.nodesbyURL = {} # indexed by URL
+        self.nodes = {}  # indexed by URL id
+        self.nodesbyURL = {}  # indexed by URL
         self.nodesById = []
 
         # stop node
         node = Node(sqlconn, 0, 0, 0, "", "STOP")
-        #self.nodes[node.urlId] = node
-        #self.nodesbyURL[node.url] = node
+        # self.nodes[node.urlId] = node
+        # self.nodesbyURL[node.url] = node
         self.nodesById.append(node)
 
         for rec in res:
-            #print("rec", rec[0], rec[1])
+            # print("rec", rec[0], rec[1])
             id = len(self.nodesById)
             node = Node(sqlconn, id, rec[0], rec[1], rec[2], rec[3])
             self.nodes[node.urlId] = node
@@ -153,44 +159,43 @@ class Env:
 
             if node.aligned:
                 self.numAligned += 1
-        #print("nodes", len(self.nodes))
+        # print("nodes", len(self.nodes))
         print("numAligned", self.numAligned)
 
         # start node
         id = len(self.nodesById)
         rootNode = self.nodesbyURL[url]
-        assert(rootNode is not None)
+        assert (rootNode is not None)
         startNode = Node(sqlconn, id, 0, 0, "", "START")
         startNode.CreateLink("", "", rootNode)
-        #self.nodes[node.urlId] = startNode
-        #self.nodesbyURL[node.url] = startNode
+        # self.nodes[node.urlId] = startNode
+        # self.nodesbyURL[node.url] = startNode
         self.nodesById.append(startNode)
         self.startNodeId = startNode.id
-        #print("startNode", startNode.Debug())
+        # print("startNode", startNode.Debug())
 
-        self.ns = len(self.nodesById) # number of states
+        self.ns = len(self.nodesById)  # number of states
 
         self.nodesWithDoc = self.nodes.copy()
         print("nodesWithDoc", len(self.nodesWithDoc))
 
         # links between nodes, possibly to nodes without doc
-        #for node in self.nodesWithDoc.values():
+        # for node in self.nodesWithDoc.values():
         for node in self.nodesById:
             node.CreateLinks(sqlconn, self.nodes, self.nodesbyURL, self.nodesById)
             print(node.Debug())
-        
+
         print("all nodes", len(self.nodes))
 
         # lang id
         self.langIds = {}
 
         # print out
-        #for node in self.nodes.values():
+        # for node in self.nodes.values():
         #    print("node", node.Debug())
 
-        #node = Node(sqlconn, url, True)
-        #print("node", node.docId, node.urlId)       
-
+        # node = Node(sqlconn, url, True)
+        # print("node", node.docId, node.urlId)
 
     def GetNextState(self, action, childNodeIds):
         nextNodeId = childNodeIds[0, action]
@@ -200,22 +205,22 @@ class Env:
         elif nextNode.aligned:
             rewardNode = 8.5
         else:
-            rewardNode = -1        
+            rewardNode = -1
 
         return nextNodeId, rewardNode
 
     def GetChildNodes(self, curr, visited, params):
         currNode = self.nodesById[curr]
-        #print("currNode", currNode.Debug())
+        # print("currNode", currNode.Debug())
 
         childNodeIds = []
         for link in currNode.links:
             childNode = link.childNode
             childNodeId = childNode.id
-            #print("   ", childNode.Debug())
+            # print("   ", childNode.Debug())
             if childNodeId != curr and childNodeId not in visited:
                 childNodeIds.append(childNodeId)
-        #print("   childNodeIds", childNodeIds)
+        # print("   childNodeIds", childNodeIds)
 
         for i in range(len(childNodeIds), params.NUM_ACTIONS):
             childNodeIds.append(0)
@@ -259,7 +264,7 @@ class Env:
             if printQ:
                 debugStr += "   " + str(action) + " " + str(allQ) + " " + str(childNodeIds) + "\n"
 
-            #print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
+            # print("(" + str(action) + ")", str(next) + "(" + str(reward) + ") -> ", end="")
             print(str(next) + alignedStr + "->", end="")
             curr = next
 
@@ -274,7 +279,6 @@ class Env:
 
         return numAligned
 
-
     def WalkAll(self, params, sess, qn):
         for start in range(self.ns):
             self.Walk(start, params, sess, qn, False)
@@ -287,6 +291,7 @@ class Env:
             if nextNode.aligned:
                 ret += 1
         return ret
+
 
 ######################################################################################
 
@@ -302,33 +307,33 @@ class Node:
 
         if self.docId is not None:
             sql = "select * from document_align where document1 = %s or document2 = %s"
-            val = (self.docId,self.docId)
-            #print("sql", sql)
+            val = (self.docId, self.docId)
+            # print("sql", sql)
             sqlconn.mycursor.execute(sql, val)
             res = sqlconn.mycursor.fetchall()
-            #print("aligned",  self.url, self.docId, res)
+            # print("aligned",  self.url, self.docId, res)
 
             if len(res) > 0:
                 self.aligned = True
 
-        #print(self.Debug())
+        # print(self.Debug())
 
     def Debug(self):
         strLinks = ""
         for link in self.links:
-            #strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
+            # strLinks += str(link.parentNode.id) + "->" + str(link.childNode.id) + " "
             strLinks += str(link.childNode.id) + " "
 
-        return " ".join([str(self.id), str(self.urlId), 
-                        StrNone(self.docId), StrNone(self.lang), 
-                        str(self.aligned), self.url,
-                        "links=", str(len(self.links)), ":", strLinks ] )
+        return " ".join([str(self.id), str(self.urlId),
+                         StrNone(self.docId), StrNone(self.lang),
+                         str(self.aligned), self.url,
+                         "links=", str(len(self.links)), ":", strLinks])
 
     def CreateLinks(self, sqlconn, nodes, nodesbyURL, nodesById):
-        #sql = "select id, text, url_id from link where document_id = %s"
+        # sql = "select id, text, url_id from link where document_id = %s"
         sql = "select link.id, link.text, link.text_lang, link.url_id, url.val from link, url where url.id = link.url_id and link.document_id = %s"
         val = (self.docId,)
-        #print("sql", sql)
+        # print("sql", sql)
         sqlconn.mycursor.execute(sql, val)
         res = sqlconn.mycursor.fetchall()
         assert (res is not None)
@@ -338,25 +343,26 @@ class Node:
             textLang = rec[2]
             urlId = rec[3]
             url = rec[4]
-            #print("urlid", self.docId, text, urlId)
+            # print("urlid", self.docId, text, urlId)
 
             if urlId in nodes:
                 childNode = nodes[urlId]
-                #print("child", self.docId, childNode.Debug())
+                # print("child", self.docId, childNode.Debug())
             else:
                 continue
-                #id = len(nodes)
-                #childNode = Node(sqlconn, id, urlId, None, None, url)
-                #nodes[childNode.urlId] = childNode
-                #nodesbyURL[childNode.url] = childNode
-                #nodesById.append(childNode)
+                # id = len(nodes)
+                # childNode = Node(sqlconn, id, urlId, None, None, url)
+                # nodes[childNode.urlId] = childNode
+                # nodesbyURL[childNode.url] = childNode
+                # nodesById.append(childNode)
 
             self.CreateLink(text, textLang, childNode)
 
     def CreateLink(self, text, textLang, childNode):
-            Link = namedtuple("Link", "text textLang parentNode childNode")
-            link = Link(text, textLang, self, childNode)
-            self.links.append(link)
+        Link = namedtuple("Link", "text textLang parentNode childNode")
+        link = Link(text, textLang, self, childNode)
+        self.links.append(link)
+
 
 ######################################################################################
 ######################################################################################
@@ -368,8 +374,7 @@ class Corpus:
         for transition in path:
             self.transitions.append(transition)
 
-
-    def GetBatch(self, maxBatchSize):        
+    def GetBatch(self, maxBatchSize):
         batch = self.transitions[0:maxBatchSize]
         self.transitions = self.transitions[maxBatchSize:]
 
@@ -393,11 +398,12 @@ class Corpus:
         transition = env.Transition(0, 0, True, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
         self.transitions.append(transition)
 
+
 ######################################################################################
 
 def UpdateQN(params, env, sess, qn, batch):
     batchSize = len(batch)
-    #print("batchSize", batchSize)
+    # print("batchSize", batchSize)
     childNodeIds = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
     targetQ = np.empty([batchSize, params.NUM_ACTIONS])
 
@@ -408,25 +414,27 @@ def UpdateQN(params, env, sess, qn, batch):
 
         childNodeIds[i, :] = transition.childNodeIds
         targetQ[i, :] = transition.targetQ
-    
+
         i += 1
 
-    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childNodeIds, qn.nextQ: targetQ})
+    _, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight],
+                                  feed_dict={qn.input: childNodeIds, qn.nextQ: targetQ})
 
-    #print("loss", loss)
+    # print("loss", loss)
     return loss, sumWeight
+
 
 def Neural(epoch, curr, params, env, sess, qn, visited):
     # NEURAL
-    #print("curr", curr, visited)
+    # print("curr", curr, visited)
     childNodeIds = env.GetChildNodes(curr, visited, params)
-    #print("childNodeIds", childNodeIds)
+    # print("childNodeIds", childNodeIds)
 
     action, allQ = sess.run([qn.predict, qn.Qout], feed_dict={qn.input: childNodeIds})
     action = action[0]
     if np.random.rand(1) < params.eps:
         action = np.random.randint(0, params.NUM_ACTIONS)
-    
+
     next, r = env.GetNextState(action, childNodeIds)
 
     if next == 0:
@@ -443,18 +451,19 @@ def Neural(epoch, curr, params, env, sess, qn, visited):
     # print("  Q1", Q1)
     maxQ1 = np.max(Q1)
 
-    #targetQ = allQ
+    # targetQ = allQ
     targetQ = np.array(allQ, copy=True)
-    #print("  targetQ", targetQ)
+    # print("  targetQ", targetQ)
     newVal = r + params.gamma * maxQ1
-    #targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
+    # targetQ[0, a] = (1 - params.q_lrn_rate) * targetQ[0, a] + params.q_lrn_rate * newVal
     targetQ[0, action] = newVal
-    #print("  targetQ", targetQ, maxQ1)
-    #print("  new Q", a, allQ)
+    # print("  targetQ", targetQ, maxQ1)
+    # print("  new Q", a, allQ)
 
     transition = env.Transition(curr, next, done, np.array(childNodeIds, copy=True), np.array(targetQ, copy=True))
 
     return transition
+
 
 def Trajectory(epoch, curr, params, env, sess, qn):
     path = []
@@ -464,12 +473,13 @@ def Trajectory(epoch, curr, params, env, sess, qn):
         transition = Neural(epoch, curr, params, env, sess, qn, visited)
         path.append(transition)
         curr = transition.next
-        #print("visited", visited)
+        # print("visited", visited)
 
         if transition.done: break
-    #print("path", path)
-    
+    # print("path", path)
+
     return path
+
 
 def Train(params, env, sess, qn):
     losses = []
@@ -477,15 +487,15 @@ def Train(params, env, sess, qn):
     corpus = Corpus(params)
 
     for epoch in range(params.max_epochs):
-        #startState = np.random.randint(0, env.ns)  # random start state
-        #startState = 30
+        # startState = np.random.randint(0, env.ns)  # random start state
+        # startState = 30
         startState = env.startNodeId
-        #print("startState", startState)
-        
+        # print("startState", startState)
+
         path = Trajectory(epoch, startState, params, env, sess, qn)
         corpus.AddPath(path)
 
-        #while len(corpus.transitions) >= params.minCorpusSize:
+        # while len(corpus.transitions) >= params.minCorpusSize:
         #    #print("corpusSize", corpusSize)
         #    batch = corpus.GetBatch(params.maxBatchSize)
         #    loss, sumWeight = UpdateQN(params, env, sess, qn, batch)
@@ -503,28 +513,28 @@ def Train(params, env, sess, qn):
 
         if epoch > 0 and epoch % params.walk == 0:
             qn.PrintAllQ(params, env, sess)
-            #env.WalkAll(params, sess, qn)
+            # env.WalkAll(params, sess, qn)
             numAligned = env.Walk(startState, params, sess, qn, True)
             print("epoch", epoch, "loss", losses[-1], "eps", params.eps)
             print()
 
-            #numAligned = env.GetNumberAligned(path)
-            #print("path", numAligned, env.numAligned)
+            # numAligned = env.GetNumberAligned(path)
+            # print("path", numAligned, env.numAligned)
             if numAligned >= env.numAligned - 5:
-                #print("got them all!")
-                #eps = 1. / ((i/50) + 10)
+                # print("got them all!")
+                # eps = 1. / ((i/50) + 10)
                 params.eps *= .99
                 params.eps = max(0.1, params.eps)
-                #print("eps", params.eps)
-                
-                #params.q_lrn_rate * 0.999
-                #params.q_lrn_rate = max(0.1, params.q_lrn_rate)
-                #print("q_lrn_rate", params.q_lrn_rate)
-                
+                # print("eps", params.eps)
+
+                # params.q_lrn_rate * 0.999
+                # params.q_lrn_rate = max(0.1, params.q_lrn_rate)
+                # print("q_lrn_rate", params.q_lrn_rate)
 
     # LAST BATCH
-            
+
     return losses, sumWeights
+
 
 ######################################################################################
 
@@ -535,7 +545,7 @@ def Main():
 
     # =============================================================
     sqlconn = MySQL()
-    #siteMap = Sitemap(sqlconn, "www.visitbritain.com")
+    # siteMap = Sitemap(sqlconn, "www.visitbritain.com")
     # =============================================================
     env = Env(sqlconn, "www.vade-retro.fr/")
 
@@ -550,14 +560,14 @@ def Main():
         sess.run(init)
 
         qn.PrintAllQ(params, env, sess)
-        #env.WalkAll(params, sess, qn)
+        # env.WalkAll(params, sess, qn)
         print()
 
         losses, sumWeights = Train(params, env, sess, qn)
         print("Trained")
-        
-        #qn.PrintAllQ(params, env, sess)
-        #env.WalkAll(params, sess, qn)
+
+        # qn.PrintAllQ(params, env, sess)
+        # env.WalkAll(params, sess, qn)
 
         startState = env.startNodeId
         env.Walk(startState, params, sess, qn, True)

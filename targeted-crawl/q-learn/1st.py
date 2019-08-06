@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import pylab as plt
 
 
 ######################################################################################
@@ -65,12 +64,12 @@ def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
             if q > max_Q:
                 max_Q = q
 
-        #before = Q[curr_s][next_s]
+        # before = Q[curr_s][next_s]
         # Q = [(1-a) * Q]  +  [a * (rt + (g * maxQ))]
         prevQ = ((1 - lrn_rate) * Q[curr_s][next_s])
         V = (lrn_rate * (R[curr_s][next_s] + (gamma * max_Q)))
         Q[curr_s][next_s] = prevQ + V
-        #after = Q[curr_s][next_s]
+        # after = Q[curr_s][next_s]
         # print("Q", before, after)
 
         curr_s = next_s
@@ -82,6 +81,7 @@ def Trajectory(curr_s, F, R, Q, gamma, lrn_rate, goal, ns):
         score = (0)
 
     return score
+
 
 def Train(F, R, Q, gamma, lrn_rate, goal, ns, max_epochs):
     scores = []
@@ -115,8 +115,8 @@ def Main():
     F[5, 6] = 1;
     F[5, 10] = 1;
     F[6, 5] = 1;
-    #F[6, 7] = 1; # hole
-    #F[7, 6] = 1; # hole
+    # F[6, 7] = 1; # hole
+    # F[7, 6] = 1; # hole
     F[7, 8] = 1;
     F[7, 12] = 1
     F[8, 3] = 1;
@@ -164,8 +164,8 @@ def Main():
     print("The Q matrix is: \n ")
     my_print(Q)
 
-    #plt.plot(scores)
-    #plt.show()
+    # plt.plot(scores)
+    # plt.show()
 
     print("Using Q to go from 0 to goal (14)")
     Walk(start, goal, Q)
