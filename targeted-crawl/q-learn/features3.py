@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import configparser
+import argparse
+import hashlib
 import sys
 import os
 import numpy as np
@@ -304,13 +307,15 @@ class Corpus:
 ######################################################################################
 # helpers
 class MySQL:
-    def __init__(self):
+    def __init__(self, config_file):
+        config = configparser.ConfigParser()
+        config.read(config_file)
         # paracrawl
         self.mydb = mysql.connector.connect(
-        host="localhost",
-        user="paracrawl_user",
-        passwd="paracrawl_password",
-        database="paracrawl",
+        host=config["mysql"]["host"],
+        user=config["mysql"]["user"],
+        passwd=config["mysql"]["password"],
+        database=config["mysql"]["database"],
         charset='utf8'
         )
         self.mydb.autocommit = False
@@ -1056,6 +1061,8 @@ def Main():
     print("Starting")
 
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
+    oparser.add_argument("--config-file", dest="configFile", required=True,
+                         help="Path to config file (containing MySQL login etc.")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                      help="Directory that model WIP are saved to. If existing model exists then load it")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions", default=False,
@@ -1067,7 +1074,7 @@ def Main():
 
     global timer
 
-    sqlconn = MySQL()
+    sqlconn = MySQL(options.configFile)
 
     #hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
