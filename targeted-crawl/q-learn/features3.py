@@ -453,6 +453,29 @@ class Env:
 
         print("graph created")
 
+    def ImportURLAlign(self, sqlconn, visited):
+        #print("visited", visited.keys())
+        sql = "SELECT id, url1, url2 FROM url_align"
+        val = ()
+        sqlconn.mycursor.execute(sql, val)
+        ress = sqlconn.mycursor.fetchall()
+        assert (ress is not None)
+
+        for res in ress:
+            urlId1 = res[1]
+            urlId2 = res[2]
+            #print("urlId", urlId1, urlId2)
+
+            #print("   ", urlId1, urlId2)
+            if urlId1 not in visited or urlId2 not in visited:
+                print("Alignment not in graph", urlId1, urlId2)
+                continue
+
+            node1 = visited[urlId1]
+            node2 = visited[urlId2]
+            node1.alignedURLId = urlId2
+            node2.alignedURLId = urlId1
+
     def UpdateStats(self):
         for node in self.nodes.values():
             if node.alignedURLId > 0:
@@ -547,37 +570,6 @@ class Env:
                     node.links.add(link)
 
             #print("   ", node.Debug())
-
-    def ImportURLAlign(self, sqlconn, visited):
-        #print("visited", visited.keys())
-        sql = "SELECT id, url1, url2 FROM url_align"
-        val = ()
-        sqlconn.mycursor.execute(sql, val)
-        ress = sqlconn.mycursor.fetchall()
-        assert (ress is not None)
-
-        for res in ress:
-            urlId1 = res[1]
-            urlId2 = res[2]
-            #print("urlId", urlId1, urlId2)
-
-            _, _, redirectId = self.UrlId2Responses(sqlconn, urlId1)
-            if redirectId is not None:
-                urlId1 = redirectId
-
-            _, _, redirectId = self.UrlId2Responses(sqlconn, urlId2)
-            if redirectId is not None:
-                urlId2 = redirectId
-
-            #print("   ", urlId1, urlId2)
-            if urlId1 not in visited or urlId2 not in visited:
-                print("Alignment not in graph", urlId1, urlId2)
-                continue
-
-            node1 = visited[urlId1]
-            node2 = visited[urlId2]
-            node1.alignedURLId = urlId2
-            node2.alignedURLId = urlId1
             
     def DocIds2Links(self, sqlconn, docIds):
         docIdsStr = ""
