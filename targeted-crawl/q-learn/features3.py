@@ -446,11 +446,24 @@ class Env:
         node = Node(0, "STOP", [], [], None)
         self.nodes[0] = node
 
-        print("self.nodes", len(self.nodes), self.numAligned)
+        self.UpdateStats()
+        print("self.nodes", len(self.nodes), self.numAligned, self.maxLangId)
         #for node in self.nodes.values():
         #    print(node.Debug())
 
         print("graph created")
+
+    def UpdateStats(self):
+        for node in self.nodes.values():
+            if node.alignedURLId > 0:
+                self.numAligned += 1
+
+            if node.lang > self.maxLangId:
+                self.maxLangId = node.lang
+
+            for link in node.links:
+                if link.textLang > self.maxLangId:
+                    self.maxLangId = link.textLang
 
     def PruneNodes(self, rootNode):
         visit = []
@@ -459,13 +472,6 @@ class Env:
         while len(visit) > 0:
             node = visit.pop()
             self.nodes[node.urlId] = node
-
-            # update states
-            if node.alignedURLId > 0:
-                self.numAligned += 1
-
-            if node.lang > self.maxLangId:
-                self.maxLangId = node.lang
 
             # prune links to non-docs
             linksCopy = set(node.links)
@@ -476,9 +482,6 @@ class Env:
                     node.links.remove(link)
                 elif childNode.urlId not in self.nodes:
                     visit.append(childNode)
-
-                    if link.textLang > self.maxLangId:
-                        self.maxLangId = link.textLang
 
 
     def GetRedirectedNormURL(self, node):
@@ -1067,8 +1070,8 @@ def Main():
 
     sqlconn = MySQL()
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.visitbritain.com/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.visitbritain.com/"
     #hostName = "http://www.buchmann.ch/"
     pickleName = hostName + ".pickle"
 
