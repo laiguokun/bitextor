@@ -526,8 +526,12 @@ class Env:
                 winner = normURL2Node[node.normURL]
                 winner.Recombine(node)
 
-        # relink child nodes to winning nodes
+        # relink aligned nodes & child nodes to winning nodes
         for node in visited.values():
+            if node.alignedNode is not None:
+                newAlignedNode = normURL2Node[node.alignedNode.normURL]
+                node.alignedNode = newAlignedNode
+
             for link in node.links:
                 childNode = link.childNode
                 #print("childNode", childNode.Debug())
@@ -657,8 +661,8 @@ class Env:
         if nextURLId == 0:
             #print("   stop")
             reward = 0.0
-        elif nextNode.alignedNode > 0 and nextNode.alignedNode.urlId in visited:
-                reward = params.reward
+        elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
+            reward = params.reward
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
             #print("   reward", reward)
@@ -1065,9 +1069,9 @@ def Main():
     sqlconn = MySQL()
 
     hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.visitbritain.com/"
     #hostName = "http://www.buchmann.ch/"
-    pickleName = hostName + ".pickle"
+    #hostName = "http://www.visitbritain.com/"
+    #pickleName = hostName + ".pickle"
 
     env = Env(sqlconn, hostName)
     # if os.path.exists(pickleName):
