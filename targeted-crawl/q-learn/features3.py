@@ -70,7 +70,7 @@ class LearningParams:
         self.gamma = 1.0 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 50001
+        self.max_epochs = 200001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -78,14 +78,15 @@ class LearningParams:
         
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 100
+        self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 2
 
         self.saveDir = saveDir
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
-        self.reward = 1000.0 #17.0
+        self.reward = 17.0
         self.cost = -1.0
+        self.unusedActionCost = 0.0 #-555.0
         
 ######################################################################################
 class Qnetwork():
@@ -815,7 +816,7 @@ class Env:
         newVal = r + params.gamma * maxNextQ
         targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
         #targetQ[0, action] = newVal
-        self.ZeroOutStop(targetQ, urlIds, numURLs)
+        self.ZeroOutStop(targetQ, urlIds, numURLs, params.unusedActionCost)
 
         #if DEBUG: print("   nextStates", nextStates)
         #if DEBUG: print("   targetQ", targetQ)
@@ -858,7 +859,7 @@ class Env:
             if transition.done: break
         #print("unvisited", unvisited)
         
-    def ZeroOutStop(self, targetQ, urlIds, numURLs):
+    def ZeroOutStop(self, targetQ, urlIds, numURLs, unusedActionCost):
         #print("urlIds", numURLs, targetQ, urlIds)
         assert(targetQ.shape == urlIds.shape)
         targetQ[0,0] = 0.0
@@ -870,7 +871,7 @@ class Env:
 
         numURLsScalar = int(numURLs[0,0])
         for i in range(numURLsScalar, targetQ.shape[1]):
-            targetQ[0, i] = -555.0
+            targetQ[0, i] = unusedActionCost
 
         #print("targetQ", targetQ)
         
