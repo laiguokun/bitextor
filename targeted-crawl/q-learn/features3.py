@@ -353,7 +353,7 @@ class Node:
 
         self.links = set()
         self.lang = 0 if len(langIds) == 0 else langIds[0]
-        self.alignedURLId = 0
+        self.alignedNode = None
 
         self.normURL = None
 
@@ -393,16 +393,18 @@ class Node:
             if loserNode.lang != 0:
                 assert (self.lang == loserNode.lang)
 
-        if self.alignedURLId == 0:
-            if loserNode.alignedURLId != 0:
-                self.alignedURLId = loserNode.alignedURLId
+        if self.alignedNode is None:
+            if loserNode.alignedNode is not None:
+                self.alignedNode = loserNode.alignedNode
         else:
-            if loserNode.alignedURLId != 0:
-                assert (self.alignedURLId == loserNode.alignedURLId)
+            if loserNode.alignedNode is not None:
+                print(self.alignedNode.Debug())
+                print(loserNode.alignedNode.Debug())
+                assert (self.alignedNode == loserNode.alignedNode)
 
     def Debug(self):
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
-                        StrNone(self.lang), StrNone(self.alignedURLId),
+                        StrNone(self.lang), StrNone(self.alignedNode),
                         StrNone(self.redirect), str(len(self.links)),
                         StrNone(self.normURL) ] )
 
@@ -473,12 +475,12 @@ class Env:
 
             node1 = visited[urlId1]
             node2 = visited[urlId2]
-            node1.alignedURLId = urlId2
-            node2.alignedURLId = urlId1
+            node1.alignedNode = node2
+            node2.alignedNode = node1
 
     def UpdateStats(self):
         for node in self.nodes.values():
-            if node.alignedURLId > 0:
+            if node.alignedNode is not None:
                 self.numAligned += 1
 
             if node.lang > self.maxLangId:
@@ -655,7 +657,7 @@ class Env:
         if nextURLId == 0:
             #print("   stop")
             reward = 0.0
-        elif nextNode.alignedURLId > 0 and nextNode.alignedURLId in visited:
+        elif nextNode.alignedNode > 0 and nextNode.alignedNode.urlId in visited:
                 reward = params.reward
             #print("   visited", visited)
             #print("   nodeIds", nodeIds)
@@ -704,7 +706,7 @@ class Env:
 
             alignedStr = ""
             nextNode = self.nodes[nextURLId]
-            if nextNode.alignedURLId > 0:
+            if nextNode.alignedNode is not None:
                 alignedStr = "*"
                 numAligned += 1
 
@@ -974,7 +976,7 @@ class Candidates:
                 #print("   link", sibling.urlId, sibling.alignedDoc)
                 if sibling.urlId in visited:
                     # sibling has been crawled
-                    if sibling.alignedURLId > 0 and sibling.alignedURLId in visited:
+                    if sibling.alignedNode is not None and sibling.alignedNode.urlId in visited:
                         # sibling has been matched
                         ret.append(sibling.urlId)      
 
