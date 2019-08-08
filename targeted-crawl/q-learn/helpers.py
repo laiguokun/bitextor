@@ -599,7 +599,10 @@ class Env:
 
         TIMER.Start("Neural.2")
         action, Qs = qnA.Predict(sess, featuresNP, siblings, numNodes, numURLs)
-        if np.random.rand(1) < params.eps:
+        
+        if currURLId == sys.maxsize:
+            action = 1
+        elif np.random.rand(1) < params.eps:
             #if DEBUG: print("   random")
             action = np.random.randint(0, params.NUM_ACTIONS)
         TIMER.Pause("Neural.2")
