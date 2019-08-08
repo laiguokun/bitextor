@@ -418,7 +418,7 @@ def Main():
         database=config["mysql"]["database"],
         charset='utf8'
     )
-    mydb.autocommit = True  # False
+    mydb.autocommit = False
     mycursor = mydb.cursor()
 
     f = ArchiveIterator(sys.stdin.buffer)
@@ -434,9 +434,9 @@ def Main():
 
     for record in f:
         numPages += 1
-        if numPages % 1 == 0:
+        if numPages % 100 == 0:
             pass
-            # print("write", numPages)
+            #print("write", numPages)
             mydb.commit()
 
         if record.rec_type != 'response':
