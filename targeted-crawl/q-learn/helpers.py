@@ -242,11 +242,10 @@ class Node:
 
 class Env:
     def __init__(self, sqlconn, url):
-        self.url = url
+        self.rootURL = url
         self.numAligned = 0
         self.nodes = {} # urlId -> Node
         self.url2urlId = {}
-        self.docId2URLIds = {}
         self.maxLangId = 0
 
         unvisited = {} # urlId -> Node
@@ -338,7 +337,6 @@ class Env:
                     node.links.remove(link)
                 elif childNode.urlId not in self.nodes:
                     visit.append(childNode)
-
 
     def GetRedirectedNormURL(self, node):
         while node.redirect is not None:
@@ -468,6 +466,7 @@ class Env:
         return res[0]
 
     def Url2UrlId(self, sqlconn, url):
+        #print("url",url)
         c = hashlib.md5()
         c.update(url.lower().encode())
         hashURL = c.hexdigest()
