@@ -19,7 +19,7 @@ from common import Timer, MySQL
 
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
-        self.gamma = 0.999
+        self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001

@@ -13,13 +13,13 @@ import argparse
 import pickle
 import hashlib
 
-from helpers import Env, Candidates
+from helpers import Env, Candidates, Transition
 from common import Timer, MySQL
 
 
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
-        self.gamma = 0.999
+        self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
@@ -30,13 +30,13 @@ class LearningParams:
         
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 100 #30
+        self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 2
 
         self.saveDir = saveDir
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
-        self.reward = 1000.0 #17.0
+        self.reward = 17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
         
@@ -253,9 +253,209 @@ class Corpus:
         #print("loss", loss)
         return loss, sumWeight
 
+######################################################################################
+def Walk(env, start, params, sess, qn, printQ):
+    visited = set()
+    unvisited = Candidates()
+    
+    curr = start
+    i = 0
+    numAligned = 0
+    totReward = 0.0
+    totDiscountedReward = 0.0
+    discount = 1.0
+    mainStr = str(curr) + "->"
+    rewardStr = "rewards:"
+    debugStr = ""
+
+    while True:
+        #print("curr", curr)
+        currNode = env.nodes[curr]
+        unvisited.AddLinks(env, currNode.urlId, visited, params)
+        urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+        #print("featuresNP", featuresNP)
+        #print("siblings", siblings)
+
+        if printQ: 
+            numURLsScalar = int(numURLs[0,0])
+            urlIdsTruncate = urlIds[0, 0:numURLsScalar]                
+            unvisitedStr =  str(urlIdsTruncate)
+
+        if curr == sys.maxsize:
+            action = 1
+            allQ = "allQ"
+        else:
+            action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+            
+        nextURLId, reward = env.GetNextState(params, action, visited, urlIds)
+        totReward += reward
+        totDiscountedReward += discount * reward
+        visited.add(nextURLId)
+        unvisited.RemoveLink(nextURLId)
+
+        alignedStr = ""
+        nextNode = env.nodes[nextURLId]
+        if nextNode.alignedNode is not None:
+            alignedStr = "*"
+            numAligned += 1
+
+        if printQ:
+            debugStr += "   " + str(curr) + "->" + str(nextURLId) + " " \
+                     + str(action) + " " \
+                     + str(numURLsScalar) + " " \
+                     + unvisitedStr + " " \
+                     + str(allQ) + " " \
+                     + str(featuresNP) + " " \
+                     + "\n"
+
+        #print("(" + str(action) + ")", str(nextURLId) + "(" + str(reward) + ") -> ", end="")
+        mainStr += str(nextURLId) + alignedStr + "->"
+        rewardStr += str(reward) + "->"
+        curr = nextURLId
+        discount *= params.gamma
+        i += 1
+
+        if nextURLId == 0: break
+
+    mainStr += " " + str(i) + "/" + str(numAligned)
+    rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
+
+    if printQ:
+        print(debugStr, end="")
+    print(mainStr)
+    print(rewardStr)
+
+    return numAligned, totReward, totDiscountedReward
 
 ######################################################################################
+def WalkAll(env, params, sess, qn):
+    for node in env.nodes.values():
+        Walk(env, node.urlId, params, sess, qn, False)
 
+######################################################################################
+def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
+    TIMER.Start("Neural.1")
+    #DEBUG = False
+
+    unvisited.AddLinks(env, currURLId, visited, params)
+    urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+    #print("   childIds", childIds, unvisited)
+    TIMER.Pause("Neural.1")
+
+    TIMER.Start("Neural.2")
+    action, Qs = qnA.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+    
+    if currURLId == sys.maxsize:
+        action = 1
+    elif np.random.rand(1) < params.eps:
+        #if DEBUG: print("   random")
+        action = np.random.randint(0, params.NUM_ACTIONS)
+    TIMER.Pause("Neural.2")
+    
+    TIMER.Start("Neural.3")
+    nextURLId, r = env.GetNextState(params, action, visited, urlIds)
+    nextNode = env.nodes[nextURLId]
+    #if DEBUG: print("   action", action, next, Qs)
+    TIMER.Pause("Neural.3")
+
+    TIMER.Start("Neural.4")
+    visited.add(nextURLId)
+    unvisited.RemoveLink(nextURLId)
+    nextUnvisited = unvisited.copy()
+    TIMER.Pause("Neural.4")
+
+    TIMER.Start("Neural.5")
+    if nextURLId == 0:
+        done = True
+        maxNextQ = 0.0
+    else:
+        assert(nextURLId != 0)
+        done = False
+
+        # Obtain the Q' values by feeding the new state through our network
+        nextUnvisited.AddLinks(env, nextNode.urlId, visited, params)
+        _, nextNumURLs, nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(env, params, visited)
+        nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)        
+        #print("nextNumNodes", numNodes, nextNumNodes)
+        #print("  nextAction", nextAction, nextQ)
+
+        #assert(qnB == None)
+        #maxNextQ = np.max(nextQs)
+
+        _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)
+        maxNextQ = nextQsB[0, nextAction]
+    TIMER.Pause("Neural.5")
+        
+    TIMER.Start("Neural.6")
+    targetQ = Qs
+    #targetQ = np.array(Qs, copy=True)
+    #print("  targetQ", targetQ)
+    newVal = r + params.gamma * maxNextQ
+    targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
+    #targetQ[0, action] = newVal
+    ZeroOutStop(targetQ, urlIds, numURLs, params.unusedActionCost)
+
+    #if DEBUG: print("   nextStates", nextStates)
+    #if DEBUG: print("   targetQ", targetQ)
+
+    transition = Transition(currURLId, 
+                            nextNode.urlId, 
+                            done, 
+                            np.array(featuresNP, copy=True), 
+                            np.array(siblings, copy=True), 
+                            numNodes,
+                            numURLs,
+                            np.array(targetQ, copy=True))
+    TIMER.Pause("Neural.6")
+
+    return transition
+
+######################################################################################
+def ZeroOutStop(targetQ, urlIds, numURLs, unusedActionCost):
+    #print("urlIds", numURLs, targetQ, urlIds)
+    assert(targetQ.shape == urlIds.shape)
+    targetQ[0,0] = 0.0
+    
+    #i = 0
+    #for i in range(urlIds.shape[1]):
+    #    if urlIds[0, i] == 0:
+    #        targetQ[0, i] = 0
+
+    numURLsScalar = int(numURLs[0,0])
+    for i in range(numURLsScalar, targetQ.shape[1]):
+        targetQ[0, i] = unusedActionCost
+
+    #print("targetQ", targetQ)
+
+######################################################################################
+def Trajectory(env, epoch, currURLId, params, sess, qns):
+    visited = set()
+    unvisited = Candidates()
+    docsVisited = set()
+
+    while (True):
+        tmp = np.random.rand(1)
+        if tmp > 0.5:
+            qnA = qns.q[0]
+            qnB = qns.q[1]
+        else:
+            qnA = qns.q[1]
+            qnB = qns.q[0]
+        #qnA = qns.q[0]
+        #qnB = None
+
+        transition = Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited)
+        
+        qnA.corpus.AddTransition(transition, params.deleteDuplicateTransitions)
+
+        currURLId = transition.nextURLId
+        #print("visited", visited)
+
+        if transition.done: break
+    #print("unvisited", unvisited)
+
+
+######################################################################################
 def Train(params, sess, saver, env, qns):
     totRewards = []
     totDiscountedRewards = []
@@ -265,7 +465,7 @@ def Train(params, sess, saver, env, qns):
         #startState = 30
         
         TIMER.Start("Trajectory")
-        env.Trajectory(epoch, sys.maxsize, params, sess, qns)
+        Trajectory(env, epoch, sys.maxsize, params, sess, qns)
         TIMER.Pause("Trajectory")
 
         TIMER.Start("Update")
@@ -281,7 +481,7 @@ def Train(params, sess, saver, env, qns):
                 qns.q[0].PrintQ(sys.maxsize, params, env, sess)
                 print()
 
-                numAligned, totReward, totDiscountedReward = env.Walk(sys.maxsize, params, sess, qns.q[0], True)
+                numAligned, totReward, totDiscountedReward = Walk(env, sys.maxsize, params, sess, qns.q[0], True)
                 totRewards.append(totReward)
                 totDiscountedRewards.append(totDiscountedReward)
                 print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
@@ -336,8 +536,8 @@ def Main():
 
     sqlconn = MySQL(options.configFile)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     #pickleName = hostName + ".pickle"
 
@@ -365,7 +565,7 @@ def Main():
         sess.run(init)
 
         qns.q[0].PrintAllQ(params, env, sess)
-        #env.WalkAll(params, sess, qn)
+        #WalkAll(env, params, sess, qns.q[0])
         print()
 
         TIMER.Start("Train")
@@ -375,7 +575,7 @@ def Main():
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
-        env.Walk(sys.maxsize, params, sess, qns.q[0], True)
+        Walk(env, sys.maxsize, params, sess, qns.q[0], True)
 
         del TIMER
 
