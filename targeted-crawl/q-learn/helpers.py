@@ -518,8 +518,7 @@ class Env:
         debugStr = ""
 
         while True:
-            # print("curr", curr)
-            # print("hh", next, hh)
+            #print("curr", curr)
             currNode = self.nodes[curr]
             unvisited.AddLinks(self, currNode.urlId, visited, params)
             urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(self, params, visited)
@@ -531,7 +530,12 @@ class Env:
                 urlIdsTruncate = urlIds[0, 0:numURLsScalar]                
                 unvisitedStr =  str(urlIdsTruncate)
 
-            action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+            if curr == sys.maxsize:
+                action = 1
+                allQ = "allQ"
+            else:
+                action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+                
             nextURLId, reward = self.GetNextState(params, action, visited, urlIds)
             totReward += reward
             totDiscountedReward += discount * reward

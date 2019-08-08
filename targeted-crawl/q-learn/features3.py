@@ -19,7 +19,7 @@ from common import Timer, MySQL
 
 class LearningParams:
     def __init__(self, saveDir, deleteDuplicateTransitions):
-        self.gamma = 0.99
+        self.gamma = 0.999
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
@@ -30,13 +30,13 @@ class LearningParams:
         
         self.debug = False
         self.walk = 1000
-        self.NUM_ACTIONS = 30
+        self.NUM_ACTIONS = 100 #30
         self.FEATURES_PER_ACTION = 2
 
         self.saveDir = saveDir
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
-        self.reward = 17.0
+        self.reward = 1000.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
         
@@ -336,8 +336,8 @@ def Main():
 
     sqlconn = MySQL(options.configFile)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     #pickleName = hostName + ".pickle"
 
