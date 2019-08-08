@@ -254,11 +254,83 @@ class Corpus:
         return loss, sumWeight
 
 ######################################################################################
+def Walk(env, start, params, sess, qn, printQ):
+    visited = set()
+    unvisited = Candidates()
+    
+    curr = start
+    i = 0
+    numAligned = 0
+    totReward = 0.0
+    totDiscountedReward = 0.0
+    discount = 1.0
+    mainStr = str(curr) + "->"
+    rewardStr = "rewards:"
+    debugStr = ""
+
+    while True:
+        #print("curr", curr)
+        currNode = env.nodes[curr]
+        unvisited.AddLinks(env, currNode.urlId, visited, params)
+        urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+        #print("featuresNP", featuresNP)
+        #print("siblings", siblings)
+
+        if printQ: 
+            numURLsScalar = int(numURLs[0,0])
+            urlIdsTruncate = urlIds[0, 0:numURLsScalar]                
+            unvisitedStr =  str(urlIdsTruncate)
+
+        if curr == sys.maxsize:
+            action = 1
+            allQ = "allQ"
+        else:
+            action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+            
+        nextURLId, reward = env.GetNextState(params, action, visited, urlIds)
+        totReward += reward
+        totDiscountedReward += discount * reward
+        visited.add(nextURLId)
+        unvisited.RemoveLink(nextURLId)
+
+        alignedStr = ""
+        nextNode = env.nodes[nextURLId]
+        if nextNode.alignedNode is not None:
+            alignedStr = "*"
+            numAligned += 1
+
+        if printQ:
+            debugStr += "   " + str(curr) + "->" + str(nextURLId) + " " \
+                     + str(action) + " " \
+                     + str(numURLsScalar) + " " \
+                     + unvisitedStr + " " \
+                     + str(allQ) + " " \
+                     + str(featuresNP) + " " \
+                     + "\n"
+
+        #print("(" + str(action) + ")", str(nextURLId) + "(" + str(reward) + ") -> ", end="")
+        mainStr += str(nextURLId) + alignedStr + "->"
+        rewardStr += str(reward) + "->"
+        curr = nextURLId
+        discount *= params.gamma
+        i += 1
+
+        if nextURLId == 0: break
+
+    mainStr += " " + str(i) + "/" + str(numAligned)
+    rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
+
+    if printQ:
+        print(debugStr, end="")
+    print(mainStr)
+    print(rewardStr)
+
+    return numAligned, totReward, totDiscountedReward
+
 ######################################################################################
 def WalkAll(env, params, sess, qn):
     for node in env.nodes.values():
-        env.Walk(node.urlId, params, sess, qn, False)
-
+        Walk(env, node.urlId, params, sess, qn, False)
 
 ######################################################################################
 def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
@@ -409,7 +481,7 @@ def Train(params, sess, saver, env, qns):
                 qns.q[0].PrintQ(sys.maxsize, params, env, sess)
                 print()
 
-                numAligned, totReward, totDiscountedReward = env.Walk(sys.maxsize, params, sess, qns.q[0], True)
+                numAligned, totReward, totDiscountedReward = Walk(env, sys.maxsize, params, sess, qns.q[0], True)
                 totRewards.append(totReward)
                 totDiscountedRewards.append(totDiscountedReward)
                 print("epoch", epoch, "loss", qns.q[0].corpus.losses[-1], "eps", params.eps, "alpha", params.alpha)
@@ -503,7 +575,7 @@ def Main():
         #qn.PrintAllQ(params, env, sess)
         #env.WalkAll(params, sess, qn)
 
-        env.Walk(sys.maxsize, params, sess, qns.q[0], True)
+        Walk(env, sys.maxsize, params, sess, qns.q[0], True)
 
         del TIMER
 
