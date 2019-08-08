@@ -253,6 +253,12 @@ class Corpus:
         #print("loss", loss)
         return loss, sumWeight
 
+######################################################################################
+######################################################################################
+def WalkAll(env, params, sess, qn):
+    for node in env.nodes.values():
+        env.Walk(node.urlId, params, sess, qn, False)
+
 
 ######################################################################################
 def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
@@ -487,7 +493,7 @@ def Main():
         sess.run(init)
 
         qns.q[0].PrintAllQ(params, env, sess)
-        #env.WalkAll(params, sess, qn)
+        #WalkAll(env, params, sess, qns.q[0])
         print()
 
         TIMER.Start("Train")

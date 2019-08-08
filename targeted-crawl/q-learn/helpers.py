@@ -576,12 +576,6 @@ class Env:
 
         return numAligned, totReward, totDiscountedReward
 
-
-
-    def WalkAll(self, params, sess, qn):
-        for node in self.nodes.values():
-            self.Walk(node.urlId, params, sess, qn, False)
-
     def GetNumberAligned(self, path):
         ret = 0
         for transition in path:
