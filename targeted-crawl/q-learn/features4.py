@@ -315,7 +315,7 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
     newVal = r + params.gamma * maxNextQ
     targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
     #targetQ[0, action] = newVal
-    env.ZeroOutStop(targetQ, urlIds, numURLs, params.unusedActionCost)
+    ZeroOutStop(targetQ, urlIds, numURLs, params.unusedActionCost)
 
     #if DEBUG: print("   nextStates", nextStates)
     #if DEBUG: print("   targetQ", targetQ)
@@ -331,6 +331,23 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
     TIMER.Pause("Neural.6")
 
     return transition
+
+######################################################################################
+def ZeroOutStop(targetQ, urlIds, numURLs, unusedActionCost):
+    #print("urlIds", numURLs, targetQ, urlIds)
+    assert(targetQ.shape == urlIds.shape)
+    targetQ[0,0] = 0.0
+    
+    #i = 0
+    #for i in range(urlIds.shape[1]):
+    #    if urlIds[0, i] == 0:
+    #        targetQ[0, i] = 0
+
+    numURLsScalar = int(numURLs[0,0])
+    for i in range(numURLsScalar, targetQ.shape[1]):
+        targetQ[0, i] = unusedActionCost
+
+    #print("targetQ", targetQ)
 
 ######################################################################################
 def Trajectory(env, epoch, currURLId, params, sess, qns):

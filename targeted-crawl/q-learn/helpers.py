@@ -591,18 +591,3 @@ class Env:
                 ret += 1
         return ret
         
-    def ZeroOutStop(self, targetQ, urlIds, numURLs, unusedActionCost):
-        #print("urlIds", numURLs, targetQ, urlIds)
-        assert(targetQ.shape == urlIds.shape)
-        targetQ[0,0] = 0.0
-        
-        #i = 0
-        #for i in range(urlIds.shape[1]):
-        #    if urlIds[0, i] == 0:
-        #        targetQ[0, i] = 0
-
-        numURLsScalar = int(numURLs[0,0])
-        for i in range(numURLsScalar, targetQ.shape[1]):
-            targetQ[0, i] = unusedActionCost
-
-        #print("targetQ", targetQ)
