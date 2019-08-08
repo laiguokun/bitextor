@@ -514,7 +514,7 @@ class Env:
         totDiscountedReward = 0.0
         discount = 1.0
         mainStr = str(curr) + "->"
-        rewardStr = "  ->"
+        rewardStr = "rewards:"
         debugStr = ""
 
         while True:
