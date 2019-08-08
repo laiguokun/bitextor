@@ -252,7 +252,7 @@ class Env:
         unvisited = {} # urlId -> Node
         visited = {} # urlId -> Node
         rootURLId = self.Url2UrlId(sqlconn, url)
-        rootNode = self.CreateNode(sqlconn, visited, unvisited, rootURLId, url)
+        self.rootNode = self.CreateNode(sqlconn, visited, unvisited, rootURLId, url)
         self.CreateGraphFromDB(sqlconn, visited, unvisited)
         print("CreateGraphFromDB", len(visited))
         #for node in visited.values():
@@ -265,14 +265,14 @@ class Env:
         normURL2Node = {}
         self.Recombine(visited, normURL2Node)
         
-        rootNode = normURL2Node[rootNode.normURL]
-        assert(rootNode is not None)
-        print("rootNode", rootNode.Debug())
+        self.rootNode = normURL2Node[self.rootNode.normURL]
+        assert(self.rootNode is not None)
+        print("rootNode", self.rootNode.Debug())
 
-        self.PruneNodes(rootNode)
+        self.PruneNodes(self.rootNode)
 
         startNode = Node(sys.maxsize, "START", [], [], None)
-        startNode.CreateLink("", 0, rootNode)
+        startNode.CreateLink("", 0, self.rootNode)
         self.nodes[startNode.urlId] = startNode
 
         # stop node

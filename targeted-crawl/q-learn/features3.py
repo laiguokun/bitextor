@@ -22,7 +22,7 @@ class LearningParams:
         self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 1 #50001
+        self.max_epochs = 60001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -38,7 +38,7 @@ class LearningParams:
         
         self.reward = 17.0
         self.cost = -1.0
-        self.unusedActionCost = -555.0
+        self.unusedActionCost = 0.0 #-555.0
         
 ######################################################################################
 class Qnetwork():

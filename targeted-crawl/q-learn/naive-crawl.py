@@ -6,40 +6,23 @@ import hashlib
 from common import MySQL
 from helpers import Env
 
-
-def fetchUrlLang(sqlconn, lang):
-    pass
-
-
-def getUrls(sqlconn, url):
-    c = hashlib.md5()
-    c.update(url.lower().encode())
-    hashURL = c.hexdigest()
-
-    sql = "SELECT val FROM url WHERE val LIKE %s"
-    val = ('%' + url + '%',)
-    sqlconn.mycursor.execute(sql, val)
-    return sqlconn.mycursor.fetchall()
-
-
-def populateGraph():
-    pass
-
-
 def crawl(sqlconn, env, lang='en'):
-    for node in env.nodes.values():
-        for url in getUrls(sqlconn, node.url):
-            # Create Node for each fetched URL.
-            print(url)
-            if url:
-                rootNode = env.CreateNode(sqlconn, {}, {}, node.urlId, url)
+    todo = []
+    todo.append(env.rootNode)
 
-        # print(node.url)
-        # print(node.lang)
-        # for link in node.links:
-        #     print(link.childNode.url)
-        #     print(link.childNode.lang)
+    visited = set()
 
+    while len(todo) > 0:
+        node = todo.pop()
+
+        if node.urlId not in visited:
+            print("node", node.Debug())
+            visited.add(node.urlId)
+
+            for link in node.links:
+                childNode = link.childNode
+                #print("   ", childNode.Debug())
+                todo.append(childNode)
 
 def main():
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
