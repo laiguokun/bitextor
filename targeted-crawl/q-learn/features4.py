@@ -14,11 +14,11 @@ import pickle
 import hashlib
 
 from helpers import Env
-from common import Timer, MySQL
+from common import Timer, MySQL, Languages
 
 
 class LearningParams:
-    def __init__(self, saveDir, deleteDuplicateTransitions):
+    def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
         self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
@@ -40,8 +40,11 @@ class LearningParams:
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
         
-        self.langs = [1, 4] # fr, en
-
+        langPairList = langPair.split(",")
+        assert(len(langPairList) == 2)
+        self.langs = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
+        #print("self.langs", self.langs)
+    
 ######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
@@ -637,13 +640,15 @@ def Main():
                      help="Directory that model WIP are saved to. If existing model exists then load it")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions", default=False,
                      help="If True then only unique transition are used in each batch")
+    oparser.add_argument("--language-pair", dest="langPair", required=True,
+                     help="The 2 language we're interested in, separated by ,")
     options = oparser.parse_args()
 
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
     sqlconn = MySQL(options.configFile)
-
+    
     hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
@@ -660,8 +665,8 @@ def Main():
     #         print("pickling")
     #         pickle.dump(env,f)
         
-
-    params = LearningParams(options.saveDir, options.deleteDuplicateTransitions)
+    languages = Languages(sqlconn.mycursor)
+    params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
     tf.reset_default_graph()
     qns = Qnets(params, env)

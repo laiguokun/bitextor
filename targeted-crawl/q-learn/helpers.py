@@ -2,7 +2,7 @@ import numpy as np
 import hashlib
 import sys
 
-from common import Timer
+from common import Timer, StrNone
 
 global TIMER
 TIMER = Timer()
@@ -13,14 +13,6 @@ class Link:
         self.textLang = textLang 
         self.parentNode = parentNode
         self.childNode = childNode
-
-
-def StrNone(arg):
-    if arg is None:
-        return "None"
-    else:
-        return str(arg)
-
 
 def NormalizeURL(url):
     url = url.lower()

@@ -2,6 +2,11 @@ import mysql.connector
 import configparser
 import time
 
+def StrNone(arg):
+    if arg is None:
+        return "None"
+    else:
+        return str(arg)
 
 class Timer:
     def __init__(self):
@@ -39,3 +44,29 @@ class MySQL:
         )
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
+
+class Languages:
+    def __init__(self, mycursor):
+        self.mycursor = mycursor
+        self.coll = {}
+
+    def GetLang(self, str):
+        str = StrNone(str)
+        if str in self.coll:
+            return self.coll[str]
+        # print("GetLang", str)
+
+        # new language
+        sql = "SELECT id FROM language WHERE lang = %s"
+        val = (str,)
+        self.mycursor.execute(sql, val)
+        res = self.mycursor.fetchone()
+        assert(res is not None)
+        langId = res[0]
+
+        # print("langId", langId)
+        self.coll[str] = langId
+
+        return langId
+
+        
