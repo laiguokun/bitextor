@@ -13,7 +13,7 @@ import argparse
 import pickle
 import hashlib
 
-from helpers import Env, Transition
+from helpers import Env
 from common import Timer, MySQL
 
 
@@ -169,6 +169,21 @@ class Qnets():
         self.q.append(Qnetwork(params, env))
 
 ######################################################################################
+class Transition:
+    def __init__(self, currURLId, nextURLId, done, features, siblings, numNodes, numURLs, targetQ):
+        self.currURLId = currURLId
+        self.nextURLId = nextURLId 
+        self.done = done
+        self.features = features 
+        self.siblings = siblings
+        self.numNodes = numNodes
+        self.numURLs = numURLs
+        self.targetQ = targetQ
+
+    def DebugTransition(self):
+        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        return ret
+
 class Candidates:
     def __init__(self):
         self.dict = {} # nodeid -> link
