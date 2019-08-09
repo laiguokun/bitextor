@@ -42,7 +42,7 @@ class LearningParams:
         
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
-        self.langs = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
+        self.langIds = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
         #print("self.langs", self.langs)
     
 ######################################################################################
@@ -267,8 +267,8 @@ class Candidates:
         numURLsRet = np.empty([1,4])
         numURLsRet[0,0] = numURLs
         numURLsRet[0,1] = len(visited)
-        numURLsRet[0,2] = self.GetTotalLang(params.langs[0], visited, env)
-        numURLsRet[0,3] = self.GetTotalLang(params.langs[1], visited, env)
+        numURLsRet[0,2] = self.GetTotalLang(params.langIds[0], visited, env)
+        numURLsRet[0,3] = self.GetTotalLang(params.langIds[1], visited, env)
         #print("numURLsRet", numURLsRet)
         
         return urlIds, numURLsRet, langFeatures, siblings
