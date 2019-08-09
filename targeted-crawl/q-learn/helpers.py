@@ -7,22 +7,6 @@ from common import Timer
 global TIMER
 TIMER = Timer()
 
-
-class Transition:
-    def __init__(self, currURLId, nextURLId, done, features, siblings, numNodes, numURLs, targetQ):
-        self.currURLId = currURLId
-        self.nextURLId = nextURLId 
-        self.done = done
-        self.features = features 
-        self.siblings = siblings
-        self.numNodes = numNodes
-        self.numURLs = numURLs
-        self.targetQ = targetQ
-
-    def DebugTransition(self):
-        ret = str(self.currURLId) + "->" + str(self.nextURLId)
-        return ret
-
 class Link:
     def __init__(self, text, textLang, parentNode, childNode):
         self.text = text 

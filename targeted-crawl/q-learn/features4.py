@@ -13,7 +13,7 @@ import argparse
 import pickle
 import hashlib
 
-from helpers import Env, Transition
+from helpers import Env
 from common import Timer, MySQL
 
 
@@ -65,16 +65,13 @@ class Qnetwork():
         # NUMBER OF SIBLINGS
         self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
 
-        # NUMBER OF NODES
-        self.numNodes = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-
         # number of possible action. <= NUM_ACTIONS
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # HIDDEN 1
-        self.hidden1 = tf.concat([self.embedding, self.siblings, self.numNodes, self.numActions], 1) 
+        self.hidden1 = tf.concat([self.embedding, self.siblings, self.numActions], 1) 
 
-        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 2, EMBED_DIM], 0, 0.01))
+        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 1, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
         self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
@@ -121,11 +118,11 @@ class Qnetwork():
         node = env.nodes[urlId]
         unvisited.AddLinks(env, node.urlId, visited, params)
 
-        urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+        urlIds, numURLs, featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
         #print("featuresNP", featuresNP)
         
         #action, allQ = sess.run([self.predict, self.Qout], feed_dict={self.input: childIds})
-        action, allQ = self.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+        action, allQ = self.Predict(sess, featuresNP, siblings, numURLs)
         
         #print("   curr=", curr, "action=", action, "allQ=", allQ, childIds)
         numURLsScalar = int(numURLs[0,0])
@@ -139,24 +136,22 @@ class Qnetwork():
             urlId = node.urlId
             self.PrintQ(urlId, params, env, sess)
 
-    def Predict(self, sess, input, siblings, numNodes, numURLs):
+    def Predict(self, sess, input, siblings, numURLs):
         #print("input",input.shape, siblings.shape, numNodes.shape)
         #print("numURLs", numURLs)
         action, allQ = sess.run([self.predict, self.Qout], 
                                 feed_dict={self.input: input, 
                                         self.siblings: siblings, 
-                                        self.numNodes: numNodes,
                                         self.numActions: numURLs})
         action = action[0]
         
         return action, allQ
 
-    def Update(self, sess, input, siblings, numNodes, numURLs, targetQ):
+    def Update(self, sess, input, siblings, numURLs, targetQ):
         #print("numURLs", numURLs.shape)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
                                     feed_dict={self.input: input, 
                                             self.siblings: siblings, 
-                                            self.numNodes: numNodes, 
                                             self.numActions: numURLs,
                                             self.nextQ: targetQ})
         return loss, sumWeight
@@ -169,6 +164,20 @@ class Qnets():
         self.q.append(Qnetwork(params, env))
 
 ######################################################################################
+class Transition:
+    def __init__(self, currURLId, nextURLId, done, features, siblings, numURLs, targetQ):
+        self.currURLId = currURLId
+        self.nextURLId = nextURLId 
+        self.done = done
+        self.features = features 
+        self.siblings = siblings
+        self.numURLs = numURLs
+        self.targetQ = targetQ
+
+    def DebugTransition(self):
+        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        return ret
+
 class Candidates:
     def __init__(self):
         self.dict = {} # nodeid -> link
@@ -252,13 +261,13 @@ class Candidates:
         langFeatures = langFeatures.reshape([1, params.NUM_ACTIONS * params.FEATURES_PER_ACTION])
         #print("AFTER", ret)
         #print()
-        numNodes = np.empty([1,1])
-        numNodes[0,0] = len(visited)
+        #numNodes = np.empty([1,1])
+        #numNodes[0,0] = len(visited)
         
         numURLsRet = np.empty([1,1])
         numURLsRet[0,0] = numURLs
 
-        return urlIds, numURLsRet, langFeatures, siblings, numNodes
+        return urlIds, numURLsRet, langFeatures, siblings
 
 ######################################################################################
 class Corpus:
@@ -321,7 +330,6 @@ class Corpus:
         features = np.empty([batchSize, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=np.int)
         siblings = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
-        numNodes = np.empty([batchSize, 1])
         numURLs = np.empty([batchSize, 1])
 
         i = 0
@@ -332,14 +340,13 @@ class Corpus:
             features[i, :] = transition.features
             targetQ[i, :] = transition.targetQ
             siblings[i, :] = transition.siblings
-            numNodes[i, :] = transition.numNodes
             numURLs[i, :] = transition.numURLs
 
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, features, siblings, numNodes, numURLs, targetQ)
+        loss, sumWeight = self.qn.Update(sess, features, siblings, numURLs, targetQ)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -364,7 +371,7 @@ def Walk(env, start, params, sess, qn, printQ):
         #print("curr", curr)
         currNode = env.nodes[curr]
         unvisited.AddLinks(env, currNode.urlId, visited, params)
-        urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+        urlIds, numURLs, featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
         #print("featuresNP", featuresNP)
         #print("siblings", siblings)
 
@@ -377,7 +384,7 @@ def Walk(env, start, params, sess, qn, printQ):
             action = 1
             allQ = "allQ"
         else:
-            action, allQ = qn.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+            action, allQ = qn.Predict(sess, featuresNP, siblings, numURLs)
             
         nextURLId, reward = env.GetNextState(params, action, visited, urlIds)
         totReward += reward
@@ -430,12 +437,12 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
     #DEBUG = False
 
     unvisited.AddLinks(env, currURLId, visited, params)
-    urlIds, numURLs, featuresNP, siblings, numNodes = unvisited.GetFeaturesNP(env, params, visited)
+    urlIds, numURLs, featuresNP, siblings = unvisited.GetFeaturesNP(env, params, visited)
     #print("   childIds", childIds, unvisited)
     TIMER.Pause("Neural.1")
 
     TIMER.Start("Neural.2")
-    action, Qs = qnA.Predict(sess, featuresNP, siblings, numNodes, numURLs)
+    action, Qs = qnA.Predict(sess, featuresNP, siblings, numURLs)
     
     if currURLId == sys.maxsize:
         action = 1
@@ -466,15 +473,15 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
 
         # Obtain the Q' values by feeding the new state through our network
         nextUnvisited.AddLinks(env, nextNode.urlId, visited, params)
-        _, nextNumURLs, nextFeaturesNP, nextSiblings, nextNumNodes = nextUnvisited.GetFeaturesNP(env, params, visited)
-        nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)        
+        _, nextNumURLs, nextFeaturesNP, nextSiblings = nextUnvisited.GetFeaturesNP(env, params, visited)
+        nextAction, nextQs = qnA.Predict(sess, nextFeaturesNP, nextSiblings, nextNumURLs)        
         #print("nextNumNodes", numNodes, nextNumNodes)
         #print("  nextAction", nextAction, nextQ)
 
         #assert(qnB == None)
         #maxNextQ = np.max(nextQs)
 
-        _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings, nextNumNodes, nextNumURLs)
+        _, nextQsB = qnB.Predict(sess, nextFeaturesNP, nextSiblings, nextNumURLs)
         maxNextQ = nextQsB[0, nextAction]
     TIMER.Pause("Neural.5")
         
@@ -495,7 +502,6 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
                             done, 
                             np.array(featuresNP, copy=True), 
                             np.array(siblings, copy=True), 
-                            numNodes,
                             numURLs,
                             np.array(targetQ, copy=True))
     TIMER.Pause("Neural.6")
