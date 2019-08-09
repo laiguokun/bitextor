@@ -31,7 +31,7 @@ class LearningParams:
         self.debug = False
         self.walk = 1000
         self.NUM_ACTIONS = 30
-        self.FEATURES_PER_ACTION = 2
+        self.FEATURES_PER_ACTION = 1
 
         self.saveDir = saveDir
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
@@ -232,11 +232,9 @@ class Candidates:
             if len(links) > 0:
                 link = links[0]
                 #print("link", link.parentNode.urlId, link.childNode.urlId, link.text, link.textLang)
-                langFeatures[i, 0] = link.textLang
-
                 parentNode = link.parentNode
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
-                langFeatures[i, 1] = parentNode.lang
+                langFeatures[i, 0] = parentNode.lang
 
                 matchedSiblings = env.GetMatchedSiblings(urlId, parentNode, visited)
                 numMatchedSiblings = len(matchedSiblings)
