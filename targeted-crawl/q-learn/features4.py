@@ -40,6 +40,8 @@ class LearningParams:
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
         
+        self.langs = [1, 4] # fr, en
+
 ######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
@@ -66,12 +68,12 @@ class Qnetwork():
         self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
 
         # number of possible action. <= NUM_ACTIONS
-        self.numActions = tf.placeholder(shape=[None, 2], dtype=tf.float32)
+        self.numActions = tf.placeholder(shape=[None, 4], dtype=tf.float32)
 
         # HIDDEN 1
         self.hidden1 = tf.concat([self.embedding, self.siblings, self.numActions], 1) 
 
-        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 2, EMBED_DIM], 0, 0.01))
+        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 4, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
         self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
@@ -257,18 +259,25 @@ class Candidates:
                 #print("overloaded", len(self.dict), self.dict)
                 break
 
-        #print("BEFORE", ret)
         langFeatures = langFeatures.reshape([1, params.NUM_ACTIONS * params.FEATURES_PER_ACTION])
-        #print("AFTER", ret)
-        #print()
-        #numNodes = np.empty([1,1])
-        #numNodes[0,0] = len(visited)
         
-        numURLsRet = np.empty([1,2])
+        numURLsRet = np.empty([1,4])
         numURLsRet[0,0] = numURLs
         numURLsRet[0,1] = len(visited)
-
+        numURLsRet[0,2] = self.GetTotalLang(params.langs[0], visited, env)
+        numURLsRet[0,3] = self.GetTotalLang(params.langs[1], visited, env)
+        #print("numURLsRet", numURLsRet)
+        
         return urlIds, numURLsRet, langFeatures, siblings
+
+    def GetTotalLang(self, langId, visited, env):
+        ret = 0
+        for urlId in visited:
+            node = env.nodes[urlId]
+            #print("node", node.Debug())
+            if node.lang == langId:
+                ret += 1
+        return ret
 
 ######################################################################################
 class Corpus:
@@ -331,7 +340,7 @@ class Corpus:
         features = np.empty([batchSize, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=np.int)
         siblings = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
-        numURLs = np.empty([batchSize, 2])
+        numURLs = np.empty([batchSize, 4])
 
         i = 0
         for transition in batch:
