@@ -93,7 +93,7 @@ class Candidates:
                 #print("parentNode", childId, parentNode.lang, parentLangId, parentNode.Debug())
                 langFeatures[i, 1] = parentNode.lang
 
-                matchedSiblings = self.GetMatchedSiblings(env, urlId, parentNode, visited)
+                matchedSiblings = env.GetMatchedSiblings(urlId, parentNode, visited)
                 numMatchedSiblings = len(matchedSiblings)
                 #if numMatchedSiblings > 1:
                 #    print("matchedSiblings", urlId, parentNode.urlId, matchedSiblings, visited)
@@ -116,23 +116,6 @@ class Candidates:
         numURLsRet[0,0] = numURLs
 
         return urlIds, numURLsRet, langFeatures, siblings, numNodes
-
-    def GetMatchedSiblings(self, env, urlId, parentNode, visited):
-        ret = []
-
-        #print("parentNode", urlId)
-        for link in parentNode.links:
-            sibling = link.childNode
-            if sibling.urlId != urlId:
-                #print("   link", sibling.urlId, sibling.alignedDoc)
-                if sibling.urlId in visited:
-                    # sibling has been crawled
-                    if sibling.alignedNode is not None and sibling.alignedNode.urlId in visited:
-                        # sibling has been matched
-                        ret.append(sibling.urlId)      
-
-        return ret
-
 
 class Link:
     def __init__(self, text, textLang, parentNode, childNode):
@@ -512,3 +495,19 @@ class Env:
                 ret += 1
         return ret
         
+    def GetMatchedSiblings(self, urlId, parentNode, visited):
+        ret = []
+
+        #print("parentNode", urlId)
+        for link in parentNode.links:
+            sibling = link.childNode
+            if sibling.urlId != urlId:
+                #print("   link", sibling.urlId, sibling.alignedDoc)
+                if sibling.urlId in visited:
+                    # sibling has been crawled
+                    if sibling.alignedNode is not None and sibling.alignedNode.urlId in visited:
+                        # sibling has been matched
+                        ret.append(sibling.urlId)      
+
+        return ret
+
