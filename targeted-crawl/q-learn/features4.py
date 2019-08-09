@@ -66,12 +66,12 @@ class Qnetwork():
         self.siblings = tf.placeholder(shape=[None, params.NUM_ACTIONS], dtype=tf.float32)
 
         # number of possible action. <= NUM_ACTIONS
-        self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.numActions = tf.placeholder(shape=[None, 2], dtype=tf.float32)
 
         # HIDDEN 1
         self.hidden1 = tf.concat([self.embedding, self.siblings, self.numActions], 1) 
 
-        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 1, EMBED_DIM], 0, 0.01))
+        self.Whidden1 = tf.Variable(tf.random_uniform([EMBED_DIM + params.NUM_ACTIONS + 2, EMBED_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.hidden1, self.Whidden1)
 
         self.BiasHidden1 = tf.Variable(tf.random_uniform([1, EMBED_DIM], 0, 0.01))
@@ -264,8 +264,9 @@ class Candidates:
         #numNodes = np.empty([1,1])
         #numNodes[0,0] = len(visited)
         
-        numURLsRet = np.empty([1,1])
+        numURLsRet = np.empty([1,2])
         numURLsRet[0,0] = numURLs
+        numURLsRet[0,1] = len(visited)
 
         return urlIds, numURLsRet, langFeatures, siblings
 
@@ -330,7 +331,7 @@ class Corpus:
         features = np.empty([batchSize, params.NUM_ACTIONS * params.FEATURES_PER_ACTION], dtype=np.int)
         siblings = np.empty([batchSize, params.NUM_ACTIONS], dtype=np.int)
         targetQ = np.empty([batchSize, params.NUM_ACTIONS])
-        numURLs = np.empty([batchSize, 1])
+        numURLs = np.empty([batchSize, 2])
 
         i = 0
         for transition in batch:
