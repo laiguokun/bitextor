@@ -36,11 +36,11 @@ class Languages:
         self.mycursor = mycursor
         self.coll = {}
 
-    def GetLang(self, str):
+    def GetOrSaveLang(self, str):
         str = StrNone(str)
         if str in self.coll:
             return self.coll[str]
-        # print("GetLang", str)
+        # print("GetOrSaveLang", str)
 
         # new language
         sql = "SELECT id FROM language WHERE lang = %s"
@@ -175,7 +175,7 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
         linkStrTrans = None
         linkLangStr = None
 
-    linkLangId = languagesClass.GetLang(linkLangStr)
+    linkLangId = languagesClass.GetOrSaveLang(linkLangStr)
     # print("linkLangId", linkLangId)
 
     url = urllib.parse.unquote(url)
@@ -290,7 +290,7 @@ def ProcessPage(options, mycursor, languages, mtProc, statusCode, orig_encoding,
     logging.info(pageURL + ": detecting language")
     success, lang = guess_lang_from_data2(htmlText)
     if success:
-        langId = languagesClass.GetLang(lang)
+        langId = languagesClass.GetOrSaveLang(lang)
     else:
         return
 
