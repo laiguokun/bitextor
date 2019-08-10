@@ -112,6 +112,19 @@ def crawl_method2(sqlconn, env, lang='en'):
         for child_node in child_nodes:
             print('    parallel_docs children: ', child_node)
 
+    numDocPairs = NumParallelDocs(env, visited)
+    print("visited", len(visited), "pairs found", numDocPairs)
+
+def NumParallelDocs(env, visited):
+    ret = 0;
+    for urlId in visited:
+        node = env.nodes[urlId]
+        #print("node", node.Debug())
+
+        if node.alignedNode is not None and node.alignedNode.urlId in visited:
+            ret += 1
+
+    return ret
 
 def main():
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
@@ -124,7 +137,8 @@ def main():
 
     sqlconn = MySQL(options.configFile)
 
-    hostName = "http://vade-retro.fr/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     env = Env(sqlconn, hostName)
 
     # crawl_method1(sqlconn, env)
