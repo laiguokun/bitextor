@@ -23,6 +23,7 @@ def NumParallelDocs(env, visited):
 
 ######################################################################################
 def naive(sqlconn, env, maxDocs):
+    ret = []
     todo = []
     todo.append(env.rootNode)
 
@@ -46,8 +47,10 @@ def naive(sqlconn, env, maxDocs):
                 #print("   ", childNode.Debug())
                 todo.append(childNode)
 
-    numParallelDocs = NumParallelDocs(env, visited)
-    return numParallelDocs
+            numParallelDocs = NumParallelDocs(env, visited)
+            ret.append(numParallelDocs)
+
+    return ret
 
 ######################################################################################
 def AddTodo(langsTodo, visited, node, lang):
@@ -122,6 +125,7 @@ def RandomNode(langsTodo):
     
 ######################################################################################
 def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
+    ret = []
     visited = set()
     langsVisited = {}
     langsTodo = {}
@@ -143,10 +147,12 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
                 #print("   ", childNode.Debug())
                 AddTodo(langsTodo, visited, childNode, node.lang)
 
+            numParallelDocs = NumParallelDocs(env, visited)
+            ret.append(numParallelDocs)
+
         node = PopNode(langsTodo, langsVisited, langs)
 
-    numParallelDocs = NumParallelDocs(env, visited)
-    return numParallelDocs
+    return ret
 
 ######################################################################################
 def main():
@@ -166,21 +172,23 @@ def main():
     hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
-    narrNaive, arrBalanced = [], []
-    for maxDocs in range(50, len(env.nodes), 50):
-        numNaive = naive(sqlconn, env, maxDocs)   
-        numBalanced = balanced(sqlconn, env, maxDocs)
-        print("numParallelDocs", numNaive, numBalanced)
-        narrNaive.append(numNaive)
-        arrBalanced.append(numBalanced)
+    #narrNaive, arrBalanced = [], []
+    #for maxDocs in range(50, len(env.nodes), 50):
+    #    numNaive = naive(sqlconn, env, maxDocs)   
+    #    numBalanced = balanced(sqlconn, env, maxDocs)
+    #    print("numParallelDocs", numNaive, numBalanced)
+    #    narrNaive.append(numNaive)
+    #    arrBalanced.append(numBalanced)
         
-    plt.plot(narrNaive)
+    #DEBUG = True
+    arrNaive = naive(sqlconn, env, len(env.nodes))
+    arrBalanced = balanced(sqlconn, env, len(env.nodes))
+    #print("arrNaive", arrNaive)
+    #print("arrBalanced", arrBalanced)
+    
+    plt.plot(arrNaive)
     plt.plot(arrBalanced)
     plt.show()
 
-    DEBUG = True
-    naive(sqlconn, env, 600)
-    balanced(sqlconn, env, 600)
-    
 ######################################################################################
 main()
