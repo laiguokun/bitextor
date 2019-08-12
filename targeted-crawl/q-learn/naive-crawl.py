@@ -70,7 +70,9 @@ def crawl_method1(sqlconn, env, lang='en'):
         for child_node_id in child_nodes:
             print('    parallel_docs children: ', env.UrlId2Url(sqlconn, child_node_id))
 
-
+    numDocPairs = NumParallelDocs(env, visited)
+    print("visited", len(visited), "pairs found", numDocPairs)
+        
 def crawl_method2(sqlconn, env, lang='en'):
     """
     Method 2 uses the URL string to find parallel documents based on the following criterion:
@@ -116,7 +118,7 @@ def crawl_method2(sqlconn, env, lang='en'):
     print("visited", len(visited), "pairs found", numDocPairs)
 
 def NumParallelDocs(env, visited):
-    ret = 0;
+    ret = 0
     for urlId in visited:
         node = env.nodes[urlId]
         #print("node", node.Debug())
@@ -141,7 +143,7 @@ def main():
     hostName = "http://www.buchmann.ch/"
     env = Env(sqlconn, hostName)
 
-    # crawl_method1(sqlconn, env)
+    #crawl_method1(sqlconn, env)
     crawl_method2(sqlconn, env)
 
 main()
