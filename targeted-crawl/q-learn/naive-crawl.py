@@ -11,8 +11,11 @@ from bs4 import BeautifulSoup
 from common import MySQL
 from helpers import Env
 
+# Heuristics to judge whether a document if parallel.
+NUM_MATCHING_IMAGES = 3
 
-def getLanguageURL(url):
+
+def getDocumentLanguage(url):
     """
     Splits a URL to identify if it contains a language code or not.
     If a language code is not found, it make a request to the URL
@@ -38,6 +41,16 @@ def getLanguageURL(url):
         except:
             return None
 
+def getDocumentTitle(bsoup):
+    return bsoup.title.text
+
+def getDocumentImages(bsoup):
+    images = bsoup.find_all('img')
+    image_names = []
+    for image in images:
+        name = image['src'].split('/')[-1]
+        image_names.append(name)
+    return image_names
 
 def getDocumentName(url):
     doc_token = url.split('/')[-1]
@@ -132,11 +145,24 @@ def crawl_method2(sqlconn, env, lang='en'):
                 childNode = link.childNode
 
                 print("url: ", node.url)
-                print("Language: ", getLanguageURL(node.url))
-                if (getDocumentName(node.url) == \
+                print("Language: ", getDocumentLanguage(node.url))
+
+                r = requests.get(node.url)
+                bsoup_parent = BeautifulSoup(r.text, features="lxml")
+
+                r = requests.get(childNode.url)
+                bsoup_child = BeautifulSoup(r.text, features="lxml")
+
+                matching_images = list(set(getDocumentImages(bsoup_parent)) & \
+                                       set(getDocumentImages(bsoup_child)))
+
+                print('matching_images: ', matching_images)
+
+                if ((getDocumentName(node.url) == \
                    getDocumentName(childNode.url)) and \
                    (childNode.urlId != node.urlId) and \
-                   (childNode.url not in parallel_docs[getDocumentName(node.url)]):
+                   (childNode.url not in parallel_docs[getDocumentName(node.url)])) or \
+                   len(matching_images) >= NUM_MATCHING_IMAGES:
                     parallel_docs[getDocumentName(node.url)].append(childNode.url)
                 else:
                     todo.append(childNode)
