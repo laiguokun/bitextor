@@ -2,6 +2,7 @@
 import numpy as np
 import argparse
 import hashlib
+import pylab as plt
 
 from common import MySQL
 from helpers import Env
@@ -46,7 +47,7 @@ def naive(sqlconn, env, maxDocs):
                 todo.append(childNode)
 
     numParallelDocs = NumParallelDocs(env, visited)
-    print("numParallelDocs", len(visited), numParallelDocs)
+    return numParallelDocs
 
 ######################################################################################
 def AddTodo(langsTodo, visited, node, lang):
@@ -145,8 +146,8 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
         node = PopNode(langsTodo, langsVisited, langs)
 
     numParallelDocs = NumParallelDocs(env, visited)
-    print("numParallelDocs", len(visited), numParallelDocs)
-        
+    return numParallelDocs
+
 ######################################################################################
 def main():
     global DEBUG
@@ -165,11 +166,18 @@ def main():
     hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
+    narrNaive, arrBalanced = [], []
     for maxDocs in range(50, len(env.nodes), 50):
-        print()
-        naive(sqlconn, env, maxDocs)   
-        balanced(sqlconn, env, maxDocs)
-    
+        numNaive = naive(sqlconn, env, maxDocs)   
+        numBalanced = balanced(sqlconn, env, maxDocs)
+        print("numParallelDocs", numNaive, numBalanced)
+        narrNaive.append(numNaive)
+        arrBalanced.append(numBalanced)
+        
+    plt.plot(narrNaive)
+    plt.plot(arrBalanced)
+    plt.show()
+
     DEBUG = True
     naive(sqlconn, env, 600)
     balanced(sqlconn, env, 600)
