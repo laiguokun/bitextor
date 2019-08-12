@@ -89,7 +89,7 @@ def PopNode(langsTodo, langsVisited, langs):
         else:
             count = 0
         #print("langsTodo", lang, nodes)
-        prob = float(sumRequired - count) / float(sumRequired)
+        prob = 1.0 - float(count) / float(sumRequired)
         probs[lang] = prob
     #print("   probs", probs)
 
@@ -121,7 +121,7 @@ def RandomNode(langsTodo):
         #print("idx", idx, len(nodes))
         if len(nodes) > 0:
             return nodes.pop(0)
-    ssfsd
+    ssfsd # should be here
     
 ######################################################################################
 def balanced(sqlconn, env, maxDocs, langs):
