@@ -124,9 +124,7 @@ def AddTodo(langsTodo, visited, link):
 
     if parentLang not in langsTodo:
         langsTodo[parentLang] = []
-        langsTodo[parentLang].append(childNode)
-    elif childNode not in langsTodo[parentLang]:
-        langsTodo[parentLang].append(childNode)
+    langsTodo[parentLang].append(childNode)
 
 ######################################################################################
 def balanced(sqlconn, env, maxDocs, langs):
@@ -134,7 +132,6 @@ def balanced(sqlconn, env, maxDocs, langs):
     visited = set()
     langsVisited = {}
     langsTodo = {}
-    #AddTodo(langsTodo, visited, env.rootNode, env.rootNode.lang)
 
     node = env.rootNode
     while node is not None and len(visited) < maxDocs:
