@@ -41,11 +41,10 @@ def naive(sqlconn, env, maxDocs):
     print("numParallelDocs", len(visited), numParallelDocs)
 
 ######################################################################################
-def AddTodo(langsTodo, visited, node):
+def AddTodo(langsTodo, visited, node, lang):
     if node.urlId in visited:
         return
 
-    lang = node.lang
     if lang not in langsTodo:
         langsTodo[lang] = set()
     langsTodo[lang].add(node)
@@ -105,7 +104,7 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
     visited = set()
     langsVisited = {}
     langsTodo = {}
-    AddTodo(langsTodo, visited, env.rootNode)
+    AddTodo(langsTodo, visited, env.rootNode, env.rootNode.lang)
 
     node = env.rootNode
     while node is not None and len(visited) < maxDocs:
@@ -119,7 +118,7 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
             for link in node.links:
                 childNode = link.childNode
                 #print("   ", childNode.Debug())
-                AddTodo(langsTodo, visited, childNode)
+                AddTodo(langsTodo, visited, childNode, node.lang)
 
         node = PopNode(langsTodo, langsVisited)
 
