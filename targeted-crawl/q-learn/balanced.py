@@ -124,7 +124,7 @@ def RandomNode(langsTodo):
     ssfsd
     
 ######################################################################################
-def balanced(sqlconn, env, maxDocs):
+def balanced(sqlconn, env, maxDocs, langs):
     ret = []
     visited = set()
     langsVisited = {}
