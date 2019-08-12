@@ -29,7 +29,7 @@ def naive(sqlconn, env, maxDocs):
     langsVisited = {}
 
     while len(todo) > 0 and len(visited) < maxDocs:
-        node = todo.pop()
+        node = todo.pop(0)
         #print("node", node.Debug())
         
         if node.urlId not in visited:
@@ -54,8 +54,10 @@ def AddTodo(langsTodo, visited, node, lang):
         return
 
     if lang not in langsTodo:
-        langsTodo[lang] = set()
-    langsTodo[lang].add(node)
+        langsTodo[lang] = []
+        langsTodo[lang].append(node)
+    elif node not in langsTodo[lang]:
+        langsTodo[lang].append(node)
 
 def PopNode(langsTodo, langsVisited, langs):
     sum = 0
@@ -100,7 +102,7 @@ def PopNode(langsTodo, langsVisited, langs):
             break
     
     if nodes is not None and len(nodes) > 0:
-        node = nodes.pop()
+        node = nodes.pop(0)
     else:
         node = RandomNode(langsTodo)
     #print("   node", node.Debug())
@@ -114,7 +116,7 @@ def RandomNode(langsTodo):
         nodes = langsTodo[lang]
         #print("idx", idx, len(nodes))
         if len(nodes) > 0:
-            return nodes.pop()
+            return nodes.pop(0)
     ssfsd
     
 ######################################################################################
