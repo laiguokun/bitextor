@@ -27,7 +27,7 @@ def naive(sqlconn, env, maxDocs):
 
     while len(todo) > 0 and len(visited) < maxDocs:
         node = todo.pop()
-        print("node", node.Debug())
+        #print("node", node.Debug())
         
         if node.urlId not in visited:
             visited.add(node.urlId)
@@ -102,7 +102,7 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
     node = PopNode(langsTodo)
     while node is not None and len(visited) < maxDocs:
         if node.urlId not in visited:
-            print("node", node.Debug())
+            #print("node", node.Debug())
             visited.add(node.urlId)
     
             for link in node.links:
@@ -127,13 +127,14 @@ def main():
 
     sqlconn = MySQL(options.configFile)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     env = Env(sqlconn, hostName)
 
-    #crawl_method1(sqlconn, env)
     for maxDocs in range(50, 900, 50):
-        #naive(sqlconn, env, maxDocs)
+        naive(sqlconn, env, maxDocs)
+        
+    for maxDocs in range(50, 900, 50):
         balanced(sqlconn, env, maxDocs)
-
+    
 main()
