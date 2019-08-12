@@ -49,24 +49,33 @@ def AddTodo(langsTodo, visited, node, lang):
         langsTodo[lang] = set()
     langsTodo[lang].add(node)
 
-def PopNode(langsTodo, langsVisited):
+def PopNode(langsTodo, langsVisited, langs):
     sum = 0
     # any nodes left to do
     for nodes in langsTodo.values():
         sum += len(nodes)
     if sum == 0:
         return None
+    del sum
 
     # sum of all nodes visited
-    for count in langsVisited.values():
-        sum += count
-    print("langsVisited", sum, langsVisited)
-
-    #sum += 1
-    probs = {}
+    sumAll = 0
+    sumRequired = 0
     for lang, count in langsVisited.items():
+        sumAll += count
+        if lang in langs:
+            sumRequired += count
+    #print("langsVisited", sumAll, sumRequired, langsVisited)
+
+    sumRequired += 1
+    probs = {}
+    for lang in langs:
+        if lang in langsVisited:
+            count = langsVisited[lang]
+        else:
+            count = 0
         #print("langsTodo", lang, nodes)
-        prob = float(sum - count) / float(sum)
+        prob = float(sumRequired - count) / float(sumRequired)
         probs[lang] = prob
     #print("probs", probs)
 
@@ -78,14 +87,15 @@ def PopNode(langsTodo, langsVisited):
         cumm += prob
         #print("prob", prob, cumm)
         if cumm > rnd[0]:
-            nodes = langsTodo[lang]
+            if lang in langsTodo:
+                nodes = langsTodo[lang]
             break
     
     if nodes is not None and len(nodes) > 0:
         node = nodes.pop()
     else:
         node = RandomNode(langsTodo)
-    print("   node", node.Debug())
+    #print("   node", node.Debug())
     return node
 
 def RandomNode(langsTodo):
@@ -123,7 +133,7 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
             if len(visited) % 40 == 0:
                 print("   langsVisited", langsVisited)
 
-        node = PopNode(langsTodo, langsVisited)
+        node = PopNode(langsTodo, langsVisited, langs)
 
     numParallelDocs = NumParallelDocs(env, visited)
     print("numParallelDocs", len(visited), numParallelDocs)
@@ -140,11 +150,11 @@ def main():
 
     sqlconn = MySQL(options.configFile)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     env = Env(sqlconn, hostName)
 
-    balanced(sqlconn, env, 30)
+    balanced(sqlconn, env, 600)
     #for maxDocs in range(50, 900, 50):
     #    naive(sqlconn, env, maxDocs)   
     #for maxDocs in range(50, 900, 50):
