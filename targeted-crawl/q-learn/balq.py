@@ -113,15 +113,20 @@ def RandomNode(langsTodo):
             return nodes.pop(0)
     raise Exception("shouldn't be here")
 
-def AddTodo(langsTodo, visited, node, lang):
-    if node.urlId in visited:
+def AddTodo(langsTodo, visited, link):
+    childNode = link.childNode
+    
+    if childNode.urlId in visited:
         return
 
-    if lang not in langsTodo:
-        langsTodo[lang] = []
-        langsTodo[lang].append(node)
-    elif node not in langsTodo[lang]:
-        langsTodo[lang].append(node)
+    parentNode = link.parentNode
+    parentLang = parentNode.lang
+
+    if parentLang not in langsTodo:
+        langsTodo[parentLang] = []
+        langsTodo[parentLang].append(childNode)
+    elif childNode not in langsTodo[parentLang]:
+        langsTodo[parentLang].append(childNode)
 
 ######################################################################################
 def balanced(sqlconn, env, maxDocs, langs):
@@ -143,9 +148,8 @@ def balanced(sqlconn, env, maxDocs, langs):
                 print("   langsVisited", langsVisited)
     
             for link in node.links:
-                childNode = link.childNode
                 #print("   ", childNode.Debug())
-                AddTodo(langsTodo, visited, childNode, node.lang)
+                AddTodo(langsTodo, visited, link)
 
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
