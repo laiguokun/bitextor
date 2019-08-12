@@ -6,6 +6,8 @@ import hashlib
 from common import MySQL
 from helpers import Env
 
+DEBUG = False
+
 ######################################################################################
 def NumParallelDocs(env, visited):
     ret = 0
@@ -24,6 +26,7 @@ def naive(sqlconn, env, maxDocs):
     todo.append(env.rootNode)
 
     visited = set()
+    langsVisited = {}
 
     while len(todo) > 0 and len(visited) < maxDocs:
         node = todo.pop()
@@ -31,6 +34,11 @@ def naive(sqlconn, env, maxDocs):
         
         if node.urlId not in visited:
             visited.add(node.urlId)
+            if node.lang not in langsVisited:
+                langsVisited[node.lang] = 0
+            langsVisited[node.lang] += 1
+            if DEBUG and len(visited) % 40 == 0:
+                print("   langsVisited", langsVisited)
 
             for link in node.links:
                 childNode = link.childNode
@@ -124,14 +132,13 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
             if node.lang not in langsVisited:
                 langsVisited[node.lang] = 0
             langsVisited[node.lang] += 1
+            if DEBUG and len(visited) % 40 == 0:
+                print("   langsVisited", langsVisited)
     
             for link in node.links:
                 childNode = link.childNode
                 #print("   ", childNode.Debug())
                 AddTodo(langsTodo, visited, childNode, node.lang)
-
-            if len(visited) % 40 == 0:
-                print("   langsVisited", langsVisited)
 
         node = PopNode(langsTodo, langsVisited, langs)
 
@@ -140,6 +147,7 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
         
 ######################################################################################
 def main():
+    global DEBUG
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
     oparser.add_argument("--config-file", dest="configFile", required=True,
                          help="Path to config file (containing MySQL login etc.)")
@@ -151,13 +159,17 @@ def main():
     sqlconn = MySQL(options.configFile)
 
     #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    #hostName = "http://www.buchmann.ch/"
+    hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
+    for maxDocs in range(50, len(env.nodes), 50):
+        print()
+        naive(sqlconn, env, maxDocs)   
+        balanced(sqlconn, env, maxDocs)
+    #naive(sqlconn, env, 600)
+    
+    DEBUG = True
     balanced(sqlconn, env, 600)
-    #for maxDocs in range(50, 900, 50):
-    #    naive(sqlconn, env, maxDocs)   
-    #for maxDocs in range(50, 900, 50):
-    #    balanced(sqlconn, env, maxDocs)
     
 main()
