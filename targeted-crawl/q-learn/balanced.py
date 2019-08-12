@@ -73,9 +73,9 @@ def PopNode(langsTodo, langsVisited, langs):
         sumAll += count
         if lang in langs:
             sumRequired += count
+    sumRequired += 0.001 #1
     #print("langsVisited", sumAll, sumRequired, langsVisited)
 
-    sumRequired += 1
     probs = {}
     for lang in langs:
         if lang in langsVisited:
@@ -85,7 +85,7 @@ def PopNode(langsTodo, langsVisited, langs):
         #print("langsTodo", lang, nodes)
         prob = float(sumRequired - count) / float(sumRequired)
         probs[lang] = prob
-    #print("probs", probs)
+    #print("   probs", probs)
 
     nodes = None
     rnd = np.random.rand(1)
@@ -167,9 +167,10 @@ def main():
         print()
         naive(sqlconn, env, maxDocs)   
         balanced(sqlconn, env, maxDocs)
-    #naive(sqlconn, env, 600)
     
     DEBUG = True
+    naive(sqlconn, env, 600)
     balanced(sqlconn, env, 600)
     
+######################################################################################
 main()

@@ -1,10 +1,42 @@
 #!/usr/bin/env python3
 import numpy as np
+import pycountry
+import requests
 import argparse
 import hashlib
+import time
+import re
 
+from bs4 import BeautifulSoup
 from common import MySQL
 from helpers import Env
+
+
+def getLanguageURL(url):
+    """
+    Splits a URL to identify if it contains a language code or not.
+    If a language code is not found, it make a request to the URL
+    and tries to identify the language based on the text.
+    """
+
+    # Regex to extract the country code.
+    # TODO: refine regex.
+    regex = r'^.{8}[^\/]*\/([a-z]{2})'
+
+    try:
+        country_code = re.findall(regex, url)[0]
+        lang = pycountry.languages.get(alpha_2=country_code)
+        if lang:
+            return lang.name
+    except:
+        # Send a GET request to the URL
+        from langdetect import detect
+        r = requests.get(url)
+        text = BeautifulSoup(r.text).title.text
+        try:
+            return detect(text)
+        except:
+            return None
 
 
 def getDocumentName(url):
@@ -70,9 +102,7 @@ def crawl_method1(sqlconn, env, lang='en'):
         for child_node_id in child_nodes:
             print('    parallel_docs children: ', env.UrlId2Url(sqlconn, child_node_id))
 
-    numDocPairs = NumParallelDocs(env, visited)
-    print("visited", len(visited), "pairs found", numDocPairs)
-        
+
 def crawl_method2(sqlconn, env, lang='en'):
     """
     Method 2 uses the URL string to find parallel documents based on the following criterion:
@@ -101,13 +131,15 @@ def crawl_method2(sqlconn, env, lang='en'):
             for link in node.links:
                 childNode = link.childNode
 
+                print("url: ", node.url)
+                print("Language: ", getLanguageURL(node.url))
                 if (getDocumentName(node.url) == \
                    getDocumentName(childNode.url)) and \
                    (childNode.urlId != node.urlId) and \
                    (childNode.url not in parallel_docs[getDocumentName(node.url)]):
                     parallel_docs[getDocumentName(node.url)].append(childNode.url)
-
-                todo.append(childNode)
+                else:
+                    todo.append(childNode)
 
     for parent_node, child_nodes in parallel_docs.items():
         print('parallel_docs root: ', parent_node)
@@ -118,7 +150,7 @@ def crawl_method2(sqlconn, env, lang='en'):
     print("visited", len(visited), "pairs found", numDocPairs)
 
 def NumParallelDocs(env, visited):
-    ret = 0
+    ret = 0;
     for urlId in visited:
         node = env.nodes[urlId]
         #print("node", node.Debug())
@@ -139,11 +171,20 @@ def main():
 
     sqlconn = MySQL(options.configFile)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
-    env = Env(sqlconn, hostName)
+    hostName = "http://vade-retro.fr/"
+    # hostName = "http://www.buchmann.ch/"
 
-    #crawl_method1(sqlconn, env)
+    start = time.time()
+    env = Env(sqlconn, hostName)
+    end = time.time()
+
+    print('Time to build the graph took: ', end - start, ' seconds.')
+    # crawl_method1(sqlconn, env)
+
+    start = time.time()
     crawl_method2(sqlconn, env)
+    end = time.time()
+
+    print('Time to crawl the graph took: ', end - start, ' seconds.')
 
 main()
