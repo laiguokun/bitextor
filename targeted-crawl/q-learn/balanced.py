@@ -50,7 +50,7 @@ def AddTodo(langsTodo, visited, node):
         langsTodo[lang] = set()
     langsTodo[lang].add(node)
 
-def PopNode(langsTodo):
+def PopNode(langsTodo, langsVisited):
     sum = 0
     for nodes in langsTodo.values():
         sum += len(nodes)
@@ -96,10 +96,11 @@ def RandomNode(langsTodo):
 ######################################################################################
 def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
     visited = set()
+    langsVisited = {}
     langsTodo = {}
     AddTodo(langsTodo, visited, env.rootNode)
 
-    node = PopNode(langsTodo)
+    node = PopNode(langsTodo, langsVisited)
     while node is not None and len(visited) < maxDocs:
         if node.urlId not in visited:
             #print("node", node.Debug())
@@ -110,11 +111,11 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
                 #print("   ", childNode.Debug())
                 AddTodo(langsTodo, visited, childNode)
 
-            node = PopNode(langsTodo)
+            node = PopNode(langsTodo, langsVisited)
 
     numParallelDocs = NumParallelDocs(env, visited)
     print("numParallelDocs", len(visited), numParallelDocs)
-    
+        
 ######################################################################################
 def main():
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
@@ -127,14 +128,14 @@ def main():
 
     sqlconn = MySQL(options.configFile)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     env = Env(sqlconn, hostName)
 
-    for maxDocs in range(50, 900, 50):
-        naive(sqlconn, env, maxDocs)
-        
-    for maxDocs in range(50, 900, 50):
-        balanced(sqlconn, env, maxDocs)
+    balanced(sqlconn, env, 30)
+    #for maxDocs in range(50, 900, 50):
+    #    naive(sqlconn, env, maxDocs)   
+    #for maxDocs in range(50, 900, 50):
+    #    balanced(sqlconn, env, maxDocs)
     
 main()
