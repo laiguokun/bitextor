@@ -52,17 +52,24 @@ def AddTodo(langsTodo, visited, node):
 
 def PopNode(langsTodo, langsVisited):
     sum = 0
+    # any nodes left to do
     for nodes in langsTodo.values():
         sum += len(nodes)
     if sum == 0:
         return None
 
+    # sum of all nodes visited
+    for count in langsVisited.values():
+        sum += count
+    #print("langsVisited", sum, langsVisited)
+
     #sum += 1
     probs = {}
-    for lang, nodes in langsTodo.items():
+    for lang, count in langsVisited.items():
         #print("langsTodo", lang, nodes)
-        prob = float(sum - len(nodes)) / float(sum)
+        prob = float(sum - count) / float(sum)
         probs[lang] = prob
+    #print("probs", probs)
 
     nodes = None
     rnd = np.random.rand(1)
@@ -100,18 +107,21 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
     langsTodo = {}
     AddTodo(langsTodo, visited, env.rootNode)
 
-    node = PopNode(langsTodo, langsVisited)
+    node = env.rootNode
     while node is not None and len(visited) < maxDocs:
         if node.urlId not in visited:
             #print("node", node.Debug())
             visited.add(node.urlId)
+            if node.lang not in langsVisited:
+                langsVisited[node.lang] = 0
+            langsVisited[node.lang] += 1
     
             for link in node.links:
                 childNode = link.childNode
                 #print("   ", childNode.Debug())
                 AddTodo(langsTodo, visited, childNode)
 
-            node = PopNode(langsTodo, langsVisited)
+        node = PopNode(langsTodo, langsVisited)
 
     numParallelDocs = NumParallelDocs(env, visited)
     print("numParallelDocs", len(visited), numParallelDocs)
@@ -128,14 +138,14 @@ def main():
 
     sqlconn = MySQL(options.configFile)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     env = Env(sqlconn, hostName)
 
-    balanced(sqlconn, env, 30)
+    #balanced(sqlconn, env, 30)
     #for maxDocs in range(50, 900, 50):
     #    naive(sqlconn, env, maxDocs)   
-    #for maxDocs in range(50, 900, 50):
-    #    balanced(sqlconn, env, maxDocs)
+    for maxDocs in range(50, 900, 50):
+        balanced(sqlconn, env, maxDocs)
     
 main()
