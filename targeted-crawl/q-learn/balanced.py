@@ -27,9 +27,9 @@ def naive(sqlconn, env, maxDocs):
 
     while len(todo) > 0 and len(visited) < maxDocs:
         node = todo.pop()
-
+        print("node", node.Debug())
+        
         if node.urlId not in visited:
-            #print("node", node.Debug())
             visited.add(node.urlId)
 
             for link in node.links:
@@ -41,7 +41,10 @@ def naive(sqlconn, env, maxDocs):
     print("numParallelDocs", len(visited), numParallelDocs)
 
 ######################################################################################
-def AddTodo(langsTodo, node):
+def AddTodo(langsTodo, visited, node):
+    if node.urlId in visited:
+        return
+
     lang = node.lang
     if lang not in langsTodo:
         langsTodo[lang] = []
@@ -57,13 +60,13 @@ def PopNode(langsTodo):
     #sum += 1
     probs = {}
     for lang, nodes in langsTodo.items():
-        print("langsTodo", lang, nodes)
+        #print("langsTodo", lang, nodes)
         prob = float(sum - len(nodes)) / float(sum)
         probs[lang] = prob
 
     nodes = None
     rnd = np.random.rand(1)
-    #print("rnd", rnd)
+    print("rnd", rnd, len(probs))
     cumm = 0.0
     for lang, prob in probs.items():
         cumm += prob
@@ -71,7 +74,7 @@ def PopNode(langsTodo):
         if cumm > rnd[0]:
             nodes = langsTodo[lang]
             break
-
+    
     if nodes is not None and len(nodes) > 0:
         node = nodes.pop()
     else:
@@ -85,26 +88,27 @@ def RandomNode(langsTodo):
         langs = list(langsTodo.keys())
         lang = langs[idx]
         nodes = langsTodo[lang]
+        #print("idx", idx, len(nodes))
         if len(nodes) > 0:
             return nodes[0]
     ssfsd
     
 ######################################################################################
 def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
-    langsTodo = {}
-    AddTodo(langsTodo, env.rootNode)
     visited = set()
+    langsTodo = {}
+    AddTodo(langsTodo, visited, env.rootNode)
 
     node = PopNode(langsTodo)
     while node is not None and len(visited) < maxDocs:
+        print("node", node.Debug())
         if node.urlId not in visited:
-            print("node", node.Debug())
             visited.add(node.urlId)
     
             for link in node.links:
                 childNode = link.childNode
-                #print("   ", childNode.Debug())
-                AddTodo(langsTodo, childNode)
+                print("   ", childNode.Debug())
+                AddTodo(langsTodo, visited, childNode)
 
             node = PopNode(langsTodo)
 
