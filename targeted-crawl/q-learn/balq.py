@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import os
+import sys
 import numpy as np
 import argparse
 import hashlib
@@ -133,8 +135,13 @@ def balanced(sqlconn, env, maxDocs, langs):
     langsVisited = {}
     langsTodo = {}
 
-    node = env.rootNode
-    while node is not None and len(visited) < maxDocs:
+    startNode = env.nodes[sys.maxsize]
+    #print("startNode", startNode.Debug())
+    assert(len(startNode.links) == 1)
+    link = next(iter(startNode.links))
+
+    while link is not None and len(visited) < maxDocs:
+        node = link.childNode
         if node.urlId not in visited:
             #print("node", node.Debug())
             visited.add(node.urlId)
@@ -152,11 +159,7 @@ def balanced(sqlconn, env, maxDocs, langs):
             ret.append(numParallelDocs)
 
         link = PopNode(langsTodo, langsVisited, langs)
-        if link is not None:
-            node = link.childNode
-        else:
-            node = None
-            
+
     return ret
 
 ######################################################################################
