@@ -47,8 +47,8 @@ def AddTodo(langsTodo, visited, node):
 
     lang = node.lang
     if lang not in langsTodo:
-        langsTodo[lang] = []
-    langsTodo[lang].append(node)
+        langsTodo[lang] = set()
+    langsTodo[lang].add(node)
 
 def PopNode(langsTodo):
     sum = 0
@@ -66,7 +66,7 @@ def PopNode(langsTodo):
 
     nodes = None
     rnd = np.random.rand(1)
-    print("rnd", rnd, len(probs))
+    #print("rnd", rnd, len(probs))
     cumm = 0.0
     for lang, prob in probs.items():
         cumm += prob
@@ -90,7 +90,7 @@ def RandomNode(langsTodo):
         nodes = langsTodo[lang]
         #print("idx", idx, len(nodes))
         if len(nodes) > 0:
-            return nodes[0]
+            return nodes.pop()
     ssfsd
     
 ######################################################################################
@@ -101,13 +101,13 @@ def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
 
     node = PopNode(langsTodo)
     while node is not None and len(visited) < maxDocs:
-        print("node", node.Debug())
         if node.urlId not in visited:
+            print("node", node.Debug())
             visited.add(node.urlId)
     
             for link in node.links:
                 childNode = link.childNode
-                print("   ", childNode.Debug())
+                #print("   ", childNode.Debug())
                 AddTodo(langsTodo, visited, childNode)
 
             node = PopNode(langsTodo)
