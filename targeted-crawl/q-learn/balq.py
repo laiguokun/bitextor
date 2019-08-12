@@ -53,16 +53,6 @@ def naive(sqlconn, env, maxDocs):
     return ret
 
 ######################################################################################
-def AddTodo(langsTodo, visited, node, lang):
-    if node.urlId in visited:
-        return
-
-    if lang not in langsTodo:
-        langsTodo[lang] = []
-        langsTodo[lang].append(node)
-    elif node not in langsTodo[lang]:
-        langsTodo[lang].append(node)
-
 def PopNode(langsTodo, langsVisited, langs):
     sum = 0
     # any nodes left to do
@@ -122,14 +112,24 @@ def RandomNode(langsTodo):
         if len(nodes) > 0:
             return nodes.pop(0)
     raise Exception("shouldn't be here")
-    
+
+def AddTodo(langsTodo, visited, node, lang):
+    if node.urlId in visited:
+        return
+
+    if lang not in langsTodo:
+        langsTodo[lang] = []
+        langsTodo[lang].append(node)
+    elif node not in langsTodo[lang]:
+        langsTodo[lang].append(node)
+
 ######################################################################################
 def balanced(sqlconn, env, maxDocs, langs):
     ret = []
     visited = set()
     langsVisited = {}
     langsTodo = {}
-    AddTodo(langsTodo, visited, env.rootNode, env.rootNode.lang)
+    #AddTodo(langsTodo, visited, env.rootNode, env.rootNode.lang)
 
     node = env.rootNode
     while node is not None and len(visited) < maxDocs:
