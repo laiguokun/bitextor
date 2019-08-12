@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import pylab as plt
 
-from common import MySQL
+from common import MySQL, Languages
 from helpers import Env
 
 DEBUG = False
@@ -124,7 +124,7 @@ def RandomNode(langsTodo):
     ssfsd
     
 ######################################################################################
-def balanced(sqlconn, env, maxDocs, langs = [1, 4]):
+def balanced(sqlconn, env, maxDocs):
     ret = []
     visited = set()
     langsVisited = {}
@@ -160,6 +160,8 @@ def main():
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
     oparser.add_argument("--config-file", dest="configFile", required=True,
                          help="Path to config file (containing MySQL login etc.)")
+    oparser.add_argument("--language-pair", dest="langPair", required=True,
+                         help="The 2 language we're interested in, separated by ,")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -167,22 +169,19 @@ def main():
 
     sqlconn = MySQL(options.configFile)
 
+    languages = Languages(sqlconn.mycursor)
+    langPairList = options.langPair.split(",")
+    assert(len(langPairList) == 2)
+    langIds = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
+
     #hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
     hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
-
-    #narrNaive, arrBalanced = [], []
-    #for maxDocs in range(50, len(env.nodes), 50):
-    #    numNaive = naive(sqlconn, env, maxDocs)   
-    #    numBalanced = balanced(sqlconn, env, maxDocs)
-    #    print("numParallelDocs", numNaive, numBalanced)
-    #    narrNaive.append(numNaive)
-    #    arrBalanced.append(numBalanced)
         
     #DEBUG = True
     arrNaive = naive(sqlconn, env, len(env.nodes))
-    arrBalanced = balanced(sqlconn, env, len(env.nodes))
+    arrBalanced = balanced(sqlconn, env, len(env.nodes), langIds)
     #print("arrNaive", arrNaive)
     #print("arrBalanced", arrBalanced)
     
