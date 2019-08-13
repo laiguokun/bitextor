@@ -209,6 +209,66 @@ class Candidates:
             self.dict[langId] = []
         self.dict[langId].append(link)
     
+    def Pop(self, langsVisited, params):
+        sum = 0
+        # any nodes left to do
+        for nodes in self.dict.values():
+            sum += len(nodes)
+        if sum == 0:
+            return None
+        del sum
+    
+        # sum of all nodes visited
+        sumAll = 0
+        sumRequired = 0
+        for lang, count in langsVisited.items():
+            sumAll += count
+            if lang in params.langIds:
+                sumRequired += count
+        sumRequired += 0.001 #1
+        #print("langsVisited", sumAll, sumRequired, langsVisited)
+    
+        probs = {}
+        for lang in params.langIds:
+            if lang in langsVisited:
+                count = langsVisited[lang]
+            else:
+                count = 0
+            #print("langsTodo", lang, nodes)
+            prob = 1.0 - float(count) / float(sumRequired)
+            probs[lang] = prob
+        #print("   probs", probs)
+    
+        nodes = None
+        rnd = np.random.rand(1)
+        #print("rnd", rnd, len(probs))
+        cumm = 0.0
+        for lang, prob in probs.items():
+            cumm += prob
+            #print("prob", prob, cumm)
+            if cumm > rnd[0]:
+                if lang in self.dict:
+                    nodes = self.dict[lang]
+                break
+        
+        if nodes is not None and len(nodes) > 0:
+            node = nodes.pop(0)
+        else:
+            node = self.RandomNode()
+        #print("   node", node.Debug())
+        return node
+
+    def RandomNode(self):
+        while True:
+            idx = np.random.randint(0, len(self.dict))
+            langs = list(self.dict.keys())
+            lang = langs[idx]
+            nodes = self.dict[lang]
+            #print("idx", idx, len(nodes))
+            if len(nodes) > 0:
+                return nodes.pop(0)
+        raise Exception("shouldn't be here")
+    
 ######################################################################################
 class Corpus:
     def __init__(self, params):
@@ -262,7 +322,7 @@ def Trajectory(sqlconn, env, maxDocs, params, corpus):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        link = PopNode(langsTodo, langsVisited, params)
+        link = candidates.Pop(langsVisited, params)
 
     return ret
 
