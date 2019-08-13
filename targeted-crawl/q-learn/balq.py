@@ -51,7 +51,7 @@ def NumParallelDocs(env, visited):
     return ret
 
 ######################################################################################
-def naive(sqlconn, env, maxDocs):
+def naive(sqlconn, env, maxDocs, params):
     ret = []
     todo = []
     todo.append(env.rootNode)
@@ -68,7 +68,7 @@ def naive(sqlconn, env, maxDocs):
             if node.lang not in langsVisited:
                 langsVisited[node.lang] = 0
             langsVisited[node.lang] += 1
-            if DEBUG and len(visited) % 40 == 0:
+            if params.debug and len(visited) % 40 == 0:
                 print("   langsVisited", langsVisited)
 
             for link in node.links:
@@ -216,7 +216,7 @@ def main():
     env = Env(sqlconn, hostName)
         
     #params.debug = True
-    arrNaive = naive(sqlconn, env, len(env.nodes))
+    arrNaive = naive(sqlconn, env, len(env.nodes), params)
     arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
     #print("arrNaive", arrNaive)
     #print("arrBalanced", arrBalanced)
