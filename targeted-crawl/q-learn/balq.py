@@ -115,34 +115,6 @@ def balanced(sqlconn, env, maxDocs, params):
 
     return ret
 
-######################################################################################
-######################################################################################
-class Transition:
-    def __init__(self, currURLId, nextURLId):
-        self.currURLId = currURLId
-        self.nextURLId = nextURLId 
-
-    def DebugTransition(self):
-        ret = str(self.currURLId) + "->" + str(self.nextURLId)
-        return ret
-
-######################################################################################
-class Corpus:
-    def __init__(self, params):
-        self.params = params
-        self.transitions = []
-
-
-    def AddTransition(self, transition):
-        if self.params.deleteDuplicateTransitions:
-            for currTrans in self.transitions:
-                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
-                    return
-            # completely new trans
-    
-        self.transitions.append(transition)
-            
-######################################################################################
 def PopNode(langsTodo, langsVisited, params):
     sum = 0
     # any nodes left to do
@@ -217,11 +189,51 @@ def AddTodo(langsTodo, visited, link):
     langsTodo[parentLang].append(link)
 
 ######################################################################################
+######################################################################################
+class Transition:
+    def __init__(self, currURLId, nextURLId):
+        self.currURLId = currURLId
+        self.nextURLId = nextURLId 
+
+    def DebugTransition(self):
+        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        return ret
+
+class Candidates:
+    def __init__(self):
+        self.dict = {} # parent lang -> link
+
+    def AddLink(self, link):
+        langId = link.parentNode.lang
+        if langId not in self.dict:
+            self.dict[langId] = []
+        self.dict[langId].append(link)
+    
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.params = params
+        self.transitions = []
+
+
+    def AddTransition(self, transition):
+        if self.params.deleteDuplicateTransitions:
+            for currTrans in self.transitions:
+                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
+                    return
+            # completely new trans
+    
+        self.transitions.append(transition)
+            
+######################################################################################
+
+######################################################################################
 def Trajectory(sqlconn, env, maxDocs, params, corpus):
     ret = []
     visited = set()
     langsVisited = {}
     langsTodo = {}
+    candidates = Candidates()
 
     startNode = env.nodes[sys.maxsize]
     #print("startNode", startNode.Debug())
@@ -245,6 +257,7 @@ def Trajectory(sqlconn, env, maxDocs, params, corpus):
             for link in node.links:
                 #print("   ", childNode.Debug())
                 AddTodo(langsTodo, visited, link)
+                candidates.AddLink(link)
 
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
@@ -275,8 +288,8 @@ def main():
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
     #hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
-    hostName = "http://www.visitbritain.com/"
+    hostName = "http://www.buchmann.ch/"
+    #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     corpus = Corpus(params)
