@@ -12,6 +12,35 @@ from helpers import Env
 DEBUG = False
 
 ######################################################################################
+class LearningParams:
+    def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
+        self.gamma = 0.99
+        self.lrn_rate = 0.1
+        self.alpha = 1.0 # 0.7
+        self.max_epochs = 20001
+        self.eps = 1 # 0.7
+        self.maxBatchSize = 64
+        self.minCorpusSize = 200
+        self.trainNumIter = 10
+        
+        self.debug = False
+        self.walk = 1000
+        self.NUM_ACTIONS = 30
+        self.FEATURES_PER_ACTION = 1
+
+        self.saveDir = saveDir
+        self.deleteDuplicateTransitions = deleteDuplicateTransitions
+        
+        self.reward = 17.0
+        self.cost = -1.0
+        self.unusedActionCost = 0.0 #-555.0
+        
+        langPairList = langPair.split(",")
+        assert(len(langPairList) == 2)
+        self.langIds = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
+        #print("self.langs", self.langs)
+
+######################################################################################
 def NumParallelDocs(env, visited):
     ret = 0
     for urlId in visited:
@@ -55,7 +84,7 @@ def naive(sqlconn, env, maxDocs):
     return ret
 
 ######################################################################################
-def PopNode(langsTodo, langsVisited, langs):
+def PopNode(langsTodo, langsVisited, params):
     sum = 0
     # any nodes left to do
     for nodes in langsTodo.values():
@@ -69,13 +98,13 @@ def PopNode(langsTodo, langsVisited, langs):
     sumRequired = 0
     for lang, count in langsVisited.items():
         sumAll += count
-        if lang in langs:
+        if lang in params.langIds:
             sumRequired += count
     sumRequired += 0.001 #1
     #print("langsVisited", sumAll, sumRequired, langsVisited)
 
     probs = {}
-    for lang in langs:
+    for lang in params.langIds:
         if lang in langsVisited:
             count = langsVisited[lang]
         else:
@@ -129,7 +158,7 @@ def AddTodo(langsTodo, visited, link):
     langsTodo[parentLang].append(link)
 
 ######################################################################################
-def balanced(sqlconn, env, maxDocs, langs):
+def balanced(sqlconn, env, maxDocs, params):
     ret = []
     visited = set()
     langsVisited = {}
@@ -158,7 +187,7 @@ def balanced(sqlconn, env, maxDocs, langs):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        link = PopNode(langsTodo, langsVisited, langs)
+        link = PopNode(langsTodo, langsVisited, params)
 
     return ret
 
@@ -170,6 +199,10 @@ def main():
                          help="Path to config file (containing MySQL login etc.)")
     oparser.add_argument("--language-pair", dest="langPair", required=True,
                          help="The 2 language we're interested in, separated by ,")
+    oparser.add_argument("--save-dir", dest="saveDir", default=".",
+                         help="Directory that model WIP are saved to. If existing model exists then load it")
+    oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
+                         default=False, help="If True then only unique transition are used in each batch")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -178,9 +211,7 @@ def main():
     sqlconn = MySQL(options.configFile)
 
     languages = Languages(sqlconn.mycursor)
-    langPairList = options.langPair.split(",")
-    assert(len(langPairList) == 2)
-    langIds = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
+    params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
     #hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
@@ -189,7 +220,7 @@ def main():
         
     #DEBUG = True
     arrNaive = naive(sqlconn, env, len(env.nodes))
-    arrBalanced = balanced(sqlconn, env, len(env.nodes), langIds)
+    arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
     #print("arrNaive", arrNaive)
     #print("arrBalanced", arrBalanced)
     
