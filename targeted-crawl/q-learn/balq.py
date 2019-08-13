@@ -222,45 +222,44 @@ class Candidates:
             return None
         del sum
     
+        probs = {}
+        for langId in params.langIds:
+            prob = self.GetLangProb(langId, params.langIds, langsVisited, params)
+            probs[langId] = prob
+
+        maxProb = 0
+        argMax = sys.maxsize
+        for langId in params.langIds:
+            if probs[langId] > maxProb:
+                maxProb = probs[langId]
+                argMax = langId
+
+        if argMax in self.dict:
+            links = self.dict[argMax]
+            if len(links) > 0:
+                link = links.pop(0)
+            else:
+                link = self.RandomLink()
+        else:
+            link = self.RandomLink()
+
+        #print("   link", link.Debug())
+        return link
+
+    def GetLangProb(self, langRequested, langIds, langsVisited, params):
         # sum of all nodes visited
-        sumAll = 0
         sumRequired = 0
         for lang, count in langsVisited.items():
-            sumAll += count
-            if lang in params.langIds:
+            if lang in langIds:
                 sumRequired += count
         sumRequired += 0.001 #1
         #print("langsVisited", sumAll, sumRequired, langsVisited)
-    
-        probs = {}
-        for lang in params.langIds:
-            if lang in langsVisited:
-                count = langsVisited[lang]
-            else:
-                count = 0
-            #print("langsTodo", lang, nodes)
-            prob = 1.0 - float(count) / float(sumRequired)
-            probs[lang] = prob
-        #print("   probs", probs)
-    
-        links = None
-        rnd = np.random.rand(1)
-        #print("rnd", rnd, len(probs))
-        cumm = 0.0
-        for lang, prob in probs.items():
-            cumm += prob
-            #print("prob", prob, cumm)
-            if cumm > rnd[0]:
-                if lang in self.dict:
-                    links = self.dict[lang]
-                break
         
-        if links is not None and len(links) > 0:
-            link = links.pop(0)
+        if langRequested in langsVisited:
+            ret = float(langsVisited[langRequested]) / float(sumRequired)
         else:
-            link = self.RandomLink()
-        #print("   link", link.Debug())
-        return link
+            ret = 0
+        return ret
 
     def RandomLink(self):
         while True:
@@ -293,7 +292,7 @@ class Corpus:
 def Trajectory(sqlconn, env, maxDocs, params, corpus):
     ret = []
     visited = set()
-    langsVisited = {}
+    langsVisited = {} # langId -> count
     candidates = Candidates(params)
 
     startNode = env.nodes[sys.maxsize]
