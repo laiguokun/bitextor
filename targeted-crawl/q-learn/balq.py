@@ -9,8 +9,6 @@ import pylab as plt
 from common import MySQL, Languages
 from helpers import Env
 
-DEBUG = False
-
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
@@ -177,7 +175,7 @@ def balanced(sqlconn, env, maxDocs, params):
             if node.lang not in langsVisited:
                 langsVisited[node.lang] = 0
             langsVisited[node.lang] += 1
-            if DEBUG and len(visited) % 40 == 0:
+            if params.debug and len(visited) % 40 == 0:
                 print("   langsVisited", langsVisited)
     
             for link in node.links:
@@ -193,7 +191,6 @@ def balanced(sqlconn, env, maxDocs, params):
 
 ######################################################################################
 def main():
-    global DEBUG
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
     oparser.add_argument("--config-file", dest="configFile", required=True,
                          help="Path to config file (containing MySQL login etc.)")
@@ -218,7 +215,7 @@ def main():
     hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
         
-    #DEBUG = True
+    #params.debug = True
     arrNaive = naive(sqlconn, env, len(env.nodes))
     arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
     #print("arrNaive", arrNaive)
