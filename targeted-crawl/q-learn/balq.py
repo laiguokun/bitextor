@@ -80,6 +80,41 @@ def naive(sqlconn, env, maxDocs, params):
             ret.append(numParallelDocs)
 
     return ret
+
+######################################################################################
+def balanced(sqlconn, env, maxDocs, params):
+    ret = []
+    visited = set()
+    langsVisited = {}
+    langsTodo = {}
+
+    startNode = env.nodes[sys.maxsize]
+    #print("startNode", startNode.Debug())
+    assert(len(startNode.links) == 1)
+    link = next(iter(startNode.links))
+
+    while link is not None and len(visited) < maxDocs:
+        node = link.childNode
+        if node.urlId not in visited:
+            #print("node", node.Debug())
+            visited.add(node.urlId)
+            if node.lang not in langsVisited:
+                langsVisited[node.lang] = 0
+            langsVisited[node.lang] += 1
+            if params.debug and len(visited) % 40 == 0:
+                print("   langsVisited", langsVisited)
+    
+            for link in node.links:
+                #print("   ", childNode.Debug())
+                AddTodo(langsTodo, visited, link)
+
+            numParallelDocs = NumParallelDocs(env, visited)
+            ret.append(numParallelDocs)
+
+        link = PopNode(langsTodo, langsVisited, params)
+
+    return ret
+
 ######################################################################################
 ######################################################################################
 class Transition:
@@ -182,7 +217,7 @@ def AddTodo(langsTodo, visited, link):
     langsTodo[parentLang].append(link)
 
 ######################################################################################
-def balanced(sqlconn, env, maxDocs, params, corpus):
+def Trajectory(sqlconn, env, maxDocs, params, corpus):
     ret = []
     visited = set()
     langsVisited = {}
@@ -248,12 +283,14 @@ def main():
         
     #params.debug = True
     arrNaive = naive(sqlconn, env, len(env.nodes), params)
-    arrBalanced = balanced(sqlconn, env, len(env.nodes), params, corpus)
+    arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
+    arrRL = Trajectory(sqlconn, env, len(env.nodes), params, corpus)
     #print("arrNaive", arrNaive)
     #print("arrBalanced", arrBalanced)
     
     plt.plot(arrNaive)
     plt.plot(arrBalanced)
+    plt.plot(arrRL)
     plt.show()
 
 ######################################################################################
