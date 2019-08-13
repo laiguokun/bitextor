@@ -200,8 +200,12 @@ class Transition:
         return ret
 
 class Candidates:
-    def __init__(self):
+    def __init__(self, params):
+        self.params = params
         self.dict = {} # parent lang -> link
+
+        #for langId in params.langIds:
+        #    self.dict[langId] = []
 
     def AddLink(self, link):
         langId = link.parentNode.lang
@@ -290,7 +294,7 @@ def Trajectory(sqlconn, env, maxDocs, params, corpus):
     ret = []
     visited = set()
     langsVisited = {}
-    candidates = Candidates()
+    candidates = Candidates(params)
 
     startNode = env.nodes[sys.maxsize]
     #print("startNode", startNode.Debug())
@@ -357,9 +361,10 @@ def main():
     #print("arrNaive", arrNaive)
     #print("arrBalanced", arrBalanced)
     
-    plt.plot(arrNaive)
-    plt.plot(arrBalanced)
-    plt.plot(arrRL)
+    plt.plot(arrNaive, label="naive")
+    plt.plot(arrBalanced, label="balanced")
+    plt.plot(arrRL, label="RL")
+    plt.legend(loc='upper left')
     plt.show()
 
 ######################################################################################
