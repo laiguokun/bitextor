@@ -111,15 +111,15 @@ def balanced(sqlconn, env, maxDocs, params):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        link = PopNode(langsTodo, langsVisited, params)
+        link = PopLink(langsTodo, langsVisited, params)
 
     return ret
 
-def PopNode(langsTodo, langsVisited, params):
+def PopLink(langsTodo, langsVisited, params):
     sum = 0
     # any nodes left to do
-    for nodes in langsTodo.values():
-        sum += len(nodes)
+    for links in langsTodo.values():
+        sum += len(links)
     if sum == 0:
         return None
     del sum
@@ -145,7 +145,7 @@ def PopNode(langsTodo, langsVisited, params):
         probs[lang] = prob
     #print("   probs", probs)
 
-    nodes = None
+    links = None
     rnd = np.random.rand(1)
     #print("rnd", rnd, len(probs))
     cumm = 0.0
@@ -154,25 +154,25 @@ def PopNode(langsTodo, langsVisited, params):
         #print("prob", prob, cumm)
         if cumm > rnd[0]:
             if lang in langsTodo:
-                nodes = langsTodo[lang]
+                links = langsTodo[lang]
             break
     
-    if nodes is not None and len(nodes) > 0:
-        node = nodes.pop(0)
+    if links is not None and len(links) > 0:
+        link = links.pop(0)
     else:
-        node = RandomNode(langsTodo)
+        link = RandomLink(langsTodo)
     #print("   node", node.Debug())
-    return node
+    return link
 
-def RandomNode(langsTodo):
+def RandomLink(langsTodo):
     while True:
         idx = np.random.randint(0, len(langsTodo))
         langs = list(langsTodo.keys())
         lang = langs[idx]
-        nodes = langsTodo[lang]
+        links = langsTodo[lang]
         #print("idx", idx, len(nodes))
-        if len(nodes) > 0:
-            return nodes.pop(0)
+        if len(links) > 0:
+            return links.pop(0)
     raise Exception("shouldn't be here")
 
 def AddTodo(langsTodo, visited, link):
@@ -239,7 +239,7 @@ class Candidates:
             probs[lang] = prob
         #print("   probs", probs)
     
-        nodes = None
+        links = None
         rnd = np.random.rand(1)
         #print("rnd", rnd, len(probs))
         cumm = 0.0
@@ -248,25 +248,25 @@ class Candidates:
             #print("prob", prob, cumm)
             if cumm > rnd[0]:
                 if lang in self.dict:
-                    nodes = self.dict[lang]
+                    links = self.dict[lang]
                 break
         
-        if nodes is not None and len(nodes) > 0:
-            node = nodes.pop(0)
+        if links is not None and len(links) > 0:
+            link = links.pop(0)
         else:
-            node = self.RandomNode()
-        #print("   node", node.Debug())
-        return node
+            link = self.RandomLink()
+        #print("   link", link.Debug())
+        return link
 
-    def RandomNode(self):
+    def RandomLink(self):
         while True:
             idx = np.random.randint(0, len(self.dict))
             langs = list(self.dict.keys())
             lang = langs[idx]
-            nodes = self.dict[lang]
+            links = self.dict[lang]
             #print("idx", idx, len(nodes))
-            if len(nodes) > 0:
-                return nodes.pop(0)
+            if len(links) > 0:
+                return links.pop(0)
         raise Exception("shouldn't be here")
     
 ######################################################################################
@@ -285,8 +285,6 @@ class Corpus:
     
         self.transitions.append(transition)
             
-######################################################################################
-
 ######################################################################################
 def Trajectory(sqlconn, env, maxDocs, params, corpus):
     ret = []
