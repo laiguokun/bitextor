@@ -290,7 +290,6 @@ def Trajectory(sqlconn, env, maxDocs, params, corpus):
     ret = []
     visited = set()
     langsVisited = {}
-    langsTodo = {}
     candidates = Candidates()
 
     startNode = env.nodes[sys.maxsize]
@@ -314,7 +313,6 @@ def Trajectory(sqlconn, env, maxDocs, params, corpus):
 
             for link in node.links:
                 #print("   ", childNode.Debug())
-                AddTodo(langsTodo, visited, link)
                 candidates.AddLink(link)
 
             numParallelDocs = NumParallelDocs(env, visited)
