@@ -80,7 +80,33 @@ def naive(sqlconn, env, maxDocs, params):
             ret.append(numParallelDocs)
 
     return ret
+######################################################################################
+######################################################################################
+class Transition:
+    def __init__(self, currURLId, nextURLId):
+        self.currURLId = currURLId
+        self.nextURLId = nextURLId 
 
+    def DebugTransition(self):
+        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        return ret
+
+######################################################################################
+class Corpus:
+    def __init__(self, params):
+        self.params = params
+        self.transitions = []
+
+
+    def AddTransition(self, transition):
+        if self.params.deleteDuplicateTransitions:
+            for currTrans in self.transitions:
+                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
+                    return
+            # completely new trans
+    
+        self.transitions.append(transition)
+            
 ######################################################################################
 def PopNode(langsTodo, langsVisited, params):
     sum = 0
@@ -156,7 +182,7 @@ def AddTodo(langsTodo, visited, link):
     langsTodo[parentLang].append(link)
 
 ######################################################################################
-def balanced(sqlconn, env, maxDocs, params):
+def balanced(sqlconn, env, maxDocs, params, corpus):
     ret = []
     visited = set()
     langsVisited = {}
@@ -178,6 +204,9 @@ def balanced(sqlconn, env, maxDocs, params):
             if params.debug and len(visited) % 40 == 0:
                 print("   langsVisited", langsVisited)
     
+            transition = Transition(link.parentNode.urlId, link.childNode.urlId)
+            corpus.AddTransition(transition)
+
             for link in node.links:
                 #print("   ", childNode.Debug())
                 AddTodo(langsTodo, visited, link)
@@ -214,10 +243,12 @@ def main():
     #hostName = "http://www.buchmann.ch/"
     hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
+
+    corpus = Corpus(params)
         
     #params.debug = True
     arrNaive = naive(sqlconn, env, len(env.nodes), params)
-    arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
+    arrBalanced = balanced(sqlconn, env, len(env.nodes), params, corpus)
     #print("arrNaive", arrNaive)
     #print("arrBalanced", arrBalanced)
     
