@@ -256,7 +256,7 @@ class Candidates:
         #print("langsVisited", sumAll, sumRequired, langsVisited)
         
         if langRequested in langsVisited:
-            ret = float(langsVisited[langRequested]) / float(sumRequired)
+            ret = 1 - float(langsVisited[langRequested]) / float(sumRequired)
         else:
             ret = 0
         return ret
@@ -347,8 +347,8 @@ def main():
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
     #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
-    #hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.buchmann.ch/"
+    hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     corpus = Corpus(params)
