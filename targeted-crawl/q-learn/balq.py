@@ -202,11 +202,17 @@ class Transition:
 class Candidates:
     def __init__(self, params):
         self.params = params
-        self.dict = {} # parent lang -> link
+        self.dict = {} # parent lang -> links[]
 
         #for langId in params.langIds:
         #    self.dict[langId] = []
 
+    def copy(self):
+        ret = Candidates(self.params)
+        ret.dict = self.dict.copy()
+
+        return ret
+    
     def AddLink(self, link):
         langId = link.parentNode.lang
         if langId not in self.dict:
