@@ -129,6 +129,7 @@ def crawl_method2(sqlconn, env, lang='en'):
 
     visited = set()
 
+    response_dict = {}
     while len(todo) > 0:
         node = todo.pop()
 
@@ -144,24 +145,21 @@ def crawl_method2(sqlconn, env, lang='en'):
             for link in node.links:
                 childNode = link.childNode
 
-                print("url: ", node.url)
-                print("Language: ", getDocumentLanguage(node.url))
+                if node.urlId not in response_dict:
+                    r = requests.get(node.url)
+                    response_dict[node.urlId] = BeautifulSoup(r.text, features="lxml")
 
-                r = requests.get(node.url)
-                bsoup_parent = BeautifulSoup(r.text, features="lxml")
+                if childNode.urlId not in response_dict:
+                    r = requests.get(childNode.url)
+                    response_dict[childNode.urlId] = BeautifulSoup(r.text, features="lxml")
 
-                r = requests.get(childNode.url)
-                bsoup_child = BeautifulSoup(r.text, features="lxml")
-
-                matching_images = list(set(getDocumentImages(bsoup_parent)) & \
-                                       set(getDocumentImages(bsoup_child)))
-
-                print('matching_images: ', matching_images)
+                matching_images = list(set(getDocumentImages(response_dict[node.urlId])) & \
+                                       set(getDocumentImages(response_dict[childNode.urlId])))
 
                 if ((getDocumentName(node.url) == \
                    getDocumentName(childNode.url)) and \
                    (childNode.urlId != node.urlId) and \
-                   (childNode.url not in parallel_docs[getDocumentName(node.url)])) or \
+                   (childNode.url not in parallel_docs[getDocumentName(node.url)])) and \
                    len(matching_images) >= NUM_MATCHING_IMAGES:
                     parallel_docs[getDocumentName(node.url)].append(childNode.url)
                 else:
