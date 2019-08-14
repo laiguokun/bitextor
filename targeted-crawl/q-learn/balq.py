@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import pylab as plt
 
-from common import MySQL, Languages
+from common import MySQL, Languages, Timer
 from helpers import Env
 
 ######################################################################################
@@ -282,9 +282,22 @@ class Candidates:
         raise Exception("shouldn't be here")
     
 ######################################################################################
+class Qnetwork():
+    def __init__(self, params, env):
+        self.corpus = Corpus(params, self)
+
+######################################################################################
+class Qnets():
+    def __init__(self, params, env):
+        self.q = []
+        self.q.append(Qnetwork(params, env))
+        self.q.append(Qnetwork(params, env))
+
+######################################################################################
 class Corpus:
-    def __init__(self, params):
+    def __init__(self, params, qn):
         self.params = params
+        self.qn = qn
         self.transitions = []
 
 
@@ -298,7 +311,7 @@ class Corpus:
         self.transitions.append(transition)
             
 ######################################################################################
-def Trajectory(sqlconn, env, maxDocs, params, corpus):
+def Trajectory(sqlconn, env, maxDocs, params, qns):
     ret = []
     visited = set()
     langsVisited = {} # langId -> count
@@ -321,7 +334,7 @@ def Trajectory(sqlconn, env, maxDocs, params, corpus):
                 print("   langsVisited", langsVisited)
     
             transition = Transition(link.parentNode.urlId, link.childNode.urlId)
-            corpus.AddTransition(transition)
+            qns.q[0].corpus.AddTransition(transition)
 
             for link in node.links:
                 #print("   ", childNode.Debug())
@@ -333,6 +346,17 @@ def Trajectory(sqlconn, env, maxDocs, params, corpus):
         link = candidates.Pop(langsVisited, params)
 
     return ret
+
+######################################################################################
+def Train(params, sess, saver, env, qns):
+    totRewards = []
+    totDiscountedRewards = []
+
+    for epoch in range(params.max_epochs):
+        #print("epoch", epoch)
+        #startState = 30
+        
+        TIMER.Start("Trajectory")
 
 ######################################################################################
 def main():
@@ -360,12 +384,14 @@ def main():
     hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
-    corpus = Corpus(params)
+    qns = Qnets(params, env)
         
+    #totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
+
     #params.debug = True
     arrNaive = naive(sqlconn, env, len(env.nodes), params)
     arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
-    arrRL = Trajectory(sqlconn, env, len(env.nodes), params, corpus)
+    arrRL = Trajectory(sqlconn, env, len(env.nodes), params, qns)
     #print("arrNaive", arrNaive)
     #print("arrBalanced", arrBalanced)
     
