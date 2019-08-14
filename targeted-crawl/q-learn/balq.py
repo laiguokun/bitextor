@@ -192,65 +192,6 @@ def AddTodo(langsTodo, visited, link):
 
 ######################################################################################
 ######################################################################################
-class Transition:
-    def __init__(self, currURLId, nextURLId):
-        self.currURLId = currURLId
-        self.nextURLId = nextURLId 
-
-    def DebugTransition(self):
-        ret = str(self.currURLId) + "->" + str(self.nextURLId)
-        return ret
-
-class Candidates:
-    def __init__(self, params):
-        self.params = params
-        self.dict = {} # parent lang -> links[]
-
-        #for langId in params.langIds:
-        #    self.dict[langId] = []
-
-    def copy(self):
-        ret = Candidates(self.params)
-
-        for key, value in self.dict.items():
-            #print("key", key, value)
-            ret.dict[key] = value.copy()
-
-        return ret
-    
-    def AddLink(self, link):
-        langId = link.parentNode.lang
-        if langId not in self.dict:
-            self.dict[langId] = []
-        self.dict[langId].append(link)
-
-    def GetLangProb(self, langRequested, langIds, langsVisited, params):
-        # sum of all nodes visited
-        sumRequired = 0
-        for lang, count in langsVisited.items():
-            if lang in langIds:
-                sumRequired += count
-        sumRequired += 0.001 #1
-        #print("langsVisited", sumAll, sumRequired, langsVisited)
-        
-        if langRequested in langsVisited:
-            ret = 1 - float(langsVisited[langRequested]) / float(sumRequired)
-        else:
-            ret = 0
-        return ret
-
-    def RandomLink(self):
-        while True:
-            idx = np.random.randint(0, len(self.dict))
-            langs = list(self.dict.keys())
-            lang = langs[idx]
-            links = self.dict[lang]
-            #print("idx", idx, len(nodes))
-            if len(links) > 0:
-                return links.pop(0)
-        raise Exception("shouldn't be here")
-    
-######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
         self.corpus = Corpus(params, self)
@@ -283,6 +224,68 @@ class Corpus:
         pass
 
 ######################################################################################
+class Transition:
+    def __init__(self, currURLId, nextURLId):
+        self.currURLId = currURLId
+        self.nextURLId = nextURLId 
+
+    def DebugTransition(self):
+        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        return ret
+
+class Candidates:
+    def __init__(self, params):
+        self.params = params
+        self.dict = {} # parent lang -> links[]
+
+        #for langId in params.langIds:
+        #    self.dict[langId] = []
+
+    def copy(self):
+        ret = Candidates(self.params)
+
+        for key, value in self.dict.items():
+            #print("key", key, value)
+            ret.dict[key] = value.copy()
+
+        return ret
+    
+    def AddLink(self, link):
+        langId = link.parentNode.lang
+        if langId not in self.dict:
+            self.dict[langId] = []
+        self.dict[langId].append(link)
+        
+    def GetLangProb(self, langRequested, langIds, langsVisited, params):
+        # sum of all nodes visited
+        sumRequired = 0
+        for lang, count in langsVisited.items():
+            if lang in langIds:
+                sumRequired += count
+        sumRequired += 0.001 #1
+        #print("langsVisited", sumAll, sumRequired, langsVisited)
+        
+        if langRequested in langsVisited:
+            ret = float(sumRequired) - float(langsVisited[langRequested])
+        else:
+            ret = 0
+        return ret
+
+    def RandomLink(self):
+        while True:
+            idx = np.random.randint(0, len(self.dict))
+            langs = list(self.dict.keys())
+            lang = langs[idx]
+            links = self.dict[lang]
+            #print("idx", idx, len(nodes))
+            if len(links) > 0:
+                return links.pop(0)
+        raise Exception("shouldn't be here")
+    
+    def GetFeaturesNP(env, params, visited):
+        pass
+
+######################################################################################
 def Neural(params, unvisited, langsVisited):
     #link = unvisited.Pop(langsVisited, params)
     sum = 0
@@ -297,6 +300,7 @@ def Neural(params, unvisited, langsVisited):
     for langId in params.langIds:
         prob = unvisited.GetLangProb(langId, params.langIds, langsVisited, params)
         probs[langId] = prob
+    #print("probs", probs)
 
     maxProb = 0
     argMax = sys.maxsize
