@@ -53,7 +53,7 @@ def NumParallelDocs(env, visited):
     return ret
 
 ######################################################################################
-def naive(sqlconn, env, maxDocs, params):
+def naive(env, maxDocs, params):
     ret = []
     todo = []
     todo.append(env.rootNode)
@@ -84,7 +84,7 @@ def naive(sqlconn, env, maxDocs, params):
     return ret
 
 ######################################################################################
-def balanced(sqlconn, env, maxDocs, params):
+def balanced(env, maxDocs, params):
     ret = []
     visited = set()
     langsVisited = {}
@@ -331,7 +331,7 @@ def Trajectory(env, epoch, params, qns):
     assert(len(startNode.links) == 1)
     link = next(iter(startNode.links))
 
-    while link is not None and len(visited) < params.maxDocs:
+    while True:
         tmp = np.random.rand(1)
         if tmp > 0.5:
             qnA = qns.q[0]
@@ -362,6 +362,9 @@ def Trajectory(env, epoch, params, qns):
 
         link = candidates.Pop(langsVisited, params)
 
+        if link is None or len(visited) > params.maxDocs:
+            break
+
     return ret
 
 ######################################################################################
@@ -382,6 +385,15 @@ def Train(params, sess, saver, env, qns):
         qns.q[0].corpus.Train(sess, env, params)
         qns.q[1].corpus.Train(sess, env, params)
         TIMER.Pause("Update")
+
+        arrNaive = naive(env, len(env.nodes), params)
+        arrBalanced = balanced(env, len(env.nodes), params)
+        plt.plot(arrNaive, label="naive")
+        plt.plot(arrBalanced, label="balanced")
+        plt.plot(arrRL, label="RL")
+        plt.legend(loc='upper left')
+        plt.show()
+
 
     return totRewards, totDiscountedRewards
 
@@ -425,8 +437,8 @@ def main():
         totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
 
         #params.debug = True
-        #arrNaive = naive(sqlconn, env, len(env.nodes), params)
-        #arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
+        #arrNaive = naive(env, len(env.nodes), params)
+        #arrBalanced = balanced(env, len(env.nodes), params)
         #arrRL = Trajectory(env, len(env.nodes), params, qns)
         #print("arrNaive", arrNaive)
         #print("arrBalanced", arrBalanced)
