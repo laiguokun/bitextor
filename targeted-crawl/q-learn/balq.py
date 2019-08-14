@@ -223,39 +223,6 @@ class Candidates:
         if langId not in self.dict:
             self.dict[langId] = []
         self.dict[langId].append(link)
-    
-    def Pop(self, langsVisited, params):
-        sum = 0
-        # any nodes left to do
-        for nodes in self.dict.values():
-            sum += len(nodes)
-        if sum == 0:
-            return None
-        del sum
-    
-        probs = {}
-        for langId in params.langIds:
-            prob = self.GetLangProb(langId, params.langIds, langsVisited, params)
-            probs[langId] = prob
-
-        maxProb = 0
-        argMax = sys.maxsize
-        for langId in params.langIds:
-            if probs[langId] > maxProb:
-                maxProb = probs[langId]
-                argMax = langId
-
-        if argMax in self.dict:
-            links = self.dict[argMax]
-            if len(links) > 0:
-                link = links.pop(0)
-            else:
-                link = self.RandomLink()
-        else:
-            link = self.RandomLink()
-
-        #print("   link", link.Debug())
-        return link
 
     def GetLangProb(self, langRequested, langIds, langsVisited, params):
         # sum of all nodes visited
@@ -317,7 +284,35 @@ class Corpus:
 
 ######################################################################################
 def Neural(params, unvisited, langsVisited):
-    link = unvisited.Pop(langsVisited, params)
+    #link = unvisited.Pop(langsVisited, params)
+    sum = 0
+    # any nodes left to do
+    for nodes in unvisited.dict.values():
+        sum += len(nodes)
+    if sum == 0:
+        return Transition(0, 0)
+    del sum
+
+    probs = {}
+    for langId in params.langIds:
+        prob = unvisited.GetLangProb(langId, params.langIds, langsVisited, params)
+        probs[langId] = prob
+
+    maxProb = 0
+    argMax = sys.maxsize
+    for langId in params.langIds:
+        if probs[langId] > maxProb:
+            maxProb = probs[langId]
+            argMax = langId
+
+    if argMax in unvisited.dict:
+        links = unvisited.dict[argMax]
+        if len(links) > 0:
+            link = links.pop(0)
+        else:
+            link = unvisited.RandomLink()
+    else:
+        link = unvisited.RandomLink()
 
     if link is not None:
         transition = Transition(link.parentNode.urlId, link.childNode.urlId)
