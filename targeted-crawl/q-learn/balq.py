@@ -233,16 +233,18 @@ class Transition:
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
         return ret
 
+######################################################################################
 class Candidates:
-    def __init__(self, params):
+    def __init__(self, params, env):
         self.params = params
+        self.env = env
         self.dict = {} # parent lang -> links[]
 
         #for langId in params.langIds:
         #    self.dict[langId] = []
 
     def copy(self):
-        ret = Candidates(self.params)
+        ret = Candidates(self.params, self.env)
 
         for key, value in self.dict.items():
             #print("key", key, value)
@@ -256,21 +258,6 @@ class Candidates:
             self.dict[langId] = []
         self.dict[langId].append(link)
         
-    def GetLangProb(self, langRequested, langIds, langsVisited, params):
-        # sum of all nodes visited
-        sumRequired = 0
-        for lang, count in langsVisited.items():
-            if lang in langIds:
-                sumRequired += count
-        sumRequired += 0.001 #1
-        #print("langsVisited", sumAll, sumRequired, langsVisited)
-        
-        if langRequested in langsVisited:
-            ret = float(sumRequired) - float(langsVisited[langRequested])
-        else:
-            ret = 0
-        return ret
-
     def RandomLink(self):
         while True:
             idx = np.random.randint(0, len(self.dict))
@@ -282,10 +269,29 @@ class Candidates:
                 return links.pop(0)
         raise Exception("shouldn't be here")
     
-    def GetFeaturesNP(env, params, visited):
-        pass
+    def GetFeaturesNP(self, langsVisited):
+        langFeatures = np.zeros([1, self.env.maxLangId + 1], dtype=np.int)
+        for lang, count in langsVisited.items():
+            #print("   lang", lang, count)
+            langFeatures[0, lang] = count
+
+        return langFeatures
+
 
 ######################################################################################
+def ModelCalc(langRequested, langIds, langsVisited, unvisited):
+    langFeatures = unvisited.GetFeaturesNP(langsVisited)
+    #print("langFeatures", langRequested, langsVisited, langFeatures)
+
+    if langRequested in langIds:
+        sumAll = np.sum(langFeatures)
+        #print("sumAll", sumAll)
+        ret = sumAll - langFeatures[0, langRequested]
+    else:
+        ret = 0
+
+    return ret
+
 def Neural(params, unvisited, langsVisited):
     #link = unvisited.Pop(langsVisited, params)
     sum = 0
@@ -298,7 +304,7 @@ def Neural(params, unvisited, langsVisited):
 
     probs = {}
     for langId in params.langIds:
-        prob = unvisited.GetLangProb(langId, params.langIds, langsVisited, params)
+        prob = ModelCalc(langId, params.langIds, langsVisited, unvisited)
         probs[langId] = prob
     #print("probs", probs)
 
@@ -330,7 +336,7 @@ def Trajectory(env, epoch, params, qns):
     ret = []
     visited = set()
     langsVisited = {} # langId -> count
-    candidates = Candidates(params)
+    candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
     while True:
