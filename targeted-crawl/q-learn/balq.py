@@ -314,7 +314,7 @@ def ModelCalc(langRequested, langIds, langsVisited, unvisited):
 
     return ret
 
-def Neural(params, unvisited, langsVisited):
+def Neural(env, params, unvisited, langsVisited):
     #link = unvisited.Pop(langsVisited, params)
     sum = 0
     # any nodes left to do
@@ -324,18 +324,13 @@ def Neural(params, unvisited, langsVisited):
         return Transition(0, 0)
     del sum
 
-    probs = {}
-    for langId in params.langIds:
-        prob = ModelCalc(langId, params.langIds, langsVisited, unvisited)
-        probs[langId] = prob
-    #print("probs", probs)
+    qs = np.empty([1, env.maxLangId])
+    for langId in range(env.maxLangId):
+        q = ModelCalc(langId, params.langIds, langsVisited, unvisited)
+        qs[0, langId] = q
+    print("qs", qs)
 
-    maxProb = 0
-    argMax = sys.maxsize
-    for langId in params.langIds:
-        if probs[langId] > maxProb:
-            maxProb = probs[langId]
-            argMax = langId
+    argMax = np.argmax(qs)
 
     if argMax in unvisited.dict:
         links = unvisited.dict[argMax]
@@ -389,7 +384,7 @@ def Trajectory(env, epoch, params, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        transition = Neural(params, candidates, langsVisited)
+        transition = Neural(env, params, candidates, langsVisited)
         qnA.corpus.AddTransition(transition)
 
         if transition.nextURLId == 0:
@@ -453,9 +448,9 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
+    #hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
-    #hostName = "http://www.visitbritain.com/"
+    hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     tf.reset_default_graph()
