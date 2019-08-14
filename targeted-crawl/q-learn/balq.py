@@ -316,8 +316,9 @@ class Corpus:
         pass
 
 ######################################################################################
-def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
-    pass
+def Neural(params, unvisited, langsVisited):
+    link = unvisited.Pop(langsVisited, params)
+    return link
 
 ######################################################################################
 def Trajectory(env, epoch, params, qns):
@@ -360,7 +361,7 @@ def Trajectory(env, epoch, params, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        link = candidates.Pop(langsVisited, params)
+        link = Neural(params, candidates, langsVisited)
 
         if link is None or len(visited) > params.maxDocs:
             break
