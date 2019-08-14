@@ -318,7 +318,13 @@ class Corpus:
 ######################################################################################
 def Neural(params, unvisited, langsVisited):
     link = unvisited.Pop(langsVisited, params)
-    return link
+
+    if link is not None:
+        transition = Transition(link.parentNode.urlId, link.childNode.urlId)
+    else:
+        transition = Transition(0, 0)
+
+    return transition
 
 ######################################################################################
 def Trajectory(env, epoch, params, qns):
@@ -326,11 +332,7 @@ def Trajectory(env, epoch, params, qns):
     visited = set()
     langsVisited = {} # langId -> count
     candidates = Candidates(params)
-
     node = env.nodes[sys.maxsize]
-    #print("startNode", startNode.Debug())
-    #assert(len(startNode.links) == 1)
-    #link = next(iter(startNode.links))
 
     while True:
         tmp = np.random.rand(1)
@@ -350,8 +352,8 @@ def Trajectory(env, epoch, params, qns):
             if params.debug and len(visited) % 40 == 0:
                 print("   langsVisited", langsVisited)
     
-            #transition = Transition(link.parentNode.urlId, link.childNode.urlId)
-            #qnA.corpus.AddTransition(transition)
+            if len(visited) > params.maxDocs:
+                break
 
             for link in node.links:
                 #print("   ", childNode.Debug())
@@ -360,12 +362,13 @@ def Trajectory(env, epoch, params, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        link = Neural(params, candidates, langsVisited)
+        transition = Neural(params, candidates, langsVisited)
+        qnA.corpus.AddTransition(transition)
 
-        if link is None or len(visited) > params.maxDocs:
+        if transition.nextURLId == 0:
             break
         else:
-            node = link.childNode
+            node = env.nodes[transition.nextURLId]
 
     return ret
 
