@@ -192,11 +192,6 @@ def AddTodo(langsTodo, visited, link):
 
 ######################################################################################
 ######################################################################################
-class Qnetwork():
-    def __init__(self, params, env):
-        self.corpus = Corpus(params, self)
-
-######################################################################################
 class Qnets():
     def __init__(self, params, env):
         self.q = []
@@ -277,6 +272,33 @@ class Candidates:
 
         return langFeatures
 
+######################################################################################
+class Qnetwork():
+    def __init__(self, params, env):
+        self.params = params
+        self.env = env
+        self.corpus = Corpus(params, self)
+
+        HIDDEN_DIM = 128
+        NUM_FEATURES = env.maxLangId + 1
+
+        self.input = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES, HIDDEN_DIM], 0, 0.01))
+        self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
+        self.hidden1 = tf.matmul(self.input, self.W1)
+        self.hidden1 = tf.add(self.hidden1, self.b1)
+        self.hidden1 = tf.nn.relu(self.hidden1)
+
+        self.Qout = self.hidden1
+        self.predict = tf.argmax(self.Qout, 1)
+
+        # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
+        self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
+        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
+        
+        self.updateModel = self.trainer.minimize(self.loss)
 
 ######################################################################################
 def ModelCalc(langRequested, langIds, langsVisited, unvisited):
@@ -431,9 +453,9 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
+    hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
-    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     tf.reset_default_graph()
