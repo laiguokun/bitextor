@@ -5,6 +5,7 @@ import numpy as np
 import argparse
 import hashlib
 import pylab as plt
+import tensorflow as tf
 
 from common import MySQL, Languages, Timer
 from helpers import Env
@@ -15,7 +16,7 @@ class LearningParams:
         self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 20001
+        self.max_epochs = 2 #20001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -310,8 +311,11 @@ class Corpus:
     
         self.transitions.append(transition)
             
+    def Train(self, sess, env, params):
+        pass
+
 ######################################################################################
-def Trajectory(sqlconn, env, maxDocs, params, qns):
+def Trajectory(env, maxDocs, params, qns):
     ret = []
     visited = set()
     langsVisited = {} # langId -> count
@@ -323,6 +327,14 @@ def Trajectory(sqlconn, env, maxDocs, params, qns):
     link = next(iter(startNode.links))
 
     while link is not None and len(visited) < maxDocs:
+        tmp = np.random.rand(1)
+        if tmp > 0.5:
+            qnA = qns.q[0]
+            qnB = qns.q[1]
+        else:
+            qnA = qns.q[1]
+            qnB = qns.q[0]
+
         node = link.childNode
         if node.urlId not in visited:
             #print("node", node.Debug())
@@ -334,7 +346,7 @@ def Trajectory(sqlconn, env, maxDocs, params, qns):
                 print("   langsVisited", langsVisited)
     
             transition = Transition(link.parentNode.urlId, link.childNode.urlId)
-            qns.q[0].corpus.AddTransition(transition)
+            qnA.corpus.AddTransition(transition)
 
             for link in node.links:
                 #print("   ", childNode.Debug())
@@ -357,9 +369,22 @@ def Train(params, sess, saver, env, qns):
         #startState = 30
         
         TIMER.Start("Trajectory")
+        arrRL = Trajectory(env, len(env.nodes), params, qns)
 
+        TIMER.Pause("Trajectory")
+
+        TIMER.Start("Update")
+        qns.q[0].corpus.Train(sess, env, params)
+        qns.q[1].corpus.Train(sess, env, params)
+        TIMER.Pause("Update")
+
+    return totRewards, totDiscountedRewards
+    
 ######################################################################################
 def main():
+    global TIMER
+    TIMER = Timer()
+
     oparser = argparse.ArgumentParser(description="intelligent crawling with q-learning")
     oparser.add_argument("--config-file", dest="configFile", required=True,
                          help="Path to config file (containing MySQL login etc.)")
@@ -379,27 +404,33 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
+    hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
-    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
+    tf.reset_default_graph()
     qns = Qnets(params, env)
-        
-    #totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
+    init = tf.global_variables_initializer()
 
-    #params.debug = True
-    arrNaive = naive(sqlconn, env, len(env.nodes), params)
-    arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
-    arrRL = Trajectory(sqlconn, env, len(env.nodes), params, qns)
-    #print("arrNaive", arrNaive)
-    #print("arrBalanced", arrBalanced)
-    
-    plt.plot(arrNaive, label="naive")
-    plt.plot(arrBalanced, label="balanced")
-    plt.plot(arrRL, label="RL")
-    plt.legend(loc='upper left')
-    plt.show()
+    saver = None #tf.train.Saver()
+    with tf.Session() as sess:
+        sess.run(init)
+
+        totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
+
+        #params.debug = True
+        arrNaive = naive(sqlconn, env, len(env.nodes), params)
+        arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
+        arrRL = Trajectory(env, len(env.nodes), params, qns)
+        #print("arrNaive", arrNaive)
+        #print("arrBalanced", arrBalanced)
+        
+        plt.plot(arrNaive, label="naive")
+        plt.plot(arrBalanced, label="balanced")
+        plt.plot(arrRL, label="RL")
+        plt.legend(loc='upper left')
+        plt.show()
 
 ######################################################################################
 main()
