@@ -328,7 +328,7 @@ def Neural(env, params, unvisited, langsVisited):
     for langId in range(env.maxLangId):
         q = ModelCalc(langId, params.langIds, langsVisited, unvisited)
         qs[0, langId] = q
-    print("qs", qs)
+    #print("qs", qs)
 
     argMax = np.argmax(qs)
 
