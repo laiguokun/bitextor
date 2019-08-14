@@ -209,7 +209,10 @@ class Candidates:
 
     def copy(self):
         ret = Candidates(self.params)
-        ret.dict = self.dict.copy()
+
+        for key, value in self.dict.items():
+            #print("key", key, value)
+            ret.dict[key] = value.copy()
 
         return ret
     

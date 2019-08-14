@@ -204,8 +204,11 @@ class Candidates:
 
     def copy(self):
         ret = Candidates()
-        ret.dict = self.dict.copy()
         ret._urlIds = self._urlIds.copy()
+
+        for key, value in self.dict.items():
+            #print("key", key, value)
+            ret.dict[key] = value.copy()
 
         return ret
 
@@ -627,9 +630,22 @@ def DebugTransitions(transitions):
     return ret
 
 ######################################################################################
+def Temp():
+    dict = {}
+    dict[4] = ['sdfsd', 'werew']
+    dict[8] = ['r345df']
+    
+    c = dict.copy()
+    c[2] = ['erterg']
+    c[8].append('78978')
 
+    print("dict", dict)
+    print("c", c)
+
+######################################################################################
 def Main():
     print("Starting")
+    Temp()
     global TIMER
     TIMER = Timer()
 
