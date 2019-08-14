@@ -33,7 +33,8 @@ class LearningParams:
         self.reward = 17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        
+        self.maxDocs = 9999999999
+
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
         self.langIds = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
@@ -315,7 +316,11 @@ class Corpus:
         pass
 
 ######################################################################################
-def Trajectory(env, maxDocs, params, qns):
+def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
+    pass
+
+######################################################################################
+def Trajectory(env, epoch, params, qns):
     ret = []
     visited = set()
     langsVisited = {} # langId -> count
@@ -326,7 +331,7 @@ def Trajectory(env, maxDocs, params, qns):
     assert(len(startNode.links) == 1)
     link = next(iter(startNode.links))
 
-    while link is not None and len(visited) < maxDocs:
+    while link is not None and len(visited) < params.maxDocs:
         tmp = np.random.rand(1)
         if tmp > 0.5:
             qnA = qns.q[0]
@@ -369,7 +374,7 @@ def Train(params, sess, saver, env, qns):
         #startState = 30
         
         TIMER.Start("Trajectory")
-        arrRL = Trajectory(env, len(env.nodes), params, qns)
+        arrRL = Trajectory(env, epoch, params, qns)
 
         TIMER.Pause("Trajectory")
 
@@ -379,7 +384,7 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Update")
 
     return totRewards, totDiscountedRewards
-    
+
 ######################################################################################
 def main():
     global TIMER
@@ -420,17 +425,17 @@ def main():
         totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
 
         #params.debug = True
-        arrNaive = naive(sqlconn, env, len(env.nodes), params)
-        arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
-        arrRL = Trajectory(env, len(env.nodes), params, qns)
+        #arrNaive = naive(sqlconn, env, len(env.nodes), params)
+        #arrBalanced = balanced(sqlconn, env, len(env.nodes), params)
+        #arrRL = Trajectory(env, len(env.nodes), params, qns)
         #print("arrNaive", arrNaive)
         #print("arrBalanced", arrBalanced)
         
-        plt.plot(arrNaive, label="naive")
-        plt.plot(arrBalanced, label="balanced")
-        plt.plot(arrRL, label="RL")
-        plt.legend(loc='upper left')
-        plt.show()
+        #plt.plot(arrNaive, label="naive")
+        #plt.plot(arrBalanced, label="balanced")
+        #plt.plot(arrRL, label="RL")
+        #plt.legend(loc='upper left')
+        #plt.show()
 
 ######################################################################################
 main()
