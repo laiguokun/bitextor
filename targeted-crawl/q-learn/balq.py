@@ -327,10 +327,10 @@ def Trajectory(env, epoch, params, qns):
     langsVisited = {} # langId -> count
     candidates = Candidates(params)
 
-    startNode = env.nodes[sys.maxsize]
+    node = env.nodes[sys.maxsize]
     #print("startNode", startNode.Debug())
-    assert(len(startNode.links) == 1)
-    link = next(iter(startNode.links))
+    #assert(len(startNode.links) == 1)
+    #link = next(iter(startNode.links))
 
     while True:
         tmp = np.random.rand(1)
@@ -341,7 +341,6 @@ def Trajectory(env, epoch, params, qns):
             qnA = qns.q[1]
             qnB = qns.q[0]
 
-        node = link.childNode
         if node.urlId not in visited:
             #print("node", node.Debug())
             visited.add(node.urlId)
@@ -351,8 +350,8 @@ def Trajectory(env, epoch, params, qns):
             if params.debug and len(visited) % 40 == 0:
                 print("   langsVisited", langsVisited)
     
-            transition = Transition(link.parentNode.urlId, link.childNode.urlId)
-            qnA.corpus.AddTransition(transition)
+            #transition = Transition(link.parentNode.urlId, link.childNode.urlId)
+            #qnA.corpus.AddTransition(transition)
 
             for link in node.links:
                 #print("   ", childNode.Debug())
@@ -365,6 +364,8 @@ def Trajectory(env, epoch, params, qns):
 
         if link is None or len(visited) > params.maxDocs:
             break
+        else:
+            node = link.childNode
 
     return ret
 
@@ -422,9 +423,9 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
+    #hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
-    #hostName = "http://www.visitbritain.com/"
+    hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     tf.reset_default_graph()
