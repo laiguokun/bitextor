@@ -454,16 +454,14 @@ def Neural(env, params, unvisited, visited, langsVisited, sess, qnA, qnB):
     else:
         link = unvisited.RandomLink()
 
-    if link is not None:
-        maxQ = qValues[0, action]
-        transition = Transition(link.parentNode.urlId, 
-                                link.childNode.urlId,
-                                action,
-                                params.langIds,
-                                langFeatures,
-                                maxQ)
-    else:
-        transition = Transition(0, 0, None, None, None, None)
+    assert(link is not None)
+    maxQ = qValues[0, action]
+    transition = Transition(link.parentNode.urlId, 
+                            link.childNode.urlId,
+                            action,
+                            params.langIds,
+                            langFeatures,
+                            maxQ)
 
     return transition
 
