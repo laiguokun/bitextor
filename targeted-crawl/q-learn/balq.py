@@ -398,15 +398,15 @@ class Qnetwork():
         return loss, sumWeight
 
 ######################################################################################
-def GetNextState(env, params, action, visited, unvisited):
-    if action in unvisited.dict:
-        links = unvisited.dict[action]
+def GetNextState(env, params, action, visited, candidates):
+    if action in candidates.dict:
+        links = candidates.dict[action]
         if len(links) > 0:
             link = links.pop(0)
         else:
-            link = unvisited.RandomLink()
+            link = candidates.RandomLink()
     else:
-        link = unvisited.RandomLink()
+        link = candidates.RandomLink()
 
     assert(link is not None)
     nextNode = link.childNode
@@ -427,24 +427,24 @@ def GetNextState(env, params, action, visited, unvisited):
 
     return link, reward
 
-def Neural(env, params, unvisited, visited, langsVisited, sess, qnA, qnB):
-    #link = unvisited.Pop(langsVisited, params)
+def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
+    #link = candidates.Pop(langsVisited, params)
     sum = 0
     # any nodes left to do?
-    for nodes in unvisited.dict.values():
+    for nodes in candidates.dict.values():
         sum += len(nodes)
     if sum == 0:
         return Transition(0, 0, None, None, None, None)
     del sum
 
-    langFeatures = unvisited.GetFeaturesNP(langsVisited)
+    langFeatures = candidates.GetFeaturesNP(langsVisited)
     qValues = qnA.PredictAll(env, sess, params.langIds, langFeatures)
 
     action = np.argmax(qValues)
     #print("argMax", argMax, maxQ)
     #print("action", action, maxQ, qValues)
 
-    link, reward = GetNextState(env, params, action, visited, unvisited)
+    link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
