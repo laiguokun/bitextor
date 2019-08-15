@@ -489,7 +489,7 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
     TIMER.Pause("Neural.2")
     
     TIMER.Start("Neural.3")
-    nextURLId, r = GetNextState(env, params, action, visited, urlIds)
+    nextURLId, reward = GetNextState(env, params, action, visited, urlIds)
     nextNode = env.nodes[nextURLId]
     #if DEBUG: print("   action", action, next, Qs)
     TIMER.Pause("Neural.3")
@@ -526,7 +526,7 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
     targetQ = Qs
     #targetQ = np.array(Qs, copy=True)
     #print("  targetQ", targetQ)
-    newVal = r + params.gamma * maxNextQ
+    newVal = reward + params.gamma * maxNextQ
     targetQ[0, action] = (1 - params.alpha) * targetQ[0, action] + params.alpha * newVal
     #targetQ[0, action] = newVal
     ZeroOutStop(targetQ, urlIds, numURLs, params.unusedActionCost)

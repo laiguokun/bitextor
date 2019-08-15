@@ -400,11 +400,20 @@ class Qnetwork():
 
 ######################################################################################
 def GetNextState(env, params, action, visited, unvisited):
-    assert(urlIds.shape[1] > action)
-    nextURLId = urlIds[0, action]
-    #print("   nextNodeId", nextNodeId)
-    nextNode = env.nodes[nextURLId]
-    if nextURLId == 0:
+    if action in unvisited.dict:
+        links = unvisited.dict[action]
+        if len(links) > 0:
+            link = links.pop(0)
+        else:
+            link = unvisited.RandomLink()
+    else:
+        link = unvisited.RandomLink()
+
+    assert(link is not None)
+    nextNode = link.childNode
+    #print("   nextNode", nextNode.Debug())
+
+    if nextNode.urlId == 0:
         #print("   stop")
         reward = 0.0
     elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
@@ -417,8 +426,7 @@ def GetNextState(env, params, action, visited, unvisited):
         #print("   non-rewarding")
         reward = params.cost
 
-    return nextURLId, reward
-
+    return link, reward
 
 def Neural(env, params, unvisited, visited, langsVisited, sess, qnA, qnB):
     #link = unvisited.Pop(langsVisited, params)
@@ -443,18 +451,10 @@ def Neural(env, params, unvisited, visited, langsVisited, sess, qnA, qnB):
     #print("argMax", argMax, maxQ)
     #print("action", action, maxQ, qValues)
 
-    #link, reward = GetNextState(env, params, action, visited, unvisited)
-
-    if action in unvisited.dict:
-        links = unvisited.dict[action]
-        if len(links) > 0:
-            link = links.pop(0)
-        else:
-            link = unvisited.RandomLink()
-    else:
-        link = unvisited.RandomLink()
-
+    link, reward = GetNextState(env, params, action, visited, unvisited)
     assert(link is not None)
+    #print("action", action, qValues, link, reward)
+    
     maxQ = qValues[0, action]
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
