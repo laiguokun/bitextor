@@ -183,10 +183,10 @@ def main():
     arrNaive = naive(sqlconn, env, len(env.nodes))
     arrBalanced = balanced(sqlconn, env, len(env.nodes), langIds)
     #print("arrNaive", arrNaive)
-    #print("arrBalanced", arrBalanced)
-    
-    plt.plot(arrNaive)
-    plt.plot(arrBalanced)
+    #print("arrBalanced", arrBalanced)    
+    plt.plot(arrNaive, label="naive")
+    plt.plot(arrBalanced, label="balanced")
+    plt.legend(loc='upper left')
     plt.show()
 
 ######################################################################################
