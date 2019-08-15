@@ -352,9 +352,10 @@ class Qnetwork():
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
-        self.hidden1 = tf.math.reduce_sum(self.hidden1, axis=1)
         self.hidden1 = tf.nn.relu(self.hidden1)
 
+
+        self.hidden1 = tf.math.reduce_sum(self.hidden1, axis=1)
         self.qValue = self.hidden1
        
         self.sumWeight = tf.reduce_sum(self.W1) \
@@ -605,11 +606,11 @@ def Train(params, sess, saver, env, qns):
             arrNaive = naive(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, epoch, params, sess, qns)
-            plt.plot(arrNaive, label="naive")
-            plt.plot(arrBalanced, label="balanced")
-            plt.plot(arrRL, label="RL")
-            plt.legend(loc='upper left')
-            plt.show()
+            #plt.plot(arrNaive, label="naive")
+            #plt.plot(arrBalanced, label="balanced")
+            #plt.plot(arrRL, label="RL")
+            #plt.legend(loc='upper left')
+            #plt.show()
 
 
     return totRewards, totDiscountedRewards
