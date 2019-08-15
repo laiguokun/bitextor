@@ -8,7 +8,7 @@ import pylab as plt
 import tensorflow as tf
 
 from common import MySQL, Languages, Timer
-from helpers import Env
+from helpers import Env, Link
 
 ######################################################################################
 class LearningParams:
@@ -387,6 +387,9 @@ class Qnetwork():
                 qValues[langId] = qValue[0]
         #print("qValues", env.maxLangId, qValues)
 
+        if len(qValues) == 0:
+            qValues[0] = 0
+
         return qValues
 
     def Update(self, sess, langRequested, langIds, langFeatures, targetQ):
@@ -400,15 +403,14 @@ class Qnetwork():
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
-    if action in candidates.dict:
-        links = candidates.dict[action]
-        if len(links) > 0:
-            link = links.pop(0)
-        else:
-            link = candidates.RandomLink()
+    if action == 0:
+        stopNode = env.nodes[0]
+        link = Link("", 0, stopNode, stopNode)
     else:
-        link = candidates.RandomLink()
-
+        links = candidates.dict[action]
+        assert(len(links) > 0)
+        link = links.pop(0)
+ 
     assert(link is not None)
     nextNode = link.childNode
     #print("   nextNode", nextNode.Debug())
@@ -419,7 +421,6 @@ def GetNextState(env, params, action, visited, candidates):
     elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
         reward = params.reward
         #print("   visited", visited)
-        #print("   nodeIds", nodeIds)
         #print("   reward", reward)
         #print()
     else:
@@ -429,14 +430,6 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    #link = candidates.Pop(langsVisited, params)
-    sum = 0
-    # any nodes left to do?
-    for nodes in candidates.dict.values():
-        sum += len(nodes)
-    if sum == 0:
-        return Transition(0, 0, None, None, None, None)
-    del sum
 
     langFeatures = candidates.GetFeaturesNP(langsVisited)
     qValues = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
@@ -447,7 +440,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
         if maxQ < qValue:
             maxQ = qValue
             action = langId
-    print("action", action, maxQ, qValues)
+    #print("action", action, maxQ, qValues)
 
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
@@ -562,9 +555,9 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
+    #hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
-    #hostName = "http://www.visitbritain.com/"
+    hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     # change language of start node. 0 = stop
