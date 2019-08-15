@@ -604,9 +604,7 @@ def Train(params, sess, saver, env, qns):
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
-        print("epoch", epoch)
-        #startState = 30
-        
+        #print("epoch", epoch)
         TIMER.Start("Trajectory")
         _ = Trajectory(env, epoch, params, sess, qns)
 
