@@ -337,11 +337,13 @@ class Qnetwork():
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
-
         self.langFeatures = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES, HIDDEN_DIM], 0, 0.01))
+        self.input = tf.concat([self.langRequested, self.langIds, self.langFeatures], 1)
+        #print("self.input", self.input.shape)
+
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden1 = tf.matmul(self.langFeatures, self.W1)
+        self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
         self.hidden1 = tf.math.reduce_sum(self.hidden1, axis=1)
         self.hidden1 = tf.nn.relu(self.hidden1)
@@ -367,7 +369,7 @@ class Qnetwork():
         langIdsNP[0,0] = langIds[0]
         langIdsNP[0,1] = langIds[1]
 
-        #print("input", langRequested, langRequestedNP, langIds, langFeatures)
+        #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
         #print("numURLs", numURLs)
         qValue = sess.run([self.qValue], 
                                 feed_dict={self.langRequested: langRequestedNP,
@@ -444,7 +446,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
-    print("action", action, qValues, link, reward)
+    #print("action", action, qValues, link, reward)
     
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
@@ -555,9 +557,9 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
+    hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
-    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     # change language of start node. 0 = stop
