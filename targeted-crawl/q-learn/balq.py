@@ -16,7 +16,7 @@ class LearningParams:
         self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 2 #20001
+        self.max_epochs = 20001
         self.eps = 1 # 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -447,7 +447,6 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-
     langFeatures = candidates.GetFeaturesNP(langsVisited)
     qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
 
@@ -457,17 +456,35 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
         action = np.random.choice(actions)
         maxQ = qValues[action]
 
-    print("action", action, maxQ, qValues)
+    #print("action", action, maxQ, qValues)
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
+    # calc nextMaxQ
+    nextVisited = visited.copy()
+    nextVisited.add(link.childNode.urlId)
+
+    nextCandidates = candidates.copy()
+    nextCandidates.AddLinks(link.childNode, nextVisited, params)
+
+    nextLangsVisited = langsVisited.copy()
+    if link.childNode.lang not in nextLangsVisited:
+        nextLangsVisited[link.childNode.lang] = 0
+    nextLangsVisited[link.childNode.lang] += 1
+
+    nextLangFeatures = nextCandidates.GetFeaturesNP(nextLangsVisited)
+    _, nextMaxQ, _ = qnA.PredictAll(env, sess, params.langIds, nextLangFeatures, nextCandidates)
+
+    newVal = reward + params.gamma * nextMaxQ
+    targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
+
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
                             action,
                             params.langIds,
                             langFeatures,
-                            maxQ)
+                            targetQ)
 
     return transition
 
@@ -481,7 +498,7 @@ def Trajectory(env, epoch, params, sess, qns):
 
     while True:
         tmp = np.random.rand(1)
-        if tmp > 0.5:
+        if tmp > 1: #0.5:
             qnA = qns.q[0]
             qnB = qns.q[1]
         else:
@@ -534,13 +551,13 @@ def Train(params, sess, saver, env, qns):
         qns.q[1].corpus.Train(sess, env, params)
         TIMER.Pause("Update")
 
-        arrNaive = naive(env, len(env.nodes), params)
-        arrBalanced = balanced(env, len(env.nodes), params)
-        plt.plot(arrNaive, label="naive")
-        plt.plot(arrBalanced, label="balanced")
-        plt.plot(arrRL, label="RL")
-        plt.legend(loc='upper left')
-        plt.show()
+        #arrNaive = naive(env, len(env.nodes), params)
+        #arrBalanced = balanced(env, len(env.nodes), params)
+        #plt.plot(arrNaive, label="naive")
+        #plt.plot(arrBalanced, label="balanced")
+        #plt.plot(arrRL, label="RL")
+        #plt.legend(loc='upper left')
+        #plt.show()
 
 
     return totRewards, totDiscountedRewards
