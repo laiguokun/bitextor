@@ -23,7 +23,7 @@ class LearningParams:
         self.trainNumIter = 10
         
         self.debug = False
-        self.walk = 1000
+        self.walk = 10
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -461,10 +461,10 @@ def NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA):
     assert(link is not None)
     #print("action", action, qValues, link, reward)
 
-    return langFeatures, maxQ, action, link, reward
+    return langFeatures, qValues, maxQ, action, link, reward
 
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    langFeatures, maxQ, action, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+    langFeatures, _, maxQ, action, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -573,7 +573,8 @@ def Walk(env, epoch, params, sess, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        _, _, _, link, _ = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+        _, qValues, _, _, link, _ = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+        print("qValues", qValues)
         node = link.childNode
         
         if node.urlId == 0:
