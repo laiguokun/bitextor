@@ -436,13 +436,19 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     langFeatures = candidates.GetFeaturesNP(langsVisited)
     qValues = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
 
-    maxQ = -999999.0
-    action = None
-    for langId, qValue in qValues.items():
-        if maxQ < qValue:
-            maxQ = qValue
-            action = langId
-    #print("action", action, maxQ, qValues)
+    if np.random.rand(1) < params.eps:
+        actions = list(qValues.keys())
+        #print("actions", type(actions), actions)
+        action = np.random.choice(actions)
+        maxQ = qValues[action]
+    else:
+        maxQ = -999999.0
+        action = None
+        for langId, qValue in qValues.items():
+            if maxQ < qValue:
+                maxQ = qValue
+                action = langId
+    print("action", action, maxQ, qValues)
 
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
