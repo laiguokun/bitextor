@@ -244,7 +244,7 @@ class Corpus:
         #print("batchSize", batchSize)
         langRequested = np.empty([batchSize, 1], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langFeatures = np.empty([batchSize, env.maxLangId])
+        langFeatures = np.empty([batchSize, env.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
 
         i = 0
