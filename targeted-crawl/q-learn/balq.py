@@ -343,32 +343,40 @@ class Qnetwork():
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.langFeatures, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
+        self.hidden1 = tf.math.reduce_sum(self.hidden1, axis=1)
         self.hidden1 = tf.nn.relu(self.hidden1)
 
-        self.Qout = self.hidden1
-        self.predict = tf.argmax(self.Qout, 1)
-
+        self.qValue = self.hidden1
+       
         self.sumWeight = tf.reduce_sum(self.W1) \
                          + tf.reduce_sum(self.b1) 
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.Qout))
+        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.qValue))
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
     def Predict(self, sess, langRequested, langIds, langFeatures):
-        #print("input",input.shape, siblings.shape, numNodes.shape)
-        #print("numURLs", numURLs)
-        action, allQ = sess.run([self.predict, self.Qout], 
-                                feed_dict={self.langRequested: langRequested,
-                                    self.langIds: langIds,
-                                    self.langFeatures: langFeatures})
-        action = action[0]
+        langRequestedNP = np.empty([1,1])
+        langRequestedNP[0,0] = langRequested
         
-        return action, allQ
+        langIdsNP = np.empty([1, 2])
+        langIdsNP[0,0] = langIds[0]
+        langIdsNP[0,1] = langIds[1]
+
+        #print("input", langRequested, langRequestedNP, langIds, langFeatures)
+        #print("numURLs", numURLs)
+        qValue = sess.run([self.qValue], 
+                                feed_dict={self.langRequested: langRequestedNP,
+                                    self.langIds: langIdsNP,
+                                    self.langFeatures: langFeatures})
+        qValue = qValue[0]
+        #print("   qValue", qValue.shape, qValue)
+        
+        return qValue
 
     def Update(self, sess, langRequested, langIds, langFeatures, targetQ):
         #print("numURLs", numURLs.shape)
@@ -391,7 +399,7 @@ class Qnetwork():
         return ret
 
 ######################################################################################
-def Neural(env, params, unvisited, langsVisited, qnA, qnB):
+def Neural(env, params, unvisited, langsVisited, sess, qnA, qnB):
     #link = unvisited.Pop(langsVisited, params)
     sum = 0
     # any nodes left to do?
@@ -403,14 +411,15 @@ def Neural(env, params, unvisited, langsVisited, qnA, qnB):
 
     langFeatures = unvisited.GetFeaturesNP(langsVisited)
 
-    qs = np.empty([1, env.maxLangId])
+    qValues = np.empty([1, env.maxLangId])
     for langId in range(env.maxLangId):
-        q = qnA.ModelCalc(langId, params.langIds, langFeatures)
-        qs[0, langId] = q
-    #print("qs", qs)
+        #qValue = qnA.ModelCalc(langId, params.langIds, langFeatures)
+        qValue = qnA.Predict(sess, langId, params.langIds, langFeatures)
+        qValues[0, langId] = qValue
+    #print("qValues", qValues)
 
-    argMax = np.argmax(qs)
-    maxQ = qs[0, argMax]
+    argMax = np.argmax(qValues)
+    maxQ = qValues[0, argMax]
     #print("argMax", argMax, maxQ)
 
     if argMax in unvisited.dict:
@@ -435,7 +444,7 @@ def Neural(env, params, unvisited, langsVisited, qnA, qnB):
     return transition
 
 ######################################################################################
-def Trajectory(env, epoch, params, qns):
+def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
     langsVisited = {} # langId -> count
@@ -470,7 +479,7 @@ def Trajectory(env, epoch, params, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        transition = Neural(env, params, candidates, langsVisited, qnA, qnB)
+        transition = Neural(env, params, candidates, langsVisited, sess, qnA, qnB)
 
         if transition.nextURLId == 0:
             break
@@ -490,7 +499,7 @@ def Train(params, sess, saver, env, qns):
         #startState = 30
         
         TIMER.Start("Trajectory")
-        arrRL = Trajectory(env, epoch, params, qns)
+        arrRL = Trajectory(env, epoch, params, sess, qns)
 
         TIMER.Pause("Trajectory")
 
@@ -534,9 +543,9 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
+    hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
-    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
     tf.reset_default_graph()
