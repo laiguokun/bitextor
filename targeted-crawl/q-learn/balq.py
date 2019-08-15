@@ -282,15 +282,21 @@ class Qnetwork():
         HIDDEN_DIM = 128
         NUM_FEATURES = env.maxLangId + 1
 
-        self.input = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
+        self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
+
+        self.langFeatures = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
         self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden1 = tf.matmul(self.input, self.W1)
+        self.hidden1 = tf.matmul(self.langFeatures, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
         self.hidden1 = tf.nn.relu(self.hidden1)
 
         self.Qout = self.hidden1
         self.predict = tf.argmax(self.Qout, 1)
+
+        self.sumWeight = tf.reduce_sum(self.W1) \
+                         + tf.reduce_sum(self.b1) 
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
@@ -300,21 +306,39 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
+    def Predict(self, sess, langRequested, langIds, langFeatures):
+        #print("input",input.shape, siblings.shape, numNodes.shape)
+        #print("numURLs", numURLs)
+        action, allQ = sess.run([self.predict, self.Qout], 
+                                feed_dict={self.langRequested: langRequested,
+                                    self.langIds: langIds,
+                                    self.langFeatures: langFeatures})
+        action = action[0]
+        
+        return action, allQ
+
+    def Update(self, sess, langRequested, langIds, langFeatures, targetQ):
+        #print("numURLs", numURLs.shape)
+        _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
+                                    feed_dict={self.langRequested: langRequested, 
+                                            self.langIds: langIds, 
+                                            self.langFeatures: langFeatures,
+                                            self.nextQ: targetQ})
+        return loss, sumWeight
+
+    def ModelCalc(self, langRequested, langIds, langFeatures):
+        #print("langFeatures", langRequested, langsVisited, langFeatures)
+        if langRequested in langIds:
+            sumAll = np.sum(langFeatures)
+            #print("sumAll", sumAll)
+            ret = sumAll - langFeatures[0, langRequested]
+        else:
+            ret = 0
+
+        return ret
+
 ######################################################################################
-def ModelCalc(langRequested, langIds, langsVisited, unvisited):
-    langFeatures = unvisited.GetFeaturesNP(langsVisited)
-    #print("langFeatures", langRequested, langsVisited, langFeatures)
-
-    if langRequested in langIds:
-        sumAll = np.sum(langFeatures)
-        #print("sumAll", sumAll)
-        ret = sumAll - langFeatures[0, langRequested]
-    else:
-        ret = 0
-
-    return ret
-
-def Neural(env, params, unvisited, langsVisited):
+def Neural(env, params, unvisited, langsVisited, qnA, qnB):
     #link = unvisited.Pop(langsVisited, params)
     sum = 0
     # any nodes left to do
@@ -326,7 +350,8 @@ def Neural(env, params, unvisited, langsVisited):
 
     qs = np.empty([1, env.maxLangId])
     for langId in range(env.maxLangId):
-        q = ModelCalc(langId, params.langIds, langsVisited, unvisited)
+        langFeatures = unvisited.GetFeaturesNP(langsVisited)
+        q = qnA.ModelCalc(langId, params.langIds, langFeatures)
         qs[0, langId] = q
     #print("qs", qs)
 
@@ -384,7 +409,7 @@ def Trajectory(env, epoch, params, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        transition = Neural(env, params, candidates, langsVisited)
+        transition = Neural(env, params, candidates, langsVisited, qnA, qnB)
         qnA.corpus.AddTransition(transition)
 
         if transition.nextURLId == 0:
