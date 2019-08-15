@@ -23,7 +23,7 @@ class LearningParams:
         self.trainNumIter = 10
         
         self.debug = False
-        self.walk = 10
+        self.walk = 50
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -590,8 +590,8 @@ def Walk(env, epoch, params, sess, qns):
             ret.append(numParallelDocs)
 
         _, qValues, _, _, link, _ = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
-        print("qValues", qValues)
         node = link.childNode
+        print("qValues", qValues)
         
         if node.urlId == 0:
             break
@@ -621,11 +621,11 @@ def Train(params, sess, saver, env, qns):
             arrNaive = naive(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, epoch, params, sess, qns)
-            #plt.plot(arrNaive, label="naive")
-            #plt.plot(arrBalanced, label="balanced")
-            #plt.plot(arrRL, label="RL")
-            #plt.legend(loc='upper left')
-            #plt.show()
+            plt.plot(arrNaive, label="naive")
+            plt.plot(arrBalanced, label="balanced")
+            plt.plot(arrRL, label="RL")
+            plt.legend(loc='upper left')
+            plt.show()
 
 
     return totRewards, totDiscountedRewards
