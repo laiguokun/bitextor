@@ -444,7 +444,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
-    #print("action", action, qValues, link, reward)
+    print("action", action, qValues, link, reward)
     
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
@@ -562,8 +562,8 @@ def main():
 
     # change language of start node. 0 = stop
     env.nodes[sys.maxsize].lang = languages.GetLang("None")
-    for node in env.nodes.values():
-        print(node.Debug())
+    #for node in env.nodes.values():
+    #    print(node.Debug())
 
     tf.reset_default_graph()
     qns = Qnets(params, env)
