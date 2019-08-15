@@ -411,12 +411,12 @@ def Neural(env, params, unvisited, langsVisited, sess, qnA, qnB):
 
     langFeatures = unvisited.GetFeaturesNP(langsVisited)
 
-    qValues = np.empty([1, env.maxLangId])
-    for langId in range(env.maxLangId):
+    qValues = np.empty([1, env.maxLangId + 1])
+    for langId in range(env.maxLangId + 1):
         #qValue = qnA.ModelCalc(langId, params.langIds, langFeatures)
         qValue = qnA.Predict(sess, langId, params.langIds, langFeatures)
         qValues[0, langId] = qValue
-    #print("qValues", qValues)
+    #print("qValues", env.maxLangId, qValues.shape, qValues)
 
     argMax = np.argmax(qValues)
     maxQ = qValues[0, argMax]
