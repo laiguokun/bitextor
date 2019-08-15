@@ -204,7 +204,8 @@ class Corpus:
         self.params = params
         self.qn = qn
         self.transitions = []
-
+        self.losses = []
+        self.sumWeights = []
 
     def AddTransition(self, transition):
         if self.params.deleteDuplicateTransitions:
@@ -214,15 +215,67 @@ class Corpus:
             # completely new trans
     
         self.transitions.append(transition)
-            
+
+    def GetBatchWithoutDelete(self, maxBatchSize):
+        batch = []
+
+        size = len(self.transitions)
+        for i in range(maxBatchSize):
+            idx = np.random.randint(0, size)
+            transition = self.transitions[idx]
+            batch.append(transition)
+
+        return batch
+
     def Train(self, sess, env, params):
-        pass
+        if len(self.transitions) >= params.minCorpusSize:
+            #for transition in self.transitions:
+            #    print(DebugTransition(transition))
+
+            for i in range(params.trainNumIter):
+                batch = self.GetBatchWithoutDelete(params.maxBatchSize)
+                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
+                self.losses.append(loss)
+                self.sumWeights.append(sumWeight)
+            self.transitions.clear()
+        
+    def UpdateQN(self, params, env, sess, batch):
+        batchSize = len(batch)
+        #print("batchSize", batchSize)
+        langRequested = np.empty([batchSize, 1], dtype=np.int)
+        langIds = np.empty([batchSize, 2], dtype=np.int)
+        langFeatures = np.empty([batchSize, env.maxLangId])
+        targetQ = np.empty([batchSize, 1])
+
+        i = 0
+        for transition in batch:
+            #curr = transition.curr
+            #next = transition.next
+
+            langRequested[i, :] = transition.langRequested
+            langIds[i, :] = transition.langIds
+            langFeatures[i, :] = transition.langFeatures
+            targetQ[i, :] = transition.targetQ
+
+            i += 1
+
+        #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
+        TIMER.Start("UpdateQN.1")
+        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ)
+        TIMER.Pause("UpdateQN.1")
+
+        #print("loss", loss)
+        return loss, sumWeight
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId):
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
+        self.langRequested = langRequested 
+        self.langIds = langIds 
+        self.langFeatures = langFeatures 
+        self.targetQ = targetQ 
 
     def DebugTransition(self):
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
@@ -341,21 +394,24 @@ class Qnetwork():
 def Neural(env, params, unvisited, langsVisited, qnA, qnB):
     #link = unvisited.Pop(langsVisited, params)
     sum = 0
-    # any nodes left to do
+    # any nodes left to do?
     for nodes in unvisited.dict.values():
         sum += len(nodes)
     if sum == 0:
-        return Transition(0, 0)
+        return Transition(0, 0, None, None, None, None)
     del sum
+
+    langFeatures = unvisited.GetFeaturesNP(langsVisited)
 
     qs = np.empty([1, env.maxLangId])
     for langId in range(env.maxLangId):
-        langFeatures = unvisited.GetFeaturesNP(langsVisited)
         q = qnA.ModelCalc(langId, params.langIds, langFeatures)
         qs[0, langId] = q
     #print("qs", qs)
 
     argMax = np.argmax(qs)
+    maxQ = qs[0, argMax]
+    #print("argMax", argMax, maxQ)
 
     if argMax in unvisited.dict:
         links = unvisited.dict[argMax]
@@ -367,9 +423,14 @@ def Neural(env, params, unvisited, langsVisited, qnA, qnB):
         link = unvisited.RandomLink()
 
     if link is not None:
-        transition = Transition(link.parentNode.urlId, link.childNode.urlId)
+        transition = Transition(link.parentNode.urlId, 
+                                link.childNode.urlId,
+                                argMax,
+                                params.langIds,
+                                langFeatures,
+                                maxQ)
     else:
-        transition = Transition(0, 0)
+        transition = Transition(0, 0, None, None, None, None)
 
     return transition
 
@@ -410,11 +471,11 @@ def Trajectory(env, epoch, params, qns):
             ret.append(numParallelDocs)
 
         transition = Neural(env, params, candidates, langsVisited, qnA, qnB)
-        qnA.corpus.AddTransition(transition)
 
         if transition.nextURLId == 0:
             break
         else:
+            qnA.corpus.AddTransition(transition)
             node = env.nodes[transition.nextURLId]
 
     return ret
