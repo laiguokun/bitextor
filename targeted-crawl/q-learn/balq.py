@@ -378,6 +378,16 @@ class Qnetwork():
         
         return qValue
 
+    def PredictAll(self, env, sess, langIds, langFeatures):
+        qValues = np.empty([1, env.maxLangId + 1])
+        for langId in range(env.maxLangId + 1):
+            #qValue = qnA.ModelCalc(langId, params.langIds, langFeatures)
+            qValue = self.Predict(sess, langId, langIds, langFeatures)
+            qValues[0, langId] = qValue
+        #print("qValues", env.maxLangId, qValues.shape, qValues)
+
+        return qValues
+
     def Update(self, sess, langRequested, langIds, langFeatures, targetQ):
         #print("numURLs", numURLs.shape)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
@@ -386,17 +396,6 @@ class Qnetwork():
                                             self.langFeatures: langFeatures,
                                             self.nextQ: targetQ})
         return loss, sumWeight
-
-    def ModelCalc(self, langRequested, langIds, langFeatures):
-        #print("langFeatures", langRequested, langsVisited, langFeatures)
-        if langRequested in langIds:
-            sumAll = np.sum(langFeatures)
-            #print("sumAll", sumAll)
-            ret = sumAll - langFeatures[0, langRequested]
-        else:
-            ret = 0
-
-        return ret
 
 ######################################################################################
 def GetNextState(env, params, action, visited, unvisited):
@@ -439,13 +438,7 @@ def Neural(env, params, unvisited, visited, langsVisited, sess, qnA, qnB):
     del sum
 
     langFeatures = unvisited.GetFeaturesNP(langsVisited)
-
-    qValues = np.empty([1, env.maxLangId + 1])
-    for langId in range(env.maxLangId + 1):
-        #qValue = qnA.ModelCalc(langId, params.langIds, langFeatures)
-        qValue = qnA.Predict(sess, langId, params.langIds, langFeatures)
-        qValues[0, langId] = qValue
-    #print("qValues", env.maxLangId, qValues.shape, qValues)
+    qValues = qnA.PredictAll(env, sess, params.langIds, langFeatures)
 
     action = np.argmax(qValues)
     #print("argMax", argMax, maxQ)
