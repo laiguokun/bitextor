@@ -382,17 +382,25 @@ class Qnetwork():
 
     def PredictAll(self, env, sess, langIds, langFeatures, candidates):
         qValues = {}
+        maxQ = -9999999.0
 
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
                 qValue = self.Predict(sess, langId, langIds, langFeatures)
-                qValues[langId] = qValue[0]
+                qValue = qValue[0]
+                qValues[langId] = qValue
+
+                if maxQ < qValue:
+                    maxQ = qValue
+                    argMax = langId
         #print("qValues", env.maxLangId, qValues)
 
         if len(qValues) == 0:
-            qValues[0] = 0
+            qValues[0] = 0.0
+            maxQ = 0.0
+            argMax = 0
 
-        return qValues
+        return qValues, maxQ, argMax
 
     def Update(self, sess, langRequested, langIds, langFeatures, targetQ):
         #print("numURLs", numURLs.shape)
@@ -434,20 +442,14 @@ def GetNextState(env, params, action, visited, candidates):
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 
     langFeatures = candidates.GetFeaturesNP(langsVisited)
-    qValues = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
+    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
 
     if np.random.rand(1) < params.eps:
         actions = list(qValues.keys())
         #print("actions", type(actions), actions)
         action = np.random.choice(actions)
         maxQ = qValues[action]
-    else:
-        maxQ = -999999.0
-        action = None
-        for langId, qValue in qValues.items():
-            if maxQ < qValue:
-                maxQ = qValue
-                action = langId
+
     print("action", action, maxQ, qValues)
 
     link, reward = GetNextState(env, params, action, visited, candidates)
