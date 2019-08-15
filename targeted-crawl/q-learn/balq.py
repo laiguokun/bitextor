@@ -421,6 +421,7 @@ def Neural(env, params, unvisited, langsVisited, sess, qnA, qnB):
     argMax = np.argmax(qValues)
     maxQ = qValues[0, argMax]
     #print("argMax", argMax, maxQ)
+    print("argMax", argMax, maxQ, qValues)
 
     if argMax in unvisited.dict:
         links = unvisited.dict[argMax]

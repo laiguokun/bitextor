@@ -402,7 +402,7 @@ def Walk(env, start, params, sess, qn, printQ):
         else:
             action, allQ = qn.Predict(sess, featuresNP, siblings, numURLs)
             
-        nextURLId, reward = env.GetNextState(params, action, visited, urlIds)
+        nextURLId, reward = GetNextState(env, params, action, visited, urlIds)
         totReward += reward
         totDiscountedReward += discount * reward
         visited.add(nextURLId)
@@ -448,6 +448,27 @@ def WalkAll(env, params, sess, qn):
         Walk(env, node.urlId, params, sess, qn, False)
 
 ######################################################################################
+def GetNextState(env, params, action, visited, urlIds):
+    assert(urlIds.shape[1] > action)
+    nextURLId = urlIds[0, action]
+    #print("   nextNodeId", nextNodeId)
+    nextNode = env.nodes[nextURLId]
+    if nextURLId == 0:
+        #print("   stop")
+        reward = 0.0
+    elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
+        reward = params.reward
+        #print("   visited", visited)
+        #print("   nodeIds", nodeIds)
+        #print("   reward", reward)
+        #print()
+    else:
+        #print("   non-rewarding")
+        reward = params.cost
+
+    return nextURLId, reward
+
+
 def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, docsVisited):
     TIMER.Start("Neural.1")
     #DEBUG = False
@@ -468,7 +489,7 @@ def Neural(env, epoch, currURLId, params, sess, qnA, qnB, visited, unvisited, do
     TIMER.Pause("Neural.2")
     
     TIMER.Start("Neural.3")
-    nextURLId, r = env.GetNextState(params, action, visited, urlIds)
+    nextURLId, r = GetNextState(env, params, action, visited, urlIds)
     nextNode = env.nodes[nextURLId]
     #if DEBUG: print("   action", action, next, Qs)
     TIMER.Pause("Neural.3")

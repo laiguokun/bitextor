@@ -348,26 +348,6 @@ class Env:
         return res[0]
 
     ########################################################################
-    def GetNextState(self, params, action, visited, urlIds):
-        assert(urlIds.shape[1] > action)
-        nextURLId = urlIds[0, action]
-        #print("   nextNodeId", nextNodeId)
-        nextNode = self.nodes[nextURLId]
-        if nextURLId == 0:
-            #print("   stop")
-            reward = 0.0
-        elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
-            reward = params.reward
-            #print("   visited", visited)
-            #print("   nodeIds", nodeIds)
-            #print("   reward", reward)
-            #print()
-        else:
-            #print("   non-rewarding")
-            reward = params.cost
-
-        return nextURLId, reward
-
     def GetNumberAligned(self, path):
         ret = 0
         for transition in path:
