@@ -399,7 +399,7 @@ class Qnetwork():
         return ret
 
 ######################################################################################
-def GetNextState(env, params, action, visited, urlIds):
+def GetNextState(env, params, action, visited, unvisited):
     assert(urlIds.shape[1] > action)
     nextURLId = urlIds[0, action]
     #print("   nextNodeId", nextNodeId)
@@ -420,7 +420,7 @@ def GetNextState(env, params, action, visited, urlIds):
     return nextURLId, reward
 
 
-def Neural(env, params, unvisited, langsVisited, sess, qnA, qnB):
+def Neural(env, params, unvisited, visited, langsVisited, sess, qnA, qnB):
     #link = unvisited.Pop(langsVisited, params)
     sum = 0
     # any nodes left to do?
@@ -440,9 +440,10 @@ def Neural(env, params, unvisited, langsVisited, sess, qnA, qnB):
     #print("qValues", env.maxLangId, qValues.shape, qValues)
 
     action = np.argmax(qValues)
-    maxQ = qValues[0, action]
     #print("argMax", argMax, maxQ)
     #print("action", action, maxQ, qValues)
+
+    #link, reward = GetNextState(env, params, action, visited, unvisited)
 
     if action in unvisited.dict:
         links = unvisited.dict[action]
@@ -454,6 +455,7 @@ def Neural(env, params, unvisited, langsVisited, sess, qnA, qnB):
         link = unvisited.RandomLink()
 
     if link is not None:
+        maxQ = qValues[0, action]
         transition = Transition(link.parentNode.urlId, 
                                 link.childNode.urlId,
                                 action,
@@ -501,7 +503,7 @@ def Trajectory(env, epoch, params, sess, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        transition = Neural(env, params, candidates, langsVisited, sess, qnA, qnB)
+        transition = Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB)
 
         if transition.nextURLId == 0:
             break
