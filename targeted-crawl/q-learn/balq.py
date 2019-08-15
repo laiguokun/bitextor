@@ -378,13 +378,14 @@ class Qnetwork():
         
         return qValue
 
-    def PredictAll(self, env, sess, langIds, langFeatures):
-        qValues = np.empty([1, env.maxLangId + 1])
-        for langId in range(env.maxLangId + 1):
-            #qValue = qnA.ModelCalc(langId, params.langIds, langFeatures)
-            qValue = self.Predict(sess, langId, langIds, langFeatures)
-            qValues[0, langId] = qValue
-        #print("qValues", env.maxLangId, qValues.shape, qValues)
+    def PredictAll(self, env, sess, langIds, langFeatures, candidates):
+        qValues = {}
+
+        for langId, nodes in candidates.dict.items():
+            if len(nodes) > 0:
+                qValue = self.Predict(sess, langId, langIds, langFeatures)
+                qValues[langId] = qValue[0]
+        #print("qValues", env.maxLangId, qValues)
 
         return qValues
 
@@ -438,17 +439,20 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     del sum
 
     langFeatures = candidates.GetFeaturesNP(langsVisited)
-    qValues = qnA.PredictAll(env, sess, params.langIds, langFeatures)
+    qValues = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
 
-    action = np.argmax(qValues)
-    #print("argMax", argMax, maxQ)
-    #print("action", action, maxQ, qValues)
+    maxQ = -999999.0
+    action = None
+    for langId, qValue in qValues.items():
+        if maxQ < qValue:
+            maxQ = qValue
+            action = langId
+    print("action", action, maxQ, qValues)
 
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
-    maxQ = qValues[0, action]
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
                             action,
@@ -562,6 +566,11 @@ def main():
     #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
+
+    # change language of start node. 0 = stop
+    env.nodes[sys.maxsize].lang = languages.GetLang("None")
+    for node in env.nodes.values():
+        print(node.Debug())
 
     tf.reset_default_graph()
     qns = Qnets(params, env)

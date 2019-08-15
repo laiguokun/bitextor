@@ -165,7 +165,7 @@ class Env:
 
             #print("   ", urlId1, urlId2)
             if urlId1 not in visited or urlId2 not in visited:
-                print("Alignment not in graph", urlId1, urlId2)
+                #print("Alignment not in graph", urlId1, urlId2)
                 continue
 
             node1 = visited[urlId1]
