@@ -446,7 +446,7 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
+def NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA):
     langFeatures = candidates.GetFeaturesNP(langsVisited)
     qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
 
@@ -458,6 +458,13 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 
     #print("action", action, maxQ, qValues)
     link, reward = GetNextState(env, params, action, visited, candidates)
+    assert(link is not None)
+    #print("action", action, qValues, link, reward)
+
+    return langFeatures, maxQ, action, link, reward
+
+def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
+    langFeatures, maxQ, action, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -533,16 +540,58 @@ def Trajectory(env, epoch, params, sess, qns):
     return ret
 
 ######################################################################################
+def Walk(env, epoch, params, sess, qns):
+    ret = []
+    visited = set()
+    langsVisited = {} # langId -> count
+    candidates = Candidates(params, env)
+    node = env.nodes[sys.maxsize]
+
+    while True:
+        tmp = np.random.rand(1)
+        if tmp > 1: #0.5:
+            qnA = qns.q[0]
+            qnB = qns.q[1]
+        else:
+            qnA = qns.q[1]
+            qnB = qns.q[0]
+
+        if node.urlId not in visited:
+            #print("node", node.Debug())
+            visited.add(node.urlId)
+            if node.lang not in langsVisited:
+                langsVisited[node.lang] = 0
+            langsVisited[node.lang] += 1
+            if params.debug and len(visited) % 40 == 0:
+                print("   langsVisited", langsVisited)
+    
+            if len(visited) > params.maxDocs:
+                break
+
+            candidates.AddLinks(node, visited, params)
+
+            numParallelDocs = NumParallelDocs(env, visited)
+            ret.append(numParallelDocs)
+
+        _, _, _, link, _ = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+        node = link.childNode
+        
+        if node.urlId == 0:
+            break
+
+    return ret
+
+######################################################################################
 def Train(params, sess, saver, env, qns):
     totRewards = []
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
-        #print("epoch", epoch)
+        print("epoch", epoch)
         #startState = 30
         
         TIMER.Start("Trajectory")
-        arrRL = Trajectory(env, epoch, params, sess, qns)
+        _ = Trajectory(env, epoch, params, sess, qns)
 
         TIMER.Pause("Trajectory")
 
@@ -551,13 +600,15 @@ def Train(params, sess, saver, env, qns):
         qns.q[1].corpus.Train(sess, env, params)
         TIMER.Pause("Update")
 
-        #arrNaive = naive(env, len(env.nodes), params)
-        #arrBalanced = balanced(env, len(env.nodes), params)
-        #plt.plot(arrNaive, label="naive")
-        #plt.plot(arrBalanced, label="balanced")
-        #plt.plot(arrRL, label="RL")
-        #plt.legend(loc='upper left')
-        #plt.show()
+        if epoch > 0 and epoch % params.walk == 0:
+            arrNaive = naive(env, len(env.nodes), params)
+            arrBalanced = balanced(env, len(env.nodes), params)
+            arrRL = Walk(env, epoch, params, sess, qns)
+            plt.plot(arrNaive, label="naive")
+            plt.plot(arrBalanced, label="balanced")
+            plt.plot(arrRL, label="RL")
+            plt.legend(loc='upper left')
+            plt.show()
 
 
     return totRewards, totDiscountedRewards
