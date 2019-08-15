@@ -306,6 +306,13 @@ class Candidates:
             self.dict[langId] = []
         self.dict[langId].append(link)
         
+    def AddLinks(self, node, visited, params):
+        #print("   currNode", curr, currNode.Debug())
+        newLinks = node.GetLinks(visited, params)
+
+        for link in newLinks:
+            self.AddLink(link)
+
     def RandomLink(self):
         while True:
             idx = np.random.randint(0, len(self.dict))
@@ -451,7 +458,6 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
         maxQ = qValues[action]
 
     print("action", action, maxQ, qValues)
-
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
@@ -494,9 +500,7 @@ def Trajectory(env, epoch, params, sess, qns):
             if len(visited) > params.maxDocs:
                 break
 
-            for link in node.links:
-                #print("   ", childNode.Debug())
-                candidates.AddLink(link)
+            candidates.AddLinks(node, visited, params)
 
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
