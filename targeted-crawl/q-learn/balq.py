@@ -17,7 +17,7 @@ class LearningParams:
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
-        self.eps = 1 # 0.7
+        self.eps = 0.7
         self.maxBatchSize = 64
         self.minCorpusSize = 200
         self.trainNumIter = 10
@@ -438,6 +438,7 @@ class Qnetwork():
                                             self.langIds: langIds, 
                                             self.langFeatures: langFeatures,
                                             self.nextQ: targetQ})
+        print("loss", loss)
         return loss, sumWeight
 
 ######################################################################################
@@ -503,7 +504,8 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[link.childNode.lang] += 1
 
     nextLangFeatures = nextCandidates.GetFeaturesNP(nextLangsVisited)
-    _, nextMaxQ, _ = qnA.PredictAll(env, sess, params.langIds, nextLangFeatures, nextCandidates)
+    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangFeatures, nextCandidates)
+    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangFeatures)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
@@ -527,7 +529,7 @@ def Trajectory(env, epoch, params, sess, qns):
 
     while True:
         tmp = np.random.rand(1)
-        if tmp > 1: #0.5:
+        if tmp > 0.5:
             qnA = qns.q[0]
             qnB = qns.q[1]
         else:
