@@ -572,6 +572,11 @@ def Walk(env, epoch, params, sess, qns):
     rewardStr = "rewards:"
 
     i = 0
+    numAligned = 0
+    totReward = 0.0
+    totDiscountedReward = 0.0
+    discount = 1.0
+
     while True:
         qnA = qns.q[0]
         assert(node.urlId not in visited)
@@ -591,11 +596,25 @@ def Walk(env, epoch, params, sess, qns):
         qValues, _, _, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         print("qValues", qValues)
+
+        totReward += reward
+        totDiscountedReward += discount * reward
+
         mainStr += "->" + str(node.urlId)
         rewardStr += "->" + str(reward)
 
+        if node.alignedNode is not None:
+            mainStr += "*"
+            numAligned += 1
+
+        discount *= params.gamma
+        i += 1
+
         if node.urlId == 0:
             break
+
+    mainStr += " " + str(i) 
+    rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
 
     print(mainStr)
     print(rewardStr)
