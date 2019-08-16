@@ -313,6 +313,20 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
+    def Pop(self, action):
+        links = self.dict[action]
+        assert(len(links) > 0)
+        link = links.pop(0)
+
+        # remove all links going to same node
+        for otherLinks in self.dict.values():
+            otherLinksCopy = otherLinks.copy()
+            for otherLink in otherLinksCopy:
+                if otherLink.childNode == link.childNode:
+                    otherLinks.remove(otherLink)
+
+        return link
+
     def RandomLink(self):
         while True:
             idx = np.random.randint(0, len(self.dict))
@@ -331,7 +345,7 @@ class Qnetwork():
         self.env = env
         self.corpus = Corpus(params, self)
 
-        HIDDEN_DIM = 128
+        HIDDEN_DIM = 384
         NUM_FEATURES = env.maxLangId + 1
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
@@ -439,9 +453,7 @@ def GetNextState(env, params, action, visited, candidates):
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        links = candidates.dict[action]
-        assert(len(links) > 0)
-        link = links.pop(0)
+        link = candidates.Pop(action)
  
     assert(link is not None)
     nextNode = link.childNode
@@ -524,19 +536,19 @@ def Trajectory(env, epoch, params, sess, qns):
             qnA = qns.q[1]
             qnB = qns.q[0]
 
-        if node.urlId not in visited:
-            #print("node", node.Debug())
-            visited.add(node.urlId)
-            langsVisited[0, node.lang] += 1
-            #print("   langsVisited", langsVisited)
-    
-            if len(visited) > params.maxDocs:
-                break
+        assert(node.urlId not in visited)
+        #print("node", node.Debug())
+        visited.add(node.urlId)
+        langsVisited[0, node.lang] += 1
+        #print("   langsVisited", langsVisited)
 
-            candidates.AddLinks(node, visited, params)
+        if len(visited) > params.maxDocs:
+            break
 
-            numParallelDocs = NumParallelDocs(env, visited)
-            ret.append(numParallelDocs)
+        candidates.AddLinks(node, visited, params)
+
+        numParallelDocs = NumParallelDocs(env, visited)
+        ret.append(numParallelDocs)
 
         transition = Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB)
 
@@ -559,21 +571,22 @@ def Walk(env, epoch, params, sess, qns):
     mainStr = "nodes:" + str(node.urlId)
     rewardStr = "rewards:"
 
+    i = 0
     while True:
         qnA = qns.q[0]
-        if node.urlId not in visited:
-            #print("node", node.Debug())
-            visited.add(node.urlId)
-            langsVisited[0, node.lang] += 1
-            #print("   langsVisited", langsVisited)
-    
-            if len(visited) > params.maxDocs:
-                break
+        assert(node.urlId not in visited)
+        #print("node", node.Debug())
+        visited.add(node.urlId)
+        langsVisited[0, node.lang] += 1
+        #print("   langsVisited", langsVisited)
 
-            candidates.AddLinks(node, visited, params)
+        if len(visited) > params.maxDocs:
+            break
 
-            numParallelDocs = NumParallelDocs(env, visited)
-            ret.append(numParallelDocs)
+        candidates.AddLinks(node, visited, params)
+
+        numParallelDocs = NumParallelDocs(env, visited)
+        ret.append(numParallelDocs)
 
         qValues, _, _, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
