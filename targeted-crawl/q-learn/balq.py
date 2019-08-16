@@ -13,7 +13,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.99
+        self.gamma = 0.5
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
@@ -374,7 +374,11 @@ class Qnetwork():
         print("self.qValue", self.qValue.shape)
        
         self.sumWeight = tf.reduce_sum(self.W1) \
-                         + tf.reduce_sum(self.b1) 
+                         + tf.reduce_sum(self.b1) \
+                         + tf.reduce_sum(self.W2) \
+                         + tf.reduce_sum(self.b2) \
+                         + tf.reduce_sum(self.W3) \
+                         + tf.reduce_sum(self.b3) 
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
@@ -393,6 +397,7 @@ class Qnetwork():
         langIdsNP[0,1] = langIds[1]
 
         #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
+        #print("   ", langRequestedNP, langIdsNP, langFeatures)
         #print("numURLs", numURLs)
         qValue = sess.run([self.qValue], 
                                 feed_dict={self.langRequested: langRequestedNP,
@@ -426,7 +431,8 @@ class Qnetwork():
         return qValues, maxQ, argMax
 
     def Update(self, sess, langRequested, langIds, langFeatures, targetQ):
-        #print("numURLs", numURLs.shape)
+        #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
+        #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
                                     feed_dict={self.langRequested: langRequested, 
                                             self.langIds: langIds, 
@@ -619,11 +625,13 @@ def Train(params, sess, saver, env, qns):
             arrNaive = naive(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, epoch, params, sess, qns)
+            print("epoch", epoch)
+
             plt.plot(arrNaive, label="naive")
             plt.plot(arrBalanced, label="balanced")
             plt.plot(arrRL, label="RL")
             plt.legend(loc='upper left')
-            plt.show()
+            #plt.show()
 
 
     return totRewards, totDiscountedRewards
