@@ -13,10 +13,10 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.5
+        self.gamma = 1.0 #0.9
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 20001
+        self.max_epochs = 2001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -30,10 +30,10 @@ class LearningParams:
         self.saveDir = saveDir
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
-        self.reward = 17.0
+        self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 9999999999
+        self.maxDocs = 100 #9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -345,7 +345,7 @@ class Qnetwork():
         self.env = env
         self.corpus = Corpus(params, self)
 
-        HIDDEN_DIM = 384
+        HIDDEN_DIM = 512
         NUM_FEATURES = env.maxLangId + 1
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
@@ -542,9 +542,6 @@ def Trajectory(env, epoch, params, sess, qns):
         langsVisited[0, node.lang] += 1
         #print("   langsVisited", langsVisited)
 
-        if len(visited) > params.maxDocs:
-            break
-
         candidates.AddLinks(node, visited, params)
 
         numParallelDocs = NumParallelDocs(env, visited)
@@ -557,6 +554,9 @@ def Trajectory(env, epoch, params, sess, qns):
         else:
             qnA.corpus.AddTransition(transition)
             node = env.nodes[transition.nextURLId]
+
+        if len(visited) > params.maxDocs:
+            break
 
     return ret
 
@@ -585,9 +585,6 @@ def Walk(env, params, sess, qns):
         langsVisited[0, node.lang] += 1
         #print("   langsVisited", langsVisited)
 
-        if len(visited) > params.maxDocs:
-            break
-
         candidates.AddLinks(node, visited, params)
 
         numParallelDocs = NumParallelDocs(env, visited)
@@ -612,6 +609,9 @@ def Walk(env, params, sess, qns):
         i += 1
 
         if node.urlId == 0:
+            break
+
+        if len(visited) > params.maxDocs:
             break
 
     mainStr += " " + str(i) 
@@ -677,8 +677,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
