@@ -325,11 +325,7 @@ class Candidates:
         raise Exception("shouldn't be here")
     
     def GetFeaturesNP(self, langsVisited):
-        langFeatures = np.zeros([1, self.env.maxLangId + 1], dtype=np.int)
-        for lang, count in langsVisited.items():
-            #print("   lang", lang, count)
-            langFeatures[0, lang] = count
-
+        langFeatures = langsVisited
         return langFeatures
 
 ######################################################################################
@@ -499,9 +495,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextCandidates.AddLinks(link.childNode, nextVisited, params)
 
     nextLangsVisited = langsVisited.copy()
-    if link.childNode.lang not in nextLangsVisited:
-        nextLangsVisited[link.childNode.lang] = 0
-    nextLangsVisited[link.childNode.lang] += 1
+    nextLangsVisited[0, link.childNode.lang] += 1
 
     nextLangFeatures = nextCandidates.GetFeaturesNP(nextLangsVisited)
     _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangFeatures, nextCandidates)
@@ -523,7 +517,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = {} # langId -> count
+    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -539,11 +533,8 @@ def Trajectory(env, epoch, params, sess, qns):
         if node.urlId not in visited:
             #print("node", node.Debug())
             visited.add(node.urlId)
-            if node.lang not in langsVisited:
-                langsVisited[node.lang] = 0
-            langsVisited[node.lang] += 1
-            if params.debug and len(visited) % 40 == 0:
-                print("   langsVisited", langsVisited)
+            langsVisited[0, node.lang] += 1
+            #print("   langsVisited", langsVisited)
     
             if len(visited) > params.maxDocs:
                 break
@@ -567,7 +558,7 @@ def Trajectory(env, epoch, params, sess, qns):
 def Walk(env, epoch, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = {} # langId -> count
+    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -583,11 +574,8 @@ def Walk(env, epoch, params, sess, qns):
         if node.urlId not in visited:
             #print("node", node.Debug())
             visited.add(node.urlId)
-            if node.lang not in langsVisited:
-                langsVisited[node.lang] = 0
-            langsVisited[node.lang] += 1
-            if params.debug and len(visited) % 40 == 0:
-                print("   langsVisited", langsVisited)
+            langsVisited[0, node.lang] += 1
+            #print("   langsVisited", langsVisited)
     
             if len(visited) > params.maxDocs:
                 break
