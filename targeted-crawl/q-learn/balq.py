@@ -556,15 +556,11 @@ def Walk(env, epoch, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
-    while True:
-        tmp = np.random.rand(1)
-        if tmp > 1: #0.5:
-            qnA = qns.q[0]
-            qnB = qns.q[1]
-        else:
-            qnA = qns.q[1]
-            qnB = qns.q[0]
+    mainStr = "nodes:" + str(node.urlId)
+    rewardStr = "rewards:"
 
+    while True:
+        qnA = qns.q[0]
         if node.urlId not in visited:
             #print("node", node.Debug())
             visited.add(node.urlId)
@@ -579,13 +575,17 @@ def Walk(env, epoch, params, sess, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        qValues, _, _, link, _ = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+        qValues, _, _, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         print("qValues", qValues)
-        
+        mainStr += "->" + str(node.urlId)
+        rewardStr += "->" + str(reward)
+
         if node.urlId == 0:
             break
 
+    print(mainStr)
+    print(rewardStr)
     return ret
 
 ######################################################################################
