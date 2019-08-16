@@ -316,7 +316,9 @@ class Candidates:
     def Pop(self, action):
         links = self.dict[action]
         assert(len(links) > 0)
-        link = links.pop(0)
+
+        idx = np.random.randint(0, len(links))
+        link = links.pop(idx)
 
         # remove all links going to same node
         for otherLinks in self.dict.values():
@@ -591,10 +593,10 @@ def Walk(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
+        #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         print("action", action, qValues)
-        print("   candidates", candidates.Debug())
 
         totReward += reward
         totDiscountedReward += discount * reward
