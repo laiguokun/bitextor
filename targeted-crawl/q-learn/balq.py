@@ -359,25 +359,25 @@ class Qnetwork():
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
         self.hidden1 = tf.nn.relu(self.hidden1)
-        print("self.hidden1", self.hidden1.shape)
+        #print("self.hidden1", self.hidden1.shape)
 
         self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden2 = tf.matmul(self.hidden1, self.W2)
         self.hidden2 = tf.add(self.hidden2, self.b2)
         self.hidden2 = tf.nn.relu(self.hidden2)
-        print("self.hidden2", self.hidden2.shape)
+        #print("self.hidden2", self.hidden2.shape)
 
         self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
         self.hidden3 = tf.nn.relu(self.hidden3)
-        print("self.hidden3", self.hidden3.shape)
+        #print("self.hidden3", self.hidden3.shape)
 
         self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
         self.qValue = self.hidden3
-        print("self.qValue", self.qValue.shape)
+        #print("self.qValue", self.qValue.shape)
        
         self.sumWeight = tf.reduce_sum(self.W1) \
                          + tf.reduce_sum(self.b1) \
@@ -444,7 +444,7 @@ class Qnetwork():
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
-        print("loss", loss)
+        #print("loss", loss)
         return loss, sumWeight
 
 ######################################################################################
@@ -593,9 +593,9 @@ def Walk(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        qValues, _, _, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
+        qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
-        print("qValues", qValues)
+        print("action", action, qValues)
 
         totReward += reward
         totDiscountedReward += discount * reward
