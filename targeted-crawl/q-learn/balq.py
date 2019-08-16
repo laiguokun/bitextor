@@ -327,16 +327,14 @@ class Candidates:
 
         return link
 
-    def RandomLink(self):
-        while True:
-            idx = np.random.randint(0, len(self.dict))
-            langs = list(self.dict.keys())
-            lang = langs[idx]
+    def Debug(self):
+        ret = ""
+        for lang in self.dict:
+            ret += "lang=" + str(lang) + ":"
             links = self.dict[lang]
-            #print("idx", idx, len(nodes))
-            if len(links) > 0:
-                return links.pop(0)
-        raise Exception("shouldn't be here")
+            for link in links:
+                ret += " " + link.parentNode.url + "->" + link.childNode.url
+        return ret
     
 ######################################################################################
 class Qnetwork():
@@ -596,6 +594,7 @@ def Walk(env, epoch, params, sess, qns):
         qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         print("action", action, qValues)
+        print("   candidates", candidates.Debug())
 
         totReward += reward
         totDiscountedReward += discount * reward
