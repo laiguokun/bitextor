@@ -158,13 +158,14 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
         # print("linkLangStr", linkLangStr)
         if success:
             if linkLangStr != languages[-1]:
-                tempStr = linkStr + "\n"
-                mtProc.stdin.write(tempStr.encode('utf-8'))
-                mtProc.stdin.flush()
-                linkStrTrans = mtProc.stdout.readline()
-                linkStrTrans = linkStrTrans.decode("utf-8")
-                linkStrTrans = linkStrTrans.strip("\n")
+                #tempStr = linkStr + "\n"
+                #mtProc.stdin.write(tempStr.encode('utf-8'))
+                #mtProc.stdin.flush()
+                #linkStrTrans = mtProc.stdout.readline()
+                #linkStrTrans = linkStrTrans.decode("utf-8")
+                #linkStrTrans = linkStrTrans.strip("\n")
                 # print("linkStr", linkStr, "|||", linkStrTrans)
+                linkStrTrans = ""
             else:
                 linkStrTrans = linkStr
         else:
@@ -349,13 +350,14 @@ def ProcessPage(options, mycursor, languages, mtProc, statusCode, orig_encoding,
             transFile = lzma.open(transPath, 'wt')
 
             for inLine in extractedLines:
+                pass
                 # print("inLine", inLine)
-                inLine += "\n"
-                mtProc.stdin.write(inLine.encode('utf-8'))
-                mtProc.stdin.flush()
-                outLine = mtProc.stdout.readline()
-                outLine = outLine.decode("utf-8")
-                transFile.write(str(docId) + "\t" + outLine)
+                #inLine += "\n"
+                #mtProc.stdin.write(inLine.encode('utf-8'))
+                #mtProc.stdin.flush()
+                #outLine = mtProc.stdout.readline()
+                #outLine = outLine.decode("utf-8")
+                #transFile.write(str(docId) + "\t" + outLine)
 
             transFile.close()
 
