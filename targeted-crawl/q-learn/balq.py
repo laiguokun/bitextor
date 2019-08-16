@@ -473,10 +473,10 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA):
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
 
-    if np.random.rand(1) < params.eps:
+    if np.random.rand(1) < eps:
         actions = list(qValues.keys())
         #print("actions", type(actions), actions)
         action = np.random.choice(actions)
@@ -490,7 +490,7 @@ def NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA):
     return qValues, maxQ, action, link, reward
 
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    _, maxQ, action, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+    _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -593,7 +593,7 @@ def Walk(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        qValues, _, _, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+        qValues, _, _, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         print("qValues", qValues)
 
