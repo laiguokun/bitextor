@@ -17,7 +17,7 @@ class LearningParams:
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
-        self.eps = 0.7
+        self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
         self.trainNumIter = 10
@@ -561,7 +561,7 @@ def Trajectory(env, epoch, params, sess, qns):
     return ret
 
 ######################################################################################
-def Walk(env, epoch, params, sess, qns):
+def Walk(env, params, sess, qns):
     ret = []
     visited = set()
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
@@ -639,15 +639,15 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            arrNaive = naive(env, len(env.nodes), params)
-            arrBalanced = balanced(env, len(env.nodes), params)
-            arrRL = Walk(env, epoch, params, sess, qns)
+            #arrNaive = naive(env, len(env.nodes), params)
+            #arrBalanced = balanced(env, len(env.nodes), params)
+            _ = Walk(env, params, sess, qns)
             print("epoch", epoch)
 
-            plt.plot(arrNaive, label="naive")
-            plt.plot(arrBalanced, label="balanced")
-            plt.plot(arrRL, label="RL")
-            plt.legend(loc='upper left')
+            #plt.plot(arrNaive, label="naive")
+            #plt.plot(arrBalanced, label="balanced")
+            #plt.plot(arrRL, label="RL")
+            #plt.legend(loc='upper left')
             #plt.show()
 
 
@@ -698,17 +698,17 @@ def main():
         totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
 
         #params.debug = True
-        #arrNaive = naive(env, len(env.nodes), params)
-        #arrBalanced = balanced(env, len(env.nodes), params)
-        #arrRL = Trajectory(env, len(env.nodes), params, qns)
+        arrNaive = naive(env, len(env.nodes), params)
+        arrBalanced = balanced(env, len(env.nodes), params)
+        arrRL = Walk(env, params, sess, qns)
         #print("arrNaive", arrNaive)
         #print("arrBalanced", arrBalanced)
         
-        #plt.plot(arrNaive, label="naive")
-        #plt.plot(arrBalanced, label="balanced")
-        #plt.plot(arrRL, label="RL")
-        #plt.legend(loc='upper left')
-        #plt.show()
+        plt.plot(arrNaive, label="naive")
+        plt.plot(arrBalanced, label="balanced")
+        plt.plot(arrRL, label="RL")
+        plt.legend(loc='upper left')
+        plt.show()
 
 ######################################################################################
 main()
