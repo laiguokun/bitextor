@@ -33,7 +33,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 100 #9999999999
+        self.maxDocs = 300 #9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
