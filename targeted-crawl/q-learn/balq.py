@@ -324,10 +324,6 @@ class Candidates:
                 return links.pop(0)
         raise Exception("shouldn't be here")
     
-    def GetFeaturesNP(self, langsVisited):
-        langFeatures = langsVisited
-        return langFeatures
-
 ######################################################################################
 class Qnetwork():
     def __init__(self, params, env):
@@ -340,8 +336,8 @@ class Qnetwork():
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
-        self.langFeatures = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.input = tf.concat([self.langRequested, self.langIds, self.langFeatures], 1)
+        self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
+        self.input = tf.concat([self.langRequested, self.langIds, self.langsVisited], 1)
         #print("self.input", self.input.shape)
 
         self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
@@ -384,7 +380,7 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def Predict(self, sess, langRequested, langIds, langFeatures):
+    def Predict(self, sess, langRequested, langIds, langsVisited):
         langRequestedNP = np.empty([1,1])
         langRequestedNP[0,0] = langRequested
         
@@ -398,19 +394,19 @@ class Qnetwork():
         qValue = sess.run([self.qValue], 
                                 feed_dict={self.langRequested: langRequestedNP,
                                     self.langIds: langIdsNP,
-                                    self.langFeatures: langFeatures})
+                                    self.langsVisited: langsVisited})
         qValue = qValue[0]
         #print("   qValue", qValue.shape, qValue)
         
         return qValue
 
-    def PredictAll(self, env, sess, langIds, langFeatures, candidates):
+    def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         qValues = {}
         maxQ = -9999999.0
 
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
-                qValue = self.Predict(sess, langId, langIds, langFeatures)
+                qValue = self.Predict(sess, langId, langIds, langsVisited)
                 qValue = qValue[0]
                 qValues[langId] = qValue
 
@@ -426,13 +422,13 @@ class Qnetwork():
 
         return qValues, maxQ, argMax
 
-    def Update(self, sess, langRequested, langIds, langFeatures, targetQ):
+    def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
                                     feed_dict={self.langRequested: langRequested, 
                                             self.langIds: langIds, 
-                                            self.langFeatures: langFeatures,
+                                            self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
         print("loss", loss)
         return loss, sumWeight
@@ -466,8 +462,7 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 def NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA):
-    langFeatures = candidates.GetFeaturesNP(langsVisited)
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langFeatures, candidates)
+    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
 
     if np.random.rand(1) < params.eps:
         actions = list(qValues.keys())
@@ -480,10 +475,10 @@ def NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA):
     assert(link is not None)
     #print("action", action, qValues, link, reward)
 
-    return langFeatures, qValues, maxQ, action, link, reward
+    return qValues, maxQ, action, link, reward
 
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    langFeatures, _, maxQ, action, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+    _, maxQ, action, link, reward = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -497,9 +492,8 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited = langsVisited.copy()
     nextLangsVisited[0, link.childNode.lang] += 1
 
-    nextLangFeatures = nextCandidates.GetFeaturesNP(nextLangsVisited)
-    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangFeatures, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangFeatures)
+    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
@@ -508,7 +502,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
                             link.childNode.urlId,
                             action,
                             params.langIds,
-                            langFeatures,
+                            langsVisited,
                             targetQ)
 
     return transition
@@ -585,7 +579,7 @@ def Walk(env, epoch, params, sess, qns):
             numParallelDocs = NumParallelDocs(env, visited)
             ret.append(numParallelDocs)
 
-        _, qValues, _, _, link, _ = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
+        qValues, _, _, link, _ = NeuralWalk(env, params, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         print("qValues", qValues)
         
