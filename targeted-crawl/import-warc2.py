@@ -90,7 +90,7 @@ def convert_encoding(data):
         for enc in [encoding, 'utf-8', 'iso-8859-1', 'windows‑1252']:
             try:
                 return (enc, data.decode(enc))
-            except UnicodeDecodeError:
+            except:
                 sys.stderr.write("encoding error")
 
     return (None, '')
