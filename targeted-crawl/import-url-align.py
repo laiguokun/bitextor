@@ -66,7 +66,7 @@ def SaveURLAlign(mycursor, urlId1, urlId2, score):
         # duplicatess, possibly due to URL normalization
         mycursor.execute(sql, val)
     except:
-        sys.stderr.write("encoding error")
+        print("Error saving align:", urlId1, urlId2, score)
 
 
 ######################################################################################
@@ -107,11 +107,15 @@ for line in sys.stdin:
 
     urlId1 = GetURL(mycursor, url1)
     if urlId1 is None:
-        raise Exception("URL not found:" + urlId1)
+        #raise Exception("URL not found:" + url1)
+        print("Warning, URL not found:", url1)
+        continue
 
     urlId2 = GetURL(mycursor, url2)
     if urlId2 is None:
-        raise Exception("URL not found:" + urlId2)
+        #raise Exception("URL not found:" + url2)
+        print("Warning, URL not found:", url2)
+        continue
 
     # print("   ", urlId1, urlId2, toks)
 
