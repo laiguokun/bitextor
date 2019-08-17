@@ -180,9 +180,13 @@ def SaveLink(mycursor, languages, mtProc, pageURL, docId, url, linkStr, imgURL, 
     # print("linkLangId", linkLangId)
 
     url = urllib.parse.unquote(url)
-    # print("   URL", pageURL, url)
+    #print("   URL", pageURL, url)
 
-    url = urllib.parse.urljoin(pageURL, url)
+    try:
+        url = urllib.parse.urljoin(pageURL, url)
+    except:
+        print("Warning: bad url", pageURL, url)
+        return
 
     # print("   link", url, " ||| ", linkStr, " ||| ", imgURL)
     urlId = SaveURL(mycursor, url)
