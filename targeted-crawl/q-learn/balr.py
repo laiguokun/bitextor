@@ -347,13 +347,15 @@ class Qnets():
     def __init__(self, params, env):
         HIDDEN_DIM = 512
         NUM_FEATURES = env.maxLangId + 1
-        self.pq = PolicyNetwork(NUM_FEATURES, NUM_FEATURES, 512)
+        self.pq = PolicyNetwork(params, NUM_FEATURES, NUM_FEATURES, 512)
 
 ######################################################################################
 class PolicyNetwork(nn.Module):
-    def __init__(self, num_inputs, num_actions, hidden_size, learning_rate=3e-4):
+    def __init__(self, params, num_inputs, num_actions, hidden_size, learning_rate=3e-4):
         super(PolicyNetwork, self).__init__()
         print("num_inputs", num_inputs, num_actions, hidden_size, learning_rate)
+
+        self.corpus = Corpus(params, self)
 
         self.num_actions = num_actions
         self.linear1 = nn.Linear(num_inputs, hidden_size)
@@ -485,7 +487,6 @@ def Walk(env, params, sess, qns):
     discount = 1.0
 
     while True:
-        qnA = qns.q[0]
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
@@ -498,9 +499,9 @@ def Walk(env, params, sess, qns):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
+        action, logProb, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qns.pq)
         node = link.childNode
-        print("action", action, qValues)
+        print("action", action, logProb)
 
         totReward += reward
         totDiscountedReward += discount * reward
@@ -541,8 +542,7 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Trajectory")
 
         TIMER.Start("Update")
-        qns.q[0].corpus.Train(sess, env, params)
-        qns.q[1].corpus.Train(sess, env, params)
+        qns.pq.corpus.Train(sess, env, params)
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
