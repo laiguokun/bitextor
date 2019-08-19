@@ -226,46 +226,6 @@ class Corpus:
 
         return batch
 
-    def Train(self, sess, env, params):
-        if len(self.transitions) >= params.minCorpusSize:
-            #for transition in self.transitions:
-            #    print(DebugTransition(transition))
-
-            for i in range(params.trainNumIter):
-                batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
-                self.losses.append(loss)
-                self.sumWeights.append(sumWeight)
-            self.transitions.clear()
-        
-    def UpdateQN(self, params, env, sess, batch):
-        batchSize = len(batch)
-        #print("batchSize", batchSize)
-        langRequested = np.empty([batchSize, 1], dtype=np.int)
-        langIds = np.empty([batchSize, 2], dtype=np.int)
-        langFeatures = np.empty([batchSize, env.maxLangId + 1])
-        targetQ = np.empty([batchSize, 1])
-
-        i = 0
-        for transition in batch:
-            #curr = transition.curr
-            #next = transition.next
-
-            langRequested[i, :] = transition.langRequested
-            langIds[i, :] = transition.langIds
-            langFeatures[i, :] = transition.langFeatures
-            targetQ[i, :] = transition.targetQ
-
-            i += 1
-
-        #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
-        TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ)
-        TIMER.Pause("UpdateQN.1")
-
-        #print("loss", loss)
-        return loss, sumWeight
-
 ######################################################################################
 class Transition:
     def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures):
@@ -369,13 +329,13 @@ class PolicyNetwork(nn.Module):
         return x 
     
     def get_action(self, state):
-        print("   state", type(state), state.shape, state)
+        #print("   state", type(state), state.shape, state)
         state = torch.from_numpy(state).float().unsqueeze(0)
         #print("state", type(state), state.shape)
         state = Variable(state)
         #print("   state", type(state), state.shape, state)
         probs = self.forward(state)
-        print("   probs", type(probs), probs.shape, probs)
+        #print("   probs", type(probs), probs.shape, probs)
 
         highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
@@ -423,22 +383,10 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
 
     return action, logProb, link, reward
 
-def Neural(env, params, candidates, visited, langsVisited, sess, qp):
-    action, logProb,link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qp)
-    assert(link is not None)
-    #print("action", action, qValues, link, reward)
-    
-    transition = Transition(link.parentNode.urlId, 
-                            link.childNode.urlId,
-                            action,
-                            params.langIds,
-                            langsVisited)
-
-    return transition
-
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
-    ret = []
+    log_probs = []
+    rewards = []
     visited = set()
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
@@ -453,21 +401,17 @@ def Trajectory(env, epoch, params, sess, qns):
 
         candidates.AddLinks(node, visited, params)
 
-        numParallelDocs = NumParallelDocs(env, visited)
-        ret.append(numParallelDocs)
-
-        transition = Neural(env, params, candidates, visited, langsVisited, sess, qns.pq)
-
-        if transition.nextURLId == 0:
+        action, logProb, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qns.pq)
+        log_probs.append(logProb)
+        rewards.append(reward)
+        
+        if link.childNode.urlId == 0:
             break
-        else:
-            qns.pq.corpus.AddTransition(transition)
-            node = env.nodes[transition.nextURLId]
 
         if len(visited) > params.maxDocs:
             break
 
-    return ret
+    return log_probs, rewards
 
 ######################################################################################
 def Walk(env, params, sess, qns):
@@ -530,6 +474,35 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
+def Update(policy_network, log_probs, rewards):
+    GAMMA = 0.9
+
+    discounted_rewards = []
+
+    for t in range(len(rewards)):
+        Gt = 0 
+        pw = 0
+        for r in rewards[t:]:
+            Gt = Gt + GAMMA**pw * r
+            pw = pw + 1
+        discounted_rewards.append(Gt)
+        
+    discounted_rewards = torch.tensor(discounted_rewards)
+    discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9) # normalize discounted rewards
+    print("   rewards", len(rewards), type(discounted_rewards), discounted_rewards.shape)
+
+    policy_gradient = []
+    for log_prob, Gt in zip(log_probs, discounted_rewards):
+        policy_gradient.append(-log_prob * Gt)
+    print("policy_gradient", len(policy_gradient), policy_gradient)
+
+    policy_network.optimizer.zero_grad()
+    policy_gradient = torch.stack(policy_gradient).sum()
+    print("policy_gradient", type(policy_gradient), policy_gradient.shape, policy_gradient)
+
+    policy_gradient.backward()
+    policy_network.optimizer.step()
+
 def Train(params, sess, saver, env, qns):
     totRewards = []
     totDiscountedRewards = []
@@ -537,12 +510,12 @@ def Train(params, sess, saver, env, qns):
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         TIMER.Start("Trajectory")
-        _ = Trajectory(env, epoch, params, sess, qns)
+        log_probs, rewards = Trajectory(env, epoch, params, sess, qns)
 
         TIMER.Pause("Trajectory")
 
         TIMER.Start("Update")
-        qns.pq.corpus.Train(sess, env, params)
+        Update(qns.pq, log_probs, rewards)
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
