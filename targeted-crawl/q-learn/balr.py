@@ -268,13 +268,12 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ):
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.langRequested = langRequested 
         self.langIds = langIds 
         self.langFeatures = langFeatures 
-        self.targetQ = targetQ 
 
     def DebugTransition(self):
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
@@ -328,6 +327,12 @@ class Candidates:
 
         return link
 
+    def HasLinks(self, action):
+        if action in self.dict and len(self.dict[action]) > 0:
+            return True
+        else:
+            return False
+
     def Debug(self):
         ret = ""
         for lang in self.dict:
@@ -380,6 +385,9 @@ def GetNextState(env, params, action, visited, candidates):
     if action == 0:
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
+    elif not candidates.HasLinks(action):
+        stopNode = env.nodes[0]
+        link = Link("", 0, stopNode, stopNode)
     else:
         link = candidates.Pop(action)
  
@@ -422,8 +430,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qp):
                             link.childNode.urlId,
                             action,
                             params.langIds,
-                            langsVisited,
-                            targetQ)
+                            langsVisited)
 
     return transition
 
