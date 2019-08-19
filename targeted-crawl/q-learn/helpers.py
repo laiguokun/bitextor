@@ -144,7 +144,9 @@ class Env:
         self.nodes[0] = node
 
         self.UpdateStats()
-        print("self.nodes", len(self.nodes), self.numAligned, self.maxLangId)
+        print("nodes", len(self.nodes), 
+            "numAligned,", self.numAligned, 
+            "maxLangId", self.maxLangId)
         #for node in self.nodes.values():
         #    print(node.Debug())
 

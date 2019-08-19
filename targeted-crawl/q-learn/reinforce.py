@@ -37,7 +37,10 @@ class PolicyNetwork(nn.Module):
         state = Variable(state)
         #print("   state", type(state), state.shape, state)
         probs = self.forward(state)
-        highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
+
+        probsDetached = np.squeeze(probs.detach().numpy())
+        highest_prob_action = np.random.choice(self.num_actions, p=probsDetached)
+
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
         #print("probs", type(probs), probs.shape, probs, highest_prob_action, log_prob)
         return highest_prob_action, log_prob

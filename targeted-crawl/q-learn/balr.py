@@ -7,6 +7,12 @@ import hashlib
 import pylab as plt
 import tensorflow as tf
 
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.autograd import Variable
+
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
 
@@ -192,13 +198,6 @@ def AddTodo(langsTodo, visited, link):
 
 ######################################################################################
 ######################################################################################
-class Qnets():
-    def __init__(self, params, env):
-        self.q = []
-        self.q.append(Qnetwork(params, env))
-        self.q.append(Qnetwork(params, env))
-
-######################################################################################
 class Corpus:
     def __init__(self, params, qn):
         self.params = params
@@ -339,113 +338,41 @@ class Candidates:
         return ret
     
 ######################################################################################
-class Qnetwork():
+class Qnets():
     def __init__(self, params, env):
-        self.params = params
-        self.env = env
-        self.corpus = Corpus(params, self)
-
         HIDDEN_DIM = 512
         NUM_FEATURES = env.maxLangId + 1
+        self.pq = PolicyNetwork(NUM_FEATURES, NUM_FEATURES, 512)
 
-        self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
-        self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.input = tf.concat([self.langRequested, self.langIds, self.langsVisited], 1)
-        #print("self.input", self.input.shape)
+######################################################################################
+class PolicyNetwork(nn.Module):
+    def __init__(self, num_inputs, num_actions, hidden_size, learning_rate=3e-4):
+        super(PolicyNetwork, self).__init__()
+        print("num_inputs", num_inputs, num_actions, hidden_size, learning_rate)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
-        self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden1 = tf.matmul(self.input, self.W1)
-        self.hidden1 = tf.add(self.hidden1, self.b1)
-        self.hidden1 = tf.nn.relu(self.hidden1)
-        #print("self.hidden1", self.hidden1.shape)
+        self.num_actions = num_actions
+        self.linear1 = nn.Linear(num_inputs, hidden_size)
+        self.linear2 = nn.Linear(hidden_size, num_actions)
+        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
-        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
-        self.b2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden2 = tf.matmul(self.hidden1, self.W2)
-        self.hidden2 = tf.add(self.hidden2, self.b2)
-        self.hidden2 = tf.nn.relu(self.hidden2)
-        #print("self.hidden2", self.hidden2.shape)
-
-        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
-        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden3 = tf.matmul(self.hidden2, self.W3)
-        self.hidden3 = tf.add(self.hidden3, self.b3)
-        self.hidden3 = tf.nn.relu(self.hidden3)
-        #print("self.hidden3", self.hidden3.shape)
-
-        self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
-        self.qValue = self.hidden3
-        #print("self.qValue", self.qValue.shape)
-       
-        self.sumWeight = tf.reduce_sum(self.W1) \
-                         + tf.reduce_sum(self.b1) \
-                         + tf.reduce_sum(self.W2) \
-                         + tf.reduce_sum(self.b2) \
-                         + tf.reduce_sum(self.W3) \
-                         + tf.reduce_sum(self.b3) 
-
-        # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.qValue))
-        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
-        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
+    def forward(self, state):
+        x = F.relu(self.linear1(state))
+        x = self.linear2(x)
+        x = F.softmax(x, dim=1)
+        return x 
+    
+    def get_action(self, state):
+        state = torch.from_numpy(state).float().unsqueeze(0)
+        #print("state", type(state), state.shape)
+        state = Variable(state)
+        #print("   state", type(state), state.shape, state)
+        probs = self.forward(state)
+        print("   probs", type(probs), probs.shape, probs)
         
-        self.updateModel = self.trainer.minimize(self.loss)
-
-    def Predict(self, sess, langRequested, langIds, langsVisited):
-        langRequestedNP = np.empty([1,1])
-        langRequestedNP[0,0] = langRequested
-        
-        langIdsNP = np.empty([1, 2])
-        langIdsNP[0,0] = langIds[0]
-        langIdsNP[0,1] = langIds[1]
-
-        #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
-        #print("   ", langRequestedNP, langIdsNP, langFeatures)
-        #print("numURLs", numURLs)
-        qValue = sess.run([self.qValue], 
-                                feed_dict={self.langRequested: langRequestedNP,
-                                    self.langIds: langIdsNP,
-                                    self.langsVisited: langsVisited})
-        qValue = qValue[0]
-        #print("   qValue", qValue.shape, qValue)
-        
-        return qValue
-
-    def PredictAll(self, env, sess, langIds, langsVisited, candidates):
-        qValues = {}
-        maxQ = -9999999.0
-
-        for langId, nodes in candidates.dict.items():
-            if len(nodes) > 0:
-                qValue = self.Predict(sess, langId, langIds, langsVisited)
-                qValue = qValue[0]
-                qValues[langId] = qValue
-
-                if maxQ < qValue:
-                    maxQ = qValue
-                    argMax = langId
-        #print("qValues", env.maxLangId, qValues)
-
-        if len(qValues) == 0:
-            qValues[0] = 0.0
-            maxQ = 0.0
-            argMax = 0
-
-        return qValues, maxQ, argMax
-
-    def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
-        #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
-        #print("   ", langRequested, langIds, langFeatures, targetQ)
-        _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
-                                    feed_dict={self.langRequested: langRequested, 
-                                            self.langIds: langIds, 
-                                            self.langsVisited: langsVisited,
-                                            self.nextQ: targetQ})
-        #print("loss", loss)
-        return loss, sumWeight
+        highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
+        log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
+        #print("probs", type(probs), probs.shape, probs, highest_prob_action, log_prob)
+        return highest_prob_action, log_prob
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
@@ -473,8 +400,9 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
+    print("langsVisited", langsVisited.shape, langsVisited)
+    qValues, maxQ, action = qp.get_action(langsVisited)
 
     if np.random.rand(1) < eps:
         actions = list(qValues.keys())
@@ -489,27 +417,11 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
 
     return qValues, maxQ, action, link, reward
 
-def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
+def Neural(env, params, candidates, visited, langsVisited, sess, qp):
+    _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qp)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
-    # calc nextMaxQ
-    nextVisited = visited.copy()
-    nextVisited.add(link.childNode.urlId)
-
-    nextCandidates = candidates.copy()
-    nextCandidates.AddLinks(link.childNode, nextVisited, params)
-
-    nextLangsVisited = langsVisited.copy()
-    nextLangsVisited[0, link.childNode.lang] += 1
-
-    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
-
-    newVal = reward + params.gamma * nextMaxQ
-    targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
-
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
                             action,
@@ -528,14 +440,6 @@ def Trajectory(env, epoch, params, sess, qns):
     node = env.nodes[sys.maxsize]
 
     while True:
-        tmp = np.random.rand(1)
-        if tmp > 0.5:
-            qnA = qns.q[0]
-            qnB = qns.q[1]
-        else:
-            qnA = qns.q[1]
-            qnB = qns.q[0]
-
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
@@ -547,12 +451,12 @@ def Trajectory(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        transition = Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB)
+        transition = Neural(env, params, candidates, visited, langsVisited, sess, qns.pq)
 
         if transition.nextURLId == 0:
             break
         else:
-            qnA.corpus.AddTransition(transition)
+            qns.pq.corpus.AddTransition(transition)
             node = env.nodes[transition.nextURLId]
 
         if len(visited) > params.maxDocs:
@@ -677,8 +581,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
