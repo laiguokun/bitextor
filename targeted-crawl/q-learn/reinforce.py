@@ -18,6 +18,7 @@ GAMMA = 0.9
 class PolicyNetwork(nn.Module):
     def __init__(self, num_inputs, num_actions, hidden_size, learning_rate=3e-4):
         super(PolicyNetwork, self).__init__()
+        print("num_inputs", num_inputs, num_actions, hidden_size, learning_rate)
 
         self.num_actions = num_actions
         self.linear1 = nn.Linear(num_inputs, hidden_size)
@@ -26,14 +27,19 @@ class PolicyNetwork(nn.Module):
 
     def forward(self, state):
         x = F.relu(self.linear1(state))
-        x = F.softmax(self.linear2(x), dim=1)
+        x = self.linear2(x)
+        x = F.softmax(x, dim=1)
         return x 
     
     def get_action(self, state):
         state = torch.from_numpy(state).float().unsqueeze(0)
-        probs = self.forward(Variable(state))
+        #print("state", type(state), state.shape)
+        state = Variable(state)
+        #print("   state", type(state), state.shape, state)
+        probs = self.forward(state)
         highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
+        #print("probs", type(probs), probs.shape, probs, highest_prob_action, log_prob)
         return highest_prob_action, log_prob
 
 ######################################################################################
@@ -50,13 +56,17 @@ def update_policy(policy_network, rewards, log_probs):
         
     discounted_rewards = torch.tensor(discounted_rewards)
     discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9) # normalize discounted rewards
+    print("   rewards", len(rewards), type(discounted_rewards), discounted_rewards.shape)
 
     policy_gradient = []
     for log_prob, Gt in zip(log_probs, discounted_rewards):
         policy_gradient.append(-log_prob * Gt)
-    
+    print("policy_gradient", len(policy_gradient), policy_gradient)
+
     policy_network.optimizer.zero_grad()
     policy_gradient = torch.stack(policy_gradient).sum()
+    print("policy_gradient", type(policy_gradient), policy_gradient.shape, policy_gradient)
+
     policy_gradient.backward()
     policy_network.optimizer.step()
 
