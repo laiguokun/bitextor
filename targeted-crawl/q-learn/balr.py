@@ -215,17 +215,6 @@ class Corpus:
     
         self.transitions.append(transition)
 
-    def GetBatchWithoutDelete(self, maxBatchSize):
-        batch = []
-
-        size = len(self.transitions)
-        for i in range(maxBatchSize):
-            idx = np.random.randint(0, size)
-            transition = self.transitions[idx]
-            batch.append(transition)
-
-        return batch
-
 ######################################################################################
 class Transition:
     def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures):
@@ -293,6 +282,21 @@ class Candidates:
         else:
             return False
 
+    def CountLinks(self):
+        ret = 0
+        for links in self.dict.values():
+            ret += len(links)
+        return ret
+
+    def RandomLink(self):
+        while True:
+            langs = list(self.dict)
+            action = np.random.choice(langs)
+            #print("action", action)
+            if self.HasLinks(action):
+                return self.Pop(action)
+        raise Exception("shouldn't be here")
+
     def Debug(self):
         ret = ""
         for lang in self.dict:
@@ -323,36 +327,47 @@ class PolicyNetwork(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def forward(self, state):
+        #print("state", state)
         x = F.relu(self.linear1(state))
+        #print("x1", x)
         x = self.linear2(x)
         x = F.softmax(x, dim=1)
         return x 
     
     def get_action(self, state):
-        #print("   state", type(state), state.shape, state)
+        #print("state", type(state), state.shape, state)
         state = torch.from_numpy(state).float().unsqueeze(0)
         #print("state", type(state), state.shape)
         state = Variable(state)
         #print("   state", type(state), state.shape, state)
         probs = self.forward(state)
-        #print("   probs", type(probs), probs.shape, probs)
+        #print("probs", type(probs), probs.shape, probs)
 
         highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
         #print("probs", type(probs), probs.shape, probs, highest_prob_action, log_prob)
-        return highest_prob_action, log_prob
+        return highest_prob_action, log_prob, probs
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
+    print("action", action)
+    print("candidates", candidates.Debug())
     if action == 0:
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     elif not candidates.HasLinks(action):
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
+        numLinks = candidates.CountLinks()
+        print("numLinks", numLinks)
+        if numLinks > 0:
+            link = candidates.RandomLink()
+            print("link1", link.childNode.Debug())
+        else:
+            stopNode = env.nodes[0]
+            link = Link("", 0, stopNode, stopNode)
+            print("link2", link)
     else:
         link = candidates.Pop(action)
- 
+
     assert(link is not None)
     nextNode = link.childNode
     #print("   nextNode", nextNode.Debug())
@@ -374,9 +389,9 @@ def GetNextState(env, params, action, visited, candidates):
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
     langsVisited = np.squeeze(langsVisited, (0,))
     #print("langsVisited", langsVisited.shape, langsVisited)
-    action, logProb = qp.get_action(langsVisited)
+    action, logProb, probs = qp.get_action(langsVisited)
+    print("action", action, logProb)
 
-    #print("action", action, maxQ, qValues)
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
@@ -385,6 +400,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
 
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
+    actions = []
     log_probs = []
     rewards = []
     visited = set()
@@ -393,6 +409,7 @@ def Trajectory(env, epoch, params, sess, qns):
     node = env.nodes[sys.maxsize]
 
     while True:
+        print("visited", visited, node.urlId)
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
@@ -402,6 +419,7 @@ def Trajectory(env, epoch, params, sess, qns):
         candidates.AddLinks(node, visited, params)
 
         action, logProb, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qns.pq)
+        actions.append(action)
         log_probs.append(logProb)
         rewards.append(reward)
         
@@ -411,7 +429,7 @@ def Trajectory(env, epoch, params, sess, qns):
         if len(visited) > params.maxDocs:
             break
 
-    return log_probs, rewards
+    return actions, log_probs, rewards
 
 ######################################################################################
 def Walk(env, params, sess, qns):
@@ -476,7 +494,7 @@ def Walk(env, params, sess, qns):
 ######################################################################################
 def Update(policy_network, log_probs, rewards):
     GAMMA = 0.9
-
+    #print("log_probs", log_probs, rewards)
     discounted_rewards = []
 
     for t in range(len(rewards)):
@@ -489,16 +507,16 @@ def Update(policy_network, log_probs, rewards):
         
     discounted_rewards = torch.tensor(discounted_rewards)
     discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9) # normalize discounted rewards
-    print("   rewards", len(rewards), type(discounted_rewards), discounted_rewards.shape)
+    #print("   rewards", len(rewards), type(discounted_rewards), discounted_rewards.shape)
 
     policy_gradient = []
     for log_prob, Gt in zip(log_probs, discounted_rewards):
         policy_gradient.append(-log_prob * Gt)
-    print("policy_gradient", len(policy_gradient), policy_gradient)
+    #print("policy_gradient", len(policy_gradient), policy_gradient)
 
     policy_network.optimizer.zero_grad()
     policy_gradient = torch.stack(policy_gradient).sum()
-    print("policy_gradient", type(policy_gradient), policy_gradient.shape, policy_gradient)
+    #print("policy_gradient", type(policy_gradient), policy_gradient.shape, policy_gradient)
 
     policy_gradient.backward()
     policy_network.optimizer.step()
@@ -510,8 +528,8 @@ def Train(params, sess, saver, env, qns):
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         TIMER.Start("Trajectory")
-        log_probs, rewards = Trajectory(env, epoch, params, sess, qns)
-
+        actions, log_probs, rewards = Trajectory(env, epoch, params, sess, qns)
+        print("actions", actions, log_probs, rewards)
         TIMER.Pause("Trajectory")
 
         TIMER.Start("Update")
