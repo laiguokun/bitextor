@@ -32,11 +32,13 @@ class PolicyNetwork(nn.Module):
         return x 
     
     def get_action(self, state):
+        print("   state", type(state), state.shape, state)
         state = torch.from_numpy(state).float().unsqueeze(0)
         #print("state", type(state), state.shape)
         state = Variable(state)
         #print("   state", type(state), state.shape, state)
         probs = self.forward(state)
+        print("   probs", type(probs), probs.shape, probs)
 
         probsDetached = np.squeeze(probs.detach().numpy())
         highest_prob_action = np.random.choice(self.num_actions, p=probsDetached)

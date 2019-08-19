@@ -362,13 +362,14 @@ class PolicyNetwork(nn.Module):
         return x 
     
     def get_action(self, state):
+        print("   state", type(state), state.shape, state)
         state = torch.from_numpy(state).float().unsqueeze(0)
         #print("state", type(state), state.shape)
         state = Variable(state)
         #print("   state", type(state), state.shape, state)
         probs = self.forward(state)
         print("   probs", type(probs), probs.shape, probs)
-        
+
         highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
         #print("probs", type(probs), probs.shape, probs, highest_prob_action, log_prob)
@@ -401,24 +402,19 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
-    print("langsVisited", langsVisited.shape, langsVisited)
-    qValues, maxQ, action = qp.get_action(langsVisited)
-
-    if np.random.rand(1) < eps:
-        actions = list(qValues.keys())
-        #print("actions", type(actions), actions)
-        action = np.random.choice(actions)
-        maxQ = qValues[action]
+    langsVisited = np.squeeze(langsVisited, (0,))
+    #print("langsVisited", langsVisited.shape, langsVisited)
+    action, logProb = qp.get_action(langsVisited)
 
     #print("action", action, maxQ, qValues)
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
 
-    return qValues, maxQ, action, link, reward
+    return action, logProb, link, reward
 
 def Neural(env, params, candidates, visited, langsVisited, sess, qp):
-    _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qp)
+    action, logProb,link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qp)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
