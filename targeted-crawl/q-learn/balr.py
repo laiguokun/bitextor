@@ -5,7 +5,6 @@ import numpy as np
 import argparse
 import hashlib
 import pylab as plt
-import tensorflow as tf
 
 import torch
 import torch.nn as nn
@@ -314,16 +313,17 @@ class Candidates:
     
 ######################################################################################
 class PolicyNetwork(nn.Module):
-    def __init__(self, params, num_inputs, num_actions, hidden_size, learning_rate=3e-4):
+    def __init__(self, params, env, learning_rate=3e-4):
         super(PolicyNetwork, self).__init__()
-        print("num_inputs", num_inputs, num_actions, hidden_size, learning_rate)
-
+        self.NUM_ACTIONS = env.maxLangId + 1
+        NUM_FEATURES = (env.maxLangId + 1) * 2
+        HIDDEN_DIM = 512
+        
         self.corpus = Corpus(params)
 
-        self.num_actions = num_actions
-        self.linear1 = nn.Linear(num_inputs * 2, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, hidden_size)
-        self.linear3 = nn.Linear(hidden_size, num_actions)
+        self.linear1 = nn.Linear(NUM_FEATURES, HIDDEN_DIM)
+        self.linear2 = nn.Linear(HIDDEN_DIM, HIDDEN_DIM)
+        self.linear3 = nn.Linear(HIDDEN_DIM, self.NUM_ACTIONS)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def forward(self, langsVisited, candidateCounts):
@@ -351,7 +351,7 @@ class PolicyNetwork(nn.Module):
         probs = self.forward(langsVisited, candidateCounts)
         #print("probs", type(probs), probs.shape, probs)
 
-        highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
+        highest_prob_action = np.random.choice(self.NUM_ACTIONS, p=np.squeeze(probs.detach().numpy()))
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
         #print("probs", highest_prob_action, probs)
 
@@ -396,7 +396,7 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qNet):
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, qNet):
     langsVisited = np.squeeze(langsVisited, (0,))
     #print("langsVisited", langsVisited.shape, langsVisited)
     candidateCounts = candidates.GetCounts()
@@ -412,7 +412,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qNet):
     return action, logProb, link, reward, probs
 
 ######################################################################################
-def Trajectory(env, epoch, params, sess, pNet):
+def Trajectory(env, epoch, params, pNet):
     actions = []
     log_probs = []
     rewards = []
@@ -431,7 +431,7 @@ def Trajectory(env, epoch, params, sess, pNet):
 
         candidates.AddLinks(node, visited, params)
 
-        action, logProb, link, reward, probs = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, pNet)
+        action, logProb, link, reward, probs = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, pNet)
         node = link.childNode
         actions.append(action)
         log_probs.append(logProb)
@@ -449,7 +449,7 @@ def Trajectory(env, epoch, params, sess, pNet):
     return actions, log_probs, rewards
 
 ######################################################################################
-def Walk(env, params, sess, pNet):
+def Walk(env, params, pNet):
     ret = []
     actions = []
     log_probs = []
@@ -482,7 +482,7 @@ def Walk(env, params, sess, pNet):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        action, logProb, link, reward, probs = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, pNet)
+        action, logProb, link, reward, probs = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, pNet)
         node = link.childNode
         #print("action", action)
         actions.append(action)
@@ -546,14 +546,14 @@ def Update(gamma, policy_network, log_probs, rewards):
     policy_gradient.backward()
     policy_network.optimizer.step()
 
-def Train(params, sess, saver, env, pNet):
+def Train(params, saver, env, pNet):
     totRewards = []
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         TIMER.Start("Trajectory")
-        actions, log_probs, rewards = Trajectory(env, epoch, params, sess, pNet)
+        actions, log_probs, rewards = Trajectory(env, epoch, params, pNet)
         #print("actions", actions, log_probs, rewards)
         TIMER.Pause("Trajectory")
 
@@ -564,7 +564,7 @@ def Train(params, sess, saver, env, pNet):
         if epoch > 0 and epoch % params.walk == 0:
             arrNaive = naive(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
-            arrRL = Walk(env, params, sess, pNet)
+            arrRL = Walk(env, params, pNet)
             print("epoch", epoch)
 
             fig = plt.figure()
@@ -613,32 +613,24 @@ def main():
     #for node in env.nodes.values():
     #    print(node.Debug())
 
-    tf.reset_default_graph()
-
-    HIDDEN_DIM = 512
-    NUM_FEATURES = env.maxLangId + 1
-    pNet = PolicyNetwork(params, NUM_FEATURES, NUM_FEATURES, 512)
-
-    init = tf.global_variables_initializer()
+    pNet = PolicyNetwork(params, env)
 
     saver = None #tf.train.Saver()
-    with tf.Session() as sess:
-        sess.run(init)
 
-        totRewards, totDiscountedRewards = Train(params, sess, saver, env, pNet)
+    totRewards, totDiscountedRewards = Train(params, saver, env, pNet)
 
-        #params.debug = True
-        arrNaive = naive(env, len(env.nodes), params)
-        arrBalanced = balanced(env, len(env.nodes), params)
-        arrRL = Walk(env, params, sess, pNet)
-        #print("arrNaive", arrNaive)
-        #print("arrBalanced", arrBalanced)
-        
-        plt.plot(arrNaive, label="naive")
-        plt.plot(arrBalanced, label="balanced")
-        plt.plot(arrRL, label="RL")
-        plt.legend(loc='upper left')
-        plt.show()
+    #params.debug = True
+    arrNaive = naive(env, len(env.nodes), params)
+    arrBalanced = balanced(env, len(env.nodes), params)
+    arrRL = Walk(env, params, pNet)
+    #print("arrNaive", arrNaive)
+    #print("arrBalanced", arrBalanced)
+    
+    plt.plot(arrNaive, label="naive")
+    plt.plot(arrBalanced, label="balanced")
+    plt.plot(arrRL, label="RL")
+    plt.legend(loc='upper left')
+    plt.show()
 
 ######################################################################################
 main()
