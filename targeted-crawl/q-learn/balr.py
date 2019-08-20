@@ -329,14 +329,18 @@ class PolicyNetwork(nn.Module):
         self.corpus = Corpus(params, self)
 
         self.num_actions = num_actions
-        self.linear1 = nn.Linear(num_inputs, hidden_size)
+        self.linear1 = nn.Linear(num_inputs * 2, hidden_size)
         self.linear2 = nn.Linear(hidden_size, hidden_size)
         self.linear3 = nn.Linear(hidden_size, num_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def forward(self, langsVisited, candidateCounts):
-        #print("state", state)
-        x = F.relu(self.linear1(langsVisited))
+        #print("langsVisited", langsVisited)
+        #print("candidateCounts", candidateCounts)
+        x = torch.cat((langsVisited, candidateCounts), 1)
+        #print("x", x)
+
+        x = F.relu(self.linear1(x))
         x = F.relu(self.linear2(x))
         x = self.linear3(x)
         x = F.softmax(x, dim=1)
@@ -515,7 +519,7 @@ def Walk(env, params, sess, qns):
     mainStr += " " + str(i) 
     rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
 
-    print(actions)
+    print("actions", actions)
     print(mainStr)
     print(rewardStr)
     return ret
@@ -605,8 +609,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
