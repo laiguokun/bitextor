@@ -22,7 +22,7 @@ class LearningParams:
         self.gamma = 1.0 #0.9
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 2001
+        self.max_epochs = 20001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -39,7 +39,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 300 #9999999999
+        self.maxDocs = 9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -525,8 +525,7 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
-def Update(policy_network, log_probs, rewards):
-    GAMMA = 1.0 #0.9
+def Update(gamma, policy_network, log_probs, rewards):
     #print("log_probs", log_probs, rewards)
     discounted_rewards = []
 
@@ -534,7 +533,7 @@ def Update(policy_network, log_probs, rewards):
         Gt = 0 
         pw = 0
         for r in rewards[t:]:
-            Gt = Gt + GAMMA**pw * r
+            Gt = Gt + gamma**pw * r
             pw = pw + 1
         discounted_rewards.append(Gt)
 
@@ -567,20 +566,23 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Trajectory")
 
         TIMER.Start("Update")
-        Update(qns.pq, log_probs, rewards)
+        Update(params.gamma, qns.pq, log_probs, rewards)
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            #arrNaive = naive(env, len(env.nodes), params)
-            #arrBalanced = balanced(env, len(env.nodes), params)
-            _ = Walk(env, params, sess, qns)
+            arrNaive = naive(env, len(env.nodes), params)
+            arrBalanced = balanced(env, len(env.nodes), params)
+            arrRL = Walk(env, params, sess, qns)
             print("epoch", epoch)
 
-            #plt.plot(arrNaive, label="naive")
-            #plt.plot(arrBalanced, label="balanced")
-            #plt.plot(arrRL, label="RL")
-            #plt.legend(loc='upper left')
-            #plt.show()
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            ax.plot(arrNaive, label="naive")
+            ax.plot(arrBalanced, label="balanced")
+            ax.plot(arrRL, label="RL")
+            ax.legend(loc='upper left')
+            fig.show()
+            plt.pause(0.001)
 
 
     return totRewards, totDiscountedRewards
