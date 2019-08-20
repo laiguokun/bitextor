@@ -288,6 +288,13 @@ class Candidates:
             ret += len(links)
         return ret
 
+    def GetCounts(self):
+        ret = np.zeros([self.env.maxLangId + 1])
+        for key, value in self.dict.items():
+            ret[key] = len(value)
+        return ret
+
+
     def RandomLink(self):
         while True:
             langs = list(self.dict)
@@ -327,21 +334,25 @@ class PolicyNetwork(nn.Module):
         self.linear3 = nn.Linear(hidden_size, num_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
-    def forward(self, state):
+    def forward(self, langsVisited, candidateCounts):
         #print("state", state)
-        x = F.relu(self.linear1(state))
+        x = F.relu(self.linear1(langsVisited))
         x = F.relu(self.linear2(x))
         x = self.linear3(x)
         x = F.softmax(x, dim=1)
         return x 
     
-    def get_action(self, langsVisited):
+    def get_action(self, langsVisited, candidateCounts):
         #print("langsVisited", type(langsVisited), langsVisited.shape, langsVisited)
-        state = torch.from_numpy(langsVisited).float().unsqueeze(0)
+        langsVisited = torch.from_numpy(langsVisited).float().unsqueeze(0)
         #print("state", type(state), state.shape)
-        state = Variable(state)
+        langsVisited = Variable(langsVisited)
         #print("   state", type(state), state.shape, state)
-        probs = self.forward(state)
+
+        candidateCounts = torch.from_numpy(candidateCounts).float().unsqueeze(0)
+        candidateCounts = Variable(candidateCounts)
+
+        probs = self.forward(langsVisited, candidateCounts)
         #print("probs", type(probs), probs.shape, probs)
 
         highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
@@ -392,7 +403,10 @@ def GetNextState(env, params, action, visited, candidates):
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
     langsVisited = np.squeeze(langsVisited, (0,))
     #print("langsVisited", langsVisited.shape, langsVisited)
-    action, logProb, probs = qp.get_action(langsVisited)
+    candidateCounts = candidates.GetCounts()
+    #print("candidateCounts", candidateCounts.shape, candidateCounts)
+    
+    action, logProb, probs = qp.get_action(langsVisited, candidateCounts)
     #print("action", action, logProb)
 
     link, reward = GetNextState(env, params, action, visited, candidates)
