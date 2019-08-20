@@ -335,9 +335,9 @@ class PolicyNetwork(nn.Module):
         x = F.softmax(x, dim=1)
         return x 
     
-    def get_action(self, state):
-        #print("state", type(state), state.shape, state)
-        state = torch.from_numpy(state).float().unsqueeze(0)
+    def get_action(self, langsVisited):
+        #print("langsVisited", type(langsVisited), langsVisited.shape, langsVisited)
+        state = torch.from_numpy(langsVisited).float().unsqueeze(0)
         #print("state", type(state), state.shape)
         state = Variable(state)
         #print("   state", type(state), state.shape, state)
@@ -591,8 +591,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
