@@ -22,7 +22,7 @@ class LearningParams:
         self.gamma = 1.0 #0.9
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 20001
+        self.max_epochs = 2001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -399,7 +399,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
     assert(link is not None)
     #print("action", action, qValues, link, reward)
 
-    return action, logProb, link, reward
+    return action, logProb, link, reward, probs
 
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
@@ -421,7 +421,7 @@ def Trajectory(env, epoch, params, sess, qns):
 
         candidates.AddLinks(node, visited, params)
 
-        action, logProb, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qns.pq)
+        action, logProb, link, reward, probs = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qns.pq)
         node = link.childNode
         actions.append(action)
         log_probs.append(logProb)
@@ -441,6 +441,10 @@ def Trajectory(env, epoch, params, sess, qns):
 ######################################################################################
 def Walk(env, params, sess, qns):
     ret = []
+    actions = []
+    log_probs = []
+    rewards = []
+
     visited = set()
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
@@ -468,9 +472,12 @@ def Walk(env, params, sess, qns):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        action, logProb, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qns.pq)
+        action, logProb, link, reward, probs = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qns.pq)
         node = link.childNode
-        #print("action", action, logProb)
+        #print("action", action)
+        actions.append(action)
+        log_probs.append(logProb)
+        rewards.append(reward)
 
         totReward += reward
         totDiscountedReward += discount * reward
@@ -494,6 +501,7 @@ def Walk(env, params, sess, qns):
     mainStr += " " + str(i) 
     rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
 
+    print(actions)
     print(mainStr)
     print(rewardStr)
     return ret
