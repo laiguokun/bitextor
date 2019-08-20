@@ -274,7 +274,7 @@ class Transition:
         self.nextURLId = nextURLId 
         self.langRequested = langRequested 
         self.langIds = langIds 
-        self.langFeatures = np.array(langFeatures, copy=True)
+        self.langFeatures = langFeatures #np.array(langFeatures, copy=True)
         self.targetQ = targetQ 
 
     def DebugTransition(self):

@@ -350,21 +350,21 @@ class PolicyNetwork(nn.Module):
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
-    print("action", action)
-    print("candidates", candidates.Debug())
+    #print("action", action)
+    #print("candidates", candidates.Debug())
     if action == 0:
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     elif not candidates.HasLinks(action):
         numLinks = candidates.CountLinks()
-        print("numLinks", numLinks)
+        #print("numLinks", numLinks)
         if numLinks > 0:
             link = candidates.RandomLink()
-            print("link1", link.childNode.Debug())
+            #print("link1", link.childNode.Debug())
         else:
             stopNode = env.nodes[0]
             link = Link("", 0, stopNode, stopNode)
-            print("link2", link)
+            #print("link2", link)
     else:
         link = candidates.Pop(action)
 
@@ -390,7 +390,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qp):
     langsVisited = np.squeeze(langsVisited, (0,))
     #print("langsVisited", langsVisited.shape, langsVisited)
     action, logProb, probs = qp.get_action(langsVisited)
-    print("action", action, logProb)
+    #print("action", action, logProb)
 
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
@@ -409,7 +409,7 @@ def Trajectory(env, epoch, params, sess, qns):
     node = env.nodes[sys.maxsize]
 
     while True:
-        print("visited", visited, node.urlId)
+        #print("visited", visited, node.urlId)
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
