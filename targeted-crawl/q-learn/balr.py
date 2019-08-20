@@ -313,7 +313,7 @@ class Candidates:
     
 ######################################################################################
 class PolicyNetwork(nn.Module):
-    def __init__(self, params, env, learning_rate=3e-4):
+    def __init__(self, params, env):
         super(PolicyNetwork, self).__init__()
         self.NUM_ACTIONS = env.maxLangId + 1
         NUM_FEATURES = (env.maxLangId + 1) * 2
@@ -324,7 +324,7 @@ class PolicyNetwork(nn.Module):
         self.linear1 = nn.Linear(NUM_FEATURES, HIDDEN_DIM)
         self.linear2 = nn.Linear(HIDDEN_DIM, HIDDEN_DIM)
         self.linear3 = nn.Linear(HIDDEN_DIM, self.NUM_ACTIONS)
-        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
+        self.optimizer = optim.Adam(self.parameters(), lr=params.lrn_rate)
 
     def forward(self, langsVisited, candidateCounts):
         #print("langsVisited", langsVisited)
@@ -603,8 +603,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
