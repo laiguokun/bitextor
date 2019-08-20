@@ -19,7 +19,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 1.0 #0.9
+        self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
