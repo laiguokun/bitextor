@@ -22,7 +22,7 @@ class LearningParams:
         self.gamma = 1.0 #0.9
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 2001
+        self.max_epochs = 20001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -409,7 +409,7 @@ def Trajectory(env, epoch, params, sess, qns):
     node = env.nodes[sys.maxsize]
 
     while True:
-        print("visited", visited, node.urlId)
+        #print("visited", visited, node.urlId)
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
@@ -464,7 +464,7 @@ def Walk(env, params, sess, qns):
         #print("candidates", candidates.Debug())
         action, logProb, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qns.pq)
         node = link.childNode
-        print("action", action, logProb)
+        #print("action", action, logProb)
 
         totReward += reward
         totDiscountedReward += discount * reward
@@ -507,7 +507,7 @@ def Update(policy_network, log_probs, rewards):
         discounted_rewards.append(Gt)
         
     discounted_rewards = torch.tensor(discounted_rewards)
-    discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-9) # normalize discounted rewards
+    discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std(unbiased=False) + 1e-9) # normalize discounted rewards
     #print("   rewards", len(rewards), type(discounted_rewards), discounted_rewards.shape)
 
     policy_gradient = []
@@ -530,7 +530,7 @@ def Train(params, sess, saver, env, qns):
         #print("epoch", epoch)
         TIMER.Start("Trajectory")
         actions, log_probs, rewards = Trajectory(env, epoch, params, sess, qns)
-        print("actions", actions, log_probs, rewards)
+        #print("actions", actions, log_probs, rewards)
         TIMER.Pause("Trajectory")
 
         TIMER.Start("Update")
