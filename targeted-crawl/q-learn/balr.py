@@ -323,14 +323,15 @@ class PolicyNetwork(nn.Module):
 
         self.num_actions = num_actions
         self.linear1 = nn.Linear(num_inputs, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, num_actions)
+        self.linear2 = nn.Linear(hidden_size, hidden_size)
+        self.linear3 = nn.Linear(hidden_size, num_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def forward(self, state):
         #print("state", state)
         x = F.relu(self.linear1(state))
-        #print("x1", x)
-        x = self.linear2(x)
+        x = F.relu(self.linear2(x))
+        x = self.linear3(x)
         x = F.softmax(x, dim=1)
         return x 
     
@@ -345,17 +346,19 @@ class PolicyNetwork(nn.Module):
 
         highest_prob_action = np.random.choice(self.num_actions, p=np.squeeze(probs.detach().numpy()))
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
-        #print("probs", type(probs), probs.shape, probs, highest_prob_action, log_prob)
+        #print("probs", highest_prob_action, probs)
+
         return highest_prob_action, log_prob, probs
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
     #print("action", action)
     #print("candidates", candidates.Debug())
-    if action == 0:
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
-    elif not candidates.HasLinks(action):
+    #if action == 0:
+    #    stopNode = env.nodes[0]
+    #    link = Link("", 0, stopNode, stopNode)
+    #elif not candidates.HasLinks(action):
+    if action == 0 or not candidates.HasLinks(action):
         numLinks = candidates.CountLinks()
         #print("numLinks", numLinks)
         if numLinks > 0:
@@ -430,6 +433,9 @@ def Trajectory(env, epoch, params, sess, qns):
         if len(visited) > params.maxDocs:
             break
 
+    #print("actions", actions)
+    #print()
+
     return actions, log_probs, rewards
 
 ######################################################################################
@@ -494,7 +500,7 @@ def Walk(env, params, sess, qns):
 
 ######################################################################################
 def Update(policy_network, log_probs, rewards):
-    GAMMA = 0.9
+    GAMMA = 1.0 #0.9
     #print("log_probs", log_probs, rewards)
     discounted_rewards = []
 
@@ -505,7 +511,8 @@ def Update(policy_network, log_probs, rewards):
             Gt = Gt + GAMMA**pw * r
             pw = pw + 1
         discounted_rewards.append(Gt)
-        
+
+    #print("discounted_rewards", discounted_rewards)    
     discounted_rewards = torch.tensor(discounted_rewards)
     discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std(unbiased=False) + 1e-9) # normalize discounted rewards
     #print("   rewards", len(rewards), type(discounted_rewards), discounted_rewards.shape)
@@ -576,8 +583,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
