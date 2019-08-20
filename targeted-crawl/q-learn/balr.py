@@ -409,7 +409,7 @@ def Trajectory(env, epoch, params, sess, qns):
     node = env.nodes[sys.maxsize]
 
     while True:
-        #print("visited", visited, node.urlId)
+        print("visited", visited, node.urlId)
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
@@ -419,6 +419,7 @@ def Trajectory(env, epoch, params, sess, qns):
         candidates.AddLinks(node, visited, params)
 
         action, logProb, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qns.pq)
+        node = link.childNode
         actions.append(action)
         log_probs.append(logProb)
         rewards.append(reward)
