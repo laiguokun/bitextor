@@ -53,7 +53,7 @@ def NumParallelDocs(env, visited):
     return ret
 
 ######################################################################################
-def naive(env, maxDocs, params):
+def dumb(env, maxDocs, params):
     ret = []
     todo = []
     todo.append(env.rootNode)
@@ -639,16 +639,19 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            #arrNaive = naive(env, len(env.nodes), params)
-            #arrBalanced = balanced(env, len(env.nodes), params)
-            _ = Walk(env, params, sess, qns)
+            arrDumb = dumb(env, len(env.nodes), params)
+            arrBalanced = balanced(env, len(env.nodes), params)
+            arrRL = Walk(env, params, sess, qns)
             print("epoch", epoch)
 
-            #plt.plot(arrNaive, label="naive")
-            #plt.plot(arrBalanced, label="balanced")
-            #plt.plot(arrRL, label="RL")
-            #plt.legend(loc='upper left')
-            #plt.show()
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            ax.plot(arrDumb, label="dumb")
+            ax.plot(arrBalanced, label="balanced")
+            ax.plot(arrRL, label="RL")
+            ax.legend(loc='upper left')
+            fig.show()
+            plt.pause(0.001)
 
 
     return totRewards, totDiscountedRewards
@@ -698,13 +701,13 @@ def main():
         totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
 
         #params.debug = True
-        arrNaive = naive(env, len(env.nodes), params)
+        arrDumb = dumb(env, len(env.nodes), params)
         arrBalanced = balanced(env, len(env.nodes), params)
         arrRL = Walk(env, params, sess, qns)
-        #print("arrNaive", arrNaive)
+        #print("arrDumb", arrDumb)
         #print("arrBalanced", arrBalanced)
         
-        plt.plot(arrNaive, label="naive")
+        plt.plot(arrDumb, label="dumb")
         plt.plot(arrBalanced, label="balanced")
         plt.plot(arrRL, label="RL")
         plt.legend(loc='upper left')

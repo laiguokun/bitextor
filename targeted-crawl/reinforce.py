@@ -58,7 +58,7 @@ def NumParallelDocs(env, visited):
     return ret
 
 ######################################################################################
-def naive(env, maxDocs, params):
+def dumb(env, maxDocs, params):
     ret = []
     todo = []
     todo.append(env.rootNode)
@@ -567,14 +567,14 @@ def Train(params, saver, env, pNet):
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            arrNaive = naive(env, len(env.nodes), params)
+            arrDumb = dumb(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, params, pNet)
             print("epoch", epoch)
 
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
-            ax.plot(arrNaive, label="naive")
+            ax.plot(arrDumb, label="dumb")
             ax.plot(arrBalanced, label="balanced")
             ax.plot(arrRL, label="RL")
             ax.legend(loc='upper left')
