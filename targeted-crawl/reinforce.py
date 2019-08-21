@@ -19,7 +19,7 @@ from helpers import Env, Link
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
         self.gamma = 1.0 #0.99
-        self.lrn_rate = 0.1
+        self.lrn_rate = 0.5
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
         self.eps = 0.1
@@ -386,7 +386,7 @@ def GetNextState(env, params, currNode, action, visited, candidates):
     #print("   nextNode", nextNode.Debug())
 
     if randomNode == True:
-        reward = -66.0
+        reward = -666.0
     elif nextNode.urlId == 0:
         #print("   stop")
         reward = 0.0

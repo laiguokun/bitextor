@@ -84,6 +84,38 @@ def dumb(env, maxDocs, params):
     return ret
 
 ######################################################################################
+def randomCrawl(env, maxDocs, params):
+    ret = []
+    todo = []
+    todo.append(env.rootNode)
+
+    visited = set()
+    langsVisited = {}
+
+    while len(todo) > 0 and len(visited) < maxDocs:
+        idx = np.random.randint(0, len(todo))
+        node = todo.pop(idx)
+        #print("node", node.Debug())
+        
+        if node.urlId not in visited:
+            visited.add(node.urlId)
+            if node.lang not in langsVisited:
+                langsVisited[node.lang] = 0
+            langsVisited[node.lang] += 1
+            if params.debug and len(visited) % 40 == 0:
+                print("   langsVisited", langsVisited)
+
+            for link in node.links:
+                childNode = link.childNode
+                #print("   ", childNode.Debug())
+                todo.append(childNode)
+
+            numParallelDocs = NumParallelDocs(env, visited)
+            ret.append(numParallelDocs)
+
+    return ret
+
+######################################################################################
 def balanced(env, maxDocs, params):
     ret = []
     visited = set()
@@ -640,6 +672,7 @@ def Train(params, sess, saver, env, qns):
 
         if epoch > 0 and epoch % params.walk == 0:
             arrDumb = dumb(env, len(env.nodes), params)
+            arrRandom = randomCrawl(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, params, sess, qns)
             print("epoch", epoch)
@@ -647,6 +680,7 @@ def Train(params, sess, saver, env, qns):
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
             ax.plot(arrDumb, label="dumb")
+            ax.plot(arrRandom, label="random")
             ax.plot(arrBalanced, label="balanced")
             ax.plot(arrRL, label="RL")
             ax.legend(loc='upper left')
