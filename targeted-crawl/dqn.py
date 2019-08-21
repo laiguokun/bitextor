@@ -13,7 +13,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 1.0 #0.9
+        self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 1001
@@ -33,7 +33,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 300 #9999999999
+        self.maxDocs = 9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -650,6 +650,8 @@ def Train(params, sess, saver, env, qns):
             ax.plot(arrBalanced, label="balanced")
             ax.plot(arrRL, label="RL")
             ax.legend(loc='upper left')
+            plt.xlabel('#crawled')
+            plt.ylabel('#found')
             fig.show()
             plt.pause(0.001)
 
@@ -711,6 +713,8 @@ def main():
         plt.plot(arrBalanced, label="balanced")
         plt.plot(arrRL, label="RL")
         plt.legend(loc='upper left')
+        plt.xlabel('#crawled')
+        plt.ylabel('#found')
         plt.show()
 
 ######################################################################################
