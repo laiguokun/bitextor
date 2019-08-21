@@ -18,7 +18,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.99
+        self.gamma = 1.0 #0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
@@ -38,7 +38,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 9999999999
+        self.maxDocs = 300 #9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -358,19 +358,22 @@ class PolicyNetwork(nn.Module):
         return highest_prob_action, log_prob, probs
 
 ######################################################################################
-def GetNextState(env, params, action, visited, candidates):
+def GetNextState(env, params, currNode, action, visited, candidates):
     #print("action", action)
     #print("candidates", candidates.Debug())
     #if action == 0:
     #    stopNode = env.nodes[0]
     #    link = Link("", 0, stopNode, stopNode)
     #elif not candidates.HasLinks(action):
+    randomNode = False
     if action == 0 or not candidates.HasLinks(action):
         numLinks = candidates.CountLinks()
         #print("numLinks", numLinks)
         if numLinks > 0:
+            #print("action", action, candidates.Debug())
             link = candidates.RandomLink()
             #print("link1", link.childNode.Debug())
+            randomNode = True
         else:
             stopNode = env.nodes[0]
             link = Link("", 0, stopNode, stopNode)
@@ -382,7 +385,9 @@ def GetNextState(env, params, action, visited, candidates):
     nextNode = link.childNode
     #print("   nextNode", nextNode.Debug())
 
-    if nextNode.urlId == 0:
+    if randomNode == True:
+        reward = -66.0
+    elif nextNode.urlId == 0:
         #print("   stop")
         reward = 0.0
     elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
@@ -396,7 +401,7 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, qNet):
+def NeuralWalk(env, params, eps, currNode, candidates, visited, langsVisited, qNet):
     langsVisited = np.squeeze(langsVisited, (0,))
     #print("langsVisited", langsVisited.shape, langsVisited)
     candidateCounts = candidates.GetCounts()
@@ -405,7 +410,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, qNet):
     action, logProb, probs = qNet.get_action(langsVisited, candidateCounts)
     #print("action", action, logProb)
 
-    link, reward = GetNextState(env, params, action, visited, candidates)
+    link, reward = GetNextState(env, params, currNode, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
 
@@ -431,7 +436,7 @@ def Trajectory(env, epoch, params, pNet):
 
         candidates.AddLinks(node, visited, params)
 
-        action, logProb, link, reward, probs = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, pNet)
+        action, logProb, link, reward, probs = NeuralWalk(env, params, params.eps, node, candidates, visited, langsVisited, pNet)
         node = link.childNode
         actions.append(action)
         log_probs.append(logProb)
@@ -482,7 +487,7 @@ def Walk(env, params, pNet):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        action, logProb, link, reward, probs = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, pNet)
+        action, logProb, link, reward, probs = NeuralWalk(env, params, 0.0, node, candidates, visited, langsVisited, pNet)
         node = link.childNode
         #print("action", action)
         actions.append(action)
