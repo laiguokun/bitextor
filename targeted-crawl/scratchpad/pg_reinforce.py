@@ -158,8 +158,8 @@ class PolicyGradientREINFORCE(object):
   def updateModel(self):
 
     N = len(self.reward_buffer)
-    assert(N = len(self.action_buffer))
-    assert(N = len(self.state_buffer))
+    assert(N == len(self.action_buffer))
+    assert(N == len(self.state_buffer))
 
     r = 0 # use discounted reward to approximate Q value
 
