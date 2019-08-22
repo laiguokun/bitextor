@@ -18,7 +18,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.99
+        self.gamma = 0.9 #1.0 #0.99
         self.lrn_rate = 3e-4
         self.alpha = 1.0 # 0.7
         self.max_epochs = 200001
@@ -38,7 +38,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 9999999999
+        self.maxDocs = 400 #9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -548,6 +548,7 @@ def Update(gamma, policy_network, log_probs, rewards):
     policy_network.optimizer.zero_grad()
     policy_gradient = torch.stack(policy_gradient).sum()
     #print("policy_gradient", type(policy_gradient), policy_gradient.shape, policy_gradient)
+    #sdsds
 
     policy_gradient.backward()
     policy_network.optimizer.step()
@@ -569,17 +570,17 @@ def Train(params, saver, env, pNet):
 
         if epoch > 0 and epoch % params.walk == 0:
             arrRL = Walk(env, params, pNet)
-            arrDumb = dumb(env, len(env.nodes), params)
-            arrBalanced = balanced(env, len(env.nodes), params)
+            # arrDumb = dumb(env, len(env.nodes), params)
+            # arrBalanced = balanced(env, len(env.nodes), params)
             
-            fig = plt.figure()
-            ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb, label="dumb")
-            ax.plot(arrBalanced, label="balanced")
-            ax.plot(arrRL, label="RL")
-            ax.legend(loc='upper left')
-            fig.show()
-            plt.pause(0.001)
+            # fig = plt.figure()
+            # ax = fig.add_subplot(1,1,1)
+            # ax.plot(arrDumb, label="dumb")
+            # ax.plot(arrBalanced, label="balanced")
+            # ax.plot(arrRL, label="RL")
+            # ax.legend(loc='upper left')
+            # fig.show()
+            # plt.pause(0.001)
 
             print("epoch", epoch)
 
@@ -610,8 +611,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
