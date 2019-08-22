@@ -23,7 +23,7 @@ from bs4 import BeautifulSoup
 from warcio.archiveiterator import ArchiveIterator
 
 bitextorRoot = os.path.dirname(os.path.abspath(__file__))
-bitextorRoot = bitextorRoot + "/.."
+bitextorRoot = bitextorRoot + "/../.."
 # print("bitextorRoot", bitextorRoot)
 
 sys.path.append(bitextorRoot)
@@ -90,7 +90,7 @@ def convert_encoding(data):
         for enc in [encoding, 'utf-8', 'iso-8859-1', 'windows‑1252']:
             try:
                 return (enc, data.decode(enc))
-            except UnicodeDecodeError:
+            except:
                 sys.stderr.write("encoding error")
 
     return (None, '')
