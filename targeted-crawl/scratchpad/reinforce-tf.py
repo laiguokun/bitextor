@@ -61,11 +61,12 @@ def main():
 
             total_rewards += reward
             reward = -10 if done else 0.1 # normalize reward
+            #print("action, next_state, reward, done", action, next_state, reward, done)
             pg_reinforce.storeRollout(state, action, reward)
 
             state = next_state
             if done: break
-
+        
         pg_reinforce.updateModel()
 
         episode_history.append(total_rewards)
@@ -78,6 +79,7 @@ def main():
         if mean_rewards >= 195.0 and len(episode_history) >= 100:
             print("Environment {} solved after {} episodes".format(env_name, i_episode+1))
             break
+        print()
 
 ######################################################################################
 main()
