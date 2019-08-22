@@ -18,10 +18,10 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 1.0 #0.99
-        self.lrn_rate = 0.5
+        self.gamma = 0.99
+        self.lrn_rate = 3e-4
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 20001
+        self.max_epochs = 200001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -38,7 +38,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 300 #9999999999
+        self.maxDocs = 9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -369,6 +369,9 @@ def GetNextState(env, params, currNode, action, visited, candidates):
     if action == 0 or not candidates.HasLinks(action):
         numLinks = candidates.CountLinks()
         #print("numLinks", numLinks)
+        #stopNode = env.nodes[0]
+        #link = Link("", 0, stopNode, stopNode)
+
         if numLinks > 0:
             #print("action", action, candidates.Debug())
             link = candidates.RandomLink()
@@ -385,9 +388,7 @@ def GetNextState(env, params, currNode, action, visited, candidates):
     nextNode = link.childNode
     #print("   nextNode", nextNode.Debug())
 
-    if randomNode == True:
-        reward = -666.0
-    elif nextNode.urlId == 0:
+    if nextNode.urlId == 0:
         #print("   stop")
         reward = 0.0
     elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
@@ -489,7 +490,7 @@ def Walk(env, params, pNet):
         #print("candidates", candidates.Debug())
         action, logProb, link, reward, probs = NeuralWalk(env, params, 0.0, node, candidates, visited, langsVisited, pNet)
         node = link.childNode
-        #print("action", action)
+        print("action", action, probs)
         actions.append(action)
         log_probs.append(logProb)
         rewards.append(reward)
@@ -567,11 +568,10 @@ def Train(params, saver, env, pNet):
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
+            arrRL = Walk(env, params, pNet)
             arrDumb = dumb(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
-            arrRL = Walk(env, params, pNet)
-            print("epoch", epoch)
-
+            
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
             ax.plot(arrDumb, label="dumb")
@@ -580,6 +580,8 @@ def Train(params, saver, env, pNet):
             ax.legend(loc='upper left')
             fig.show()
             plt.pause(0.001)
+
+            print("epoch", epoch)
 
 
     return totRewards, totDiscountedRewards
