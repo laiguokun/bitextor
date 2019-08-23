@@ -159,28 +159,84 @@ def policy_network(states):
   return p
 
 ######################################################################################
+def GetNextState(env, params, currNode, action, visited, candidates):
+    #print("action", action)
+    #print("candidates", candidates.Debug())
+    #if action == 0:
+    #    stopNode = env.nodes[0]
+    #    link = Link("", 0, stopNode, stopNode)
+    #elif not candidates.HasLinks(action):
+    randomNode = False
+    if action == 0 or not candidates.HasLinks(action):
+        numLinks = candidates.CountLinks()
+        #print("numLinks", numLinks)
+        #stopNode = env.nodes[0]
+        #link = Link("", 0, stopNode, stopNode)
+
+        if numLinks > 0:
+            #print("action", action, candidates.Debug())
+            link = candidates.RandomLink()
+            #print("link1", link.childNode.Debug())
+            randomNode = True
+        else:
+            stopNode = env.nodes[0]
+            link = Link("", 0, stopNode, stopNode)
+            #print("link2", link)
+    else:
+        link = candidates.Pop(action)
+
+    assert(link is not None)
+    nextNode = link.childNode
+    #print("   nextNode", nextNode.Debug())
+
+    if nextNode.urlId == 0:
+        #print("   stop")
+        reward = 0.0
+    elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
+        reward = params.reward
+        #print("   visited", visited)
+        #print("   reward", reward)
+        #print()
+    else:
+        #print("   non-rewarding")
+        reward = params.cost
+
+    return link, reward
+
+######################################################################################
 def Trajectory(params, env, pg_reinforce):
     MAX_STEPS    = 200
     # initialize
-    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
+    visited = set()
+    langsVisited = np.zeros([env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
 
     node = env.nodes[sys.maxsize]
-    langsVisited[0, node.lang] += 1
+    langsVisited[node.lang] += 1
     total_rewards = 0
 
     for numSteps in range(MAX_STEPS):
         candidateCounts = candidates.GetCounts()
+        #print("candidateCounts", candidateCounts, langsVisited)
+        state = np.concatenate((langsVisited, candidateCounts), axis=0)
+        #print("state", state)
 
         action = pg_reinforce.sampleAction(state[np.newaxis,:])
-        next_state, reward, done, _ = env.step(action)
+        link, reward = GetNextState(env, params, node, action, visited, candidates)
+        print("action", action, link.childNode.Debug(), reward)
+
+        done = False
+        if link.childNode.urlId == 0:
+            done = True
+        if len(visited) > params.maxDocs:
+            done = True
 
         total_rewards += reward
         reward = -10 if done else 0.1 # normalize reward
         #print("action, next_state, reward, done", action, next_state, reward, done)
         pg_reinforce.storeRollout(state, action, reward)
 
-        state = next_state
+        node = link.childNode
         if done: break
 
     return numSteps, total_rewards
