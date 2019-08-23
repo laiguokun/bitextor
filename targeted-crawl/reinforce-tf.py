@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 0.9 #1.0 #0.99
         self.lrn_rate = 3e-4
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 2001
+        self.max_epochs = 20001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -235,7 +235,7 @@ def Trajectory(params, env, pg_reinforce):
             done = True
 
         total_rewards += reward
-        reward = -10 if done else 0.1 # normalize reward
+        #reward = -10 if done else 0.1 # normalize reward
         #print("action, next_state, reward, done", action, next_state, reward, done)
         pg_reinforce.storeRollout(state, action, reward)
 
@@ -251,7 +251,7 @@ def Train(params, env, pg_reinforce):
 
         if i_episode > 0 and i_episode % params.walk == 0:
             print("actions", pg_reinforce.action_buffer)
-            print("reward_buffer", pg_reinforce.reward_buffer)
+            print("reward_buffer", pg_reinforce.reward_buffer, total_rewards)
             print()
 
         pg_reinforce.updateModel()
@@ -307,7 +307,7 @@ def main():
                                         state_dim,
                                         num_actions,
                                         summary_writer=writer,
-                                        discount_factor=1.0)
+                                        discount_factor=params.gamma)
 
     Train(params, env, pg_reinforce)
 
