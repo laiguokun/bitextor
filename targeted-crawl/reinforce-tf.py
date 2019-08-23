@@ -252,21 +252,21 @@ def Train(params, env, pg_reinforce):
         if i_episode > 0 and i_episode % params.walk == 0:
             print("actions", pg_reinforce.action_buffer)
             print("reward_buffer", pg_reinforce.reward_buffer)
+            print()
 
         pg_reinforce.updateModel()
 
         episode_history.append(total_rewards)
         mean_rewards = np.mean(episode_history)
 
-        print("Episode {}".format(i_episode))
-        print("Finished after {} timesteps".format(numSteps+1))
-        print("Reward for this episode: {}".format(total_rewards))
-        print("Average reward for last 100 episodes: {:.2f}".format(mean_rewards))
+        #print("Episode {}".format(i_episode))
+        #print("Finished after {} timesteps".format(numSteps+1))
+        #print("Reward for this episode: {}".format(total_rewards))
+        #print("Average reward for last 100 episodes: {:.2f}".format(mean_rewards))
         #if mean_rewards >= 195.0 and len(episode_history) >= 100:
         #    print("Environment {} solved after {} episodes".format("hh", i_episode+1))
         #    break
 
-        print()
 
 ######################################################################################
 def main():
