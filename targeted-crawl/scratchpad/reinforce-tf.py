@@ -57,7 +57,8 @@ def main():
         total_rewards = 0
 
         for t in range(MAX_STEPS):
-            env.render()
+            #env.render()
+            print("state", state, state[np.newaxis,:])
             action = pg_reinforce.sampleAction(state[np.newaxis,:])
             next_state, reward, done, _ = env.step(action)
 

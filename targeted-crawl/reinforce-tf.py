@@ -4,9 +4,10 @@ from __future__ import print_function
 from collections import deque
 
 from scratchpad.pg_reinforce import PolicyGradientREINFORCE
+import os
+import sys
 import tensorflow as tf
 import numpy as np
-import gym
 import argparse
 
 from common import MySQL, Languages, Timer
@@ -43,7 +44,104 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
+######################################################################################
+class Transition:
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures):
+        self.currURLId = currURLId
+        self.nextURLId = nextURLId 
+        self.langRequested = langRequested 
+        self.langIds = langIds 
+        self.langFeatures = langFeatures 
 
+    def DebugTransition(self):
+        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        return ret
+
+######################################################################################
+class Candidates:
+    def __init__(self, params, env):
+        self.params = params
+        self.env = env
+        self.dict = {} # parent lang -> links[]
+
+        #for langId in params.langIds:
+        #    self.dict[langId] = []
+
+    def copy(self):
+        ret = Candidates(self.params, self.env)
+
+        for key, value in self.dict.items():
+            #print("key", key, value)
+            ret.dict[key] = value.copy()
+
+        return ret
+    
+    def AddLink(self, link):
+        langId = link.parentNode.lang
+        if langId not in self.dict:
+            self.dict[langId] = []
+        self.dict[langId].append(link)
+        
+    def AddLinks(self, node, visited, params):
+        #print("   currNode", curr, currNode.Debug())
+        newLinks = node.GetLinks(visited, params)
+
+        for link in newLinks:
+            self.AddLink(link)
+
+    def Pop(self, action):
+        links = self.dict[action]
+        assert(len(links) > 0)
+
+        idx = np.random.randint(0, len(links))
+        link = links.pop(idx)
+
+        # remove all links going to same node
+        for otherLinks in self.dict.values():
+            otherLinksCopy = otherLinks.copy()
+            for otherLink in otherLinksCopy:
+                if otherLink.childNode == link.childNode:
+                    otherLinks.remove(otherLink)
+
+        return link
+
+    def HasLinks(self, action):
+        if action in self.dict and len(self.dict[action]) > 0:
+            return True
+        else:
+            return False
+
+    def CountLinks(self):
+        ret = 0
+        for links in self.dict.values():
+            ret += len(links)
+        return ret
+
+    def GetCounts(self):
+        ret = np.zeros([self.env.maxLangId + 1])
+        for key, value in self.dict.items():
+            ret[key] = len(value)
+        return ret
+
+
+    def RandomLink(self):
+        while True:
+            langs = list(self.dict)
+            action = np.random.choice(langs)
+            #print("action", action)
+            if self.HasLinks(action):
+                return self.Pop(action)
+        raise Exception("shouldn't be here")
+
+    def Debug(self):
+        ret = ""
+        for lang in self.dict:
+            ret += "lang=" + str(lang) + ":"
+            links = self.dict[lang]
+            for link in links:
+                ret += " " + link.parentNode.url + "->" + link.childNode.url
+        return ret
+    
 ######################################################################################
 def policy_network(states):
   # define policy neural network
@@ -59,15 +157,21 @@ def policy_network(states):
   p = tf.matmul(h1, W2) + b2
   #print("p", p)
   return p
+
 ######################################################################################
-def Trajectory(env, pg_reinforce):
+def Trajectory(params, env, pg_reinforce):
     MAX_STEPS    = 200
     # initialize
-    state = env.reset()
+    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
+    candidates = Candidates(params, env)
+
+    node = env.nodes[sys.maxsize]
+    langsVisited[0, node.lang] += 1
     total_rewards = 0
 
     for numSteps in range(MAX_STEPS):
-        env.render()
+        candidateCounts = candidates.GetCounts()
+
         action = pg_reinforce.sampleAction(state[np.newaxis,:])
         next_state, reward, done, _ = env.step(action)
 
@@ -81,12 +185,12 @@ def Trajectory(env, pg_reinforce):
 
     return numSteps, total_rewards
 
-def Train(env, pg_reinforce):
+def Train(params, env, pg_reinforce):
     MAX_EPISODES = 10000
 
     episode_history = deque(maxlen=100)
     for i_episode in range(MAX_EPISODES):
-        numSteps, total_rewards = Trajectory(env, pg_reinforce)
+        numSteps, total_rewards = Trajectory(params, env, pg_reinforce)
 
         pg_reinforce.updateModel()
 
@@ -128,16 +232,17 @@ def main():
     #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
+    state_dim = (env.maxLangId + 1) * 2
+    num_actions = params.NUM_ACTIONS
 
-    env_name = 'CartPole-v0'
-    env = gym.make(env_name)
+    #env_name = 'CartPole-v0'
+    #env = gym.make(env_name)
+    #state_dim   = env.observation_space.shape[0]
+    #num_actions = env.action_space.n
 
     sess = tf.Session()
     optimizer = tf.train.RMSPropOptimizer(learning_rate=0.0001, decay=0.9)
-    writer = tf.summary.FileWriter("/tmp/{}-experiment-1".format(env_name))
-
-    state_dim   = env.observation_space.shape[0]
-    num_actions = env.action_space.n
+    writer = tf.summary.FileWriter("/tmp/{}-experiment-1".format("hh"))
 
     pg_reinforce = PolicyGradientREINFORCE(sess,
                                         optimizer,
@@ -147,7 +252,7 @@ def main():
                                         summary_writer=writer,
                                         discount_factor=1.0)
 
-    Train(env, pg_reinforce)
+    Train(params, env, pg_reinforce)
 
 ######################################################################################
 main()
