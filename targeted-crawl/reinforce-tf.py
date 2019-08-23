@@ -19,7 +19,7 @@ class LearningParams:
         self.gamma = 0.9 #1.0 #0.99
         self.lrn_rate = 3e-4
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 200001
+        self.max_epochs = 2001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -205,17 +205,20 @@ def GetNextState(env, params, currNode, action, visited, candidates):
 
 ######################################################################################
 def Trajectory(params, env, pg_reinforce):
-    MAX_STEPS    = 200
     # initialize
     visited = set()
     langsVisited = np.zeros([env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
 
     node = env.nodes[sys.maxsize]
-    langsVisited[node.lang] += 1
+    #print("node", node.Debug())
     total_rewards = 0
+    
+    for numSteps in range(params.maxDocs):
+        visited.add(node.urlId)
+        langsVisited[node.lang] += 1
+        candidates.AddLinks(node, visited, params)
 
-    for numSteps in range(MAX_STEPS):
         candidateCounts = candidates.GetCounts()
         #print("candidateCounts", candidateCounts, langsVisited)
         state = np.concatenate((langsVisited, candidateCounts), axis=0)
@@ -223,7 +226,7 @@ def Trajectory(params, env, pg_reinforce):
 
         action = pg_reinforce.sampleAction(state[np.newaxis,:])
         link, reward = GetNextState(env, params, node, action, visited, candidates)
-        print("action", action, link.childNode.Debug(), reward)
+        #print("action", action, link.childNode.Debug(), reward)
 
         done = False
         if link.childNode.urlId == 0:
@@ -242,11 +245,13 @@ def Trajectory(params, env, pg_reinforce):
     return numSteps, total_rewards
 
 def Train(params, env, pg_reinforce):
-    MAX_EPISODES = 10000
-
     episode_history = deque(maxlen=100)
-    for i_episode in range(MAX_EPISODES):
+    for i_episode in range(params.max_epochs):
         numSteps, total_rewards = Trajectory(params, env, pg_reinforce)
+
+        if i_episode > 0 and i_episode % params.walk == 0:
+            print("actions", pg_reinforce.action_buffer)
+            print("reward_buffer", pg_reinforce.reward_buffer)
 
         pg_reinforce.updateModel()
 
@@ -257,9 +262,10 @@ def Train(params, env, pg_reinforce):
         print("Finished after {} timesteps".format(numSteps+1))
         print("Reward for this episode: {}".format(total_rewards))
         print("Average reward for last 100 episodes: {:.2f}".format(mean_rewards))
-        if mean_rewards >= 195.0 and len(episode_history) >= 100:
-            print("Environment {} solved after {} episodes".format(env_name, i_episode+1))
-            break
+        #if mean_rewards >= 195.0 and len(episode_history) >= 100:
+        #    print("Environment {} solved after {} episodes".format("hh", i_episode+1))
+        #    break
+
         print()
 
 ######################################################################################
@@ -290,11 +296,6 @@ def main():
     env = Env(sqlconn, hostName)
     state_dim = (env.maxLangId + 1) * 2
     num_actions = params.NUM_ACTIONS
-
-    #env_name = 'CartPole-v0'
-    #env = gym.make(env_name)
-    #state_dim   = env.observation_space.shape[0]
-    #num_actions = env.action_space.n
 
     sess = tf.Session()
     optimizer = tf.train.RMSPropOptimizer(learning_rate=0.0001, decay=0.9)
