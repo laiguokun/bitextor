@@ -16,7 +16,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.9 #1.0 #0.99
+        self.gamma = 0.99
         self.lrn_rate = 3e-4
         self.alpha = 1.0 # 0.7
         self.max_epochs = 20001
@@ -36,7 +36,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 400 #9999999999
+        self.maxDocs = 300 #9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -150,12 +150,20 @@ def policy_network(states):
   b1 = tf.get_variable("b1", [20],
                        initializer=tf.constant_initializer(0))
   h1 = tf.nn.tanh(tf.matmul(states, W1) + b1)
-  W2 = tf.get_variable("W2", [20, num_actions],
+
+  W2 = tf.get_variable("W2", [20, 20],
                        initializer=tf.random_normal_initializer(stddev=0.1))
-  b2 = tf.get_variable("b2", [num_actions],
+  b2 = tf.get_variable("b2", [20],
                        initializer=tf.constant_initializer(0))
-  p = tf.matmul(h1, W2) + b2
-  #print("p", p)
+  h2 = tf.nn.tanh(tf.matmul(h1, W2) + b2)
+
+  W3 = tf.get_variable("W3", [20, num_actions],
+                       initializer=tf.random_normal_initializer(stddev=0.1))
+  b3 = tf.get_variable("b3", [num_actions],
+                       initializer=tf.constant_initializer(0))
+  h3 = tf.matmul(h2, W3) + b3
+  
+  p = h3
   return p
 
 ######################################################################################
@@ -290,8 +298,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
     state_dim = (env.maxLangId + 1) * 2

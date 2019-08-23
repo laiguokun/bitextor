@@ -18,7 +18,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.9 #1.0 #0.99
+        self.gamma = 0.99
         self.lrn_rate = 3e-4
         self.alpha = 1.0 # 0.7
         self.max_epochs = 200001
@@ -29,7 +29,7 @@ class LearningParams:
         
         self.debug = False
         self.walk = 50
-        self.NUM_ACTIONS = 30
+        #self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
         self.saveDir = saveDir
@@ -332,8 +332,8 @@ class PolicyNetwork(nn.Module):
         x = torch.cat((langsVisited, candidateCounts), 1)
         #print("x", x)
 
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
+        x = F.tanh(self.linear1(x))
+        x = F.tanh(self.linear2(x))
         x = self.linear3(x)
         x = F.softmax(x, dim=1)
         return x 
@@ -611,8 +611,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
