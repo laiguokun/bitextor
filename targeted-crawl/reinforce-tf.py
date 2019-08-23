@@ -81,6 +81,27 @@ def Trajectory(env, pg_reinforce):
 
     return numSteps, total_rewards
 
+def Train(env, pg_reinforce):
+    MAX_EPISODES = 10000
+
+    episode_history = deque(maxlen=100)
+    for i_episode in range(MAX_EPISODES):
+        numSteps, total_rewards = Trajectory(env, pg_reinforce)
+
+        pg_reinforce.updateModel()
+
+        episode_history.append(total_rewards)
+        mean_rewards = np.mean(episode_history)
+
+        print("Episode {}".format(i_episode))
+        print("Finished after {} timesteps".format(numSteps+1))
+        print("Reward for this episode: {}".format(total_rewards))
+        print("Average reward for last 100 episodes: {:.2f}".format(mean_rewards))
+        if mean_rewards >= 195.0 and len(episode_history) >= 100:
+            print("Environment {} solved after {} episodes".format(env_name, i_episode+1))
+            break
+        print()
+
 ######################################################################################
 def main():
     global state_dim, num_actions
@@ -126,25 +147,7 @@ def main():
                                         summary_writer=writer,
                                         discount_factor=1.0)
 
-    MAX_EPISODES = 10000
-
-    episode_history = deque(maxlen=100)
-    for i_episode in range(MAX_EPISODES):
-        numSteps, total_rewards = Trajectory(env, pg_reinforce)
-
-        pg_reinforce.updateModel()
-
-        episode_history.append(total_rewards)
-        mean_rewards = np.mean(episode_history)
-
-        print("Episode {}".format(i_episode))
-        print("Finished after {} timesteps".format(numSteps+1))
-        print("Reward for this episode: {}".format(total_rewards))
-        print("Average reward for last 100 episodes: {:.2f}".format(mean_rewards))
-        if mean_rewards >= 195.0 and len(episode_history) >= 100:
-            print("Environment {} solved after {} episodes".format(env_name, i_episode+1))
-            break
-        print()
+    Train(env, pg_reinforce)
 
 ######################################################################################
 main()
