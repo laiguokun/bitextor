@@ -38,7 +38,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 400 #9999999999
+        self.maxDocs = 9999999999
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -332,8 +332,8 @@ class PolicyNetwork(nn.Module):
         x = torch.cat((langsVisited, candidateCounts), 1)
         #print("x", x)
 
-        x = F.tanh(self.linear1(x))
-        x = F.tanh(self.linear2(x))
+        x = torch.tanh(self.linear1(x))
+        x = torch.tanh(self.linear2(x))
         x = self.linear3(x)
         x = F.softmax(x, dim=1)
         return x 
@@ -570,17 +570,17 @@ def Train(params, saver, env, pNet):
 
         if epoch > 0 and epoch % params.walk == 0:
             arrRL = Walk(env, params, pNet)
-            # arrDumb = dumb(env, len(env.nodes), params)
-            # arrBalanced = balanced(env, len(env.nodes), params)
+            arrDumb = dumb(env, len(env.nodes), params)
+            arrBalanced = balanced(env, len(env.nodes), params)
             
-            # fig = plt.figure()
-            # ax = fig.add_subplot(1,1,1)
-            # ax.plot(arrDumb, label="dumb")
-            # ax.plot(arrBalanced, label="balanced")
-            # ax.plot(arrRL, label="RL")
-            # ax.legend(loc='upper left')
-            # fig.show()
-            # plt.pause(0.001)
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            ax.plot(arrDumb, label="dumb")
+            ax.plot(arrBalanced, label="balanced")
+            ax.plot(arrRL, label="RL")
+            ax.legend(loc='upper left')
+            fig.show()
+            plt.pause(0.001)
 
             print("epoch", epoch)
 
