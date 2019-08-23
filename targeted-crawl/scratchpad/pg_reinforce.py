@@ -112,6 +112,7 @@ class PolicyGradientREINFORCE(object):
 
       # compute policy gradients
       for i, (grad, var) in enumerate(self.gradients):
+        #print("i", i, grad, var)
         if grad is not None:
           self.gradients[i] = (grad * self.discounted_rewards, var)
 
@@ -169,15 +170,19 @@ class PolicyGradientREINFORCE(object):
       # future discounted reward from now on
       r = self.reward_buffer[t] + self.discount_factor * r
       discounted_rewards[t] = r
+    #print("r", r, discounted_rewards)
 
     # reduce gradient variance by normalization
     self.all_rewards += discounted_rewards.tolist()
-    self.all_rewards = self.all_rewards[:self.max_reward_length]
-    discounted_rewards -= np.mean(self.all_rewards)
+    #print("all_rewards", self.all_rewards)
+    self.all_rewards = self.all_rewards[:self.max_reward_length] # truncate
+    discounted_rewards -= np.mean(self.all_rewards) # normalized by ALL rewards
     discounted_rewards /= np.std(self.all_rewards)
+    #print("discounted_rewards", discounted_rewards)
 
     # whether to calculate summaries
     calculate_summaries = self.summary_writer is not None and self.train_iteration % self.summary_every == 0
+    #print("calculate_summaries", calculate_summaries)
 
     # update policy network with the rollout in batches
     for t in range(N-1):
@@ -189,16 +194,19 @@ class PolicyGradientREINFORCE(object):
 
       # evaluate gradients
       grad_evals = [grad for grad, var in self.gradients]
+      #print("grad_evals", self.gradients)
+      #print("actions", actions, type(actions))
 
       # perform one update of training
       _, summary_str = self.session.run([
         self.train_op,
         self.summarize if calculate_summaries else self.no_op
-      ], {
+      ], feed_dict={
         self.states:             states,
         self.taken_actions:      actions,
         self.discounted_rewards: rewards
       })
+      #print("summary_str", summary_str)
 
       # emit summaries
       if calculate_summaries:

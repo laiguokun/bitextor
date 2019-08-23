@@ -21,6 +21,7 @@ def policy_network(states):
   b2 = tf.get_variable("b2", [num_actions],
                        initializer=tf.constant_initializer(0))
   p = tf.matmul(h1, W2) + b2
+  #print("p", p)
   return p
 
 ######################################################################################
@@ -42,7 +43,8 @@ def main():
                                         policy_network,
                                         state_dim,
                                         num_actions,
-                                        summary_writer=writer)
+                                        summary_writer=writer,
+                                        discount_factor=1.0)
 
     MAX_EPISODES = 10000
     MAX_STEPS    = 200
