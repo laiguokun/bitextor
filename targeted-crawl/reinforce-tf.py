@@ -59,6 +59,27 @@ def policy_network(states):
   p = tf.matmul(h1, W2) + b2
   #print("p", p)
   return p
+######################################################################################
+def Trajectory(env, pg_reinforce):
+    MAX_STEPS    = 200
+    # initialize
+    state = env.reset()
+    total_rewards = 0
+
+    for numSteps in range(MAX_STEPS):
+        env.render()
+        action = pg_reinforce.sampleAction(state[np.newaxis,:])
+        next_state, reward, done, _ = env.step(action)
+
+        total_rewards += reward
+        reward = -10 if done else 0.1 # normalize reward
+        #print("action, next_state, reward, done", action, next_state, reward, done)
+        pg_reinforce.storeRollout(state, action, reward)
+
+        state = next_state
+        if done: break
+
+    return numSteps, total_rewards
 
 ######################################################################################
 def main():
@@ -106,35 +127,18 @@ def main():
                                         discount_factor=1.0)
 
     MAX_EPISODES = 10000
-    MAX_STEPS    = 200
 
     episode_history = deque(maxlen=100)
     for i_episode in range(MAX_EPISODES):
+        numSteps, total_rewards = Trajectory(env, pg_reinforce)
 
-        # initialize
-        state = env.reset()
-        total_rewards = 0
-
-        for t in range(MAX_STEPS):
-            env.render()
-            action = pg_reinforce.sampleAction(state[np.newaxis,:])
-            next_state, reward, done, _ = env.step(action)
-
-            total_rewards += reward
-            reward = -10 if done else 0.1 # normalize reward
-            #print("action, next_state, reward, done", action, next_state, reward, done)
-            pg_reinforce.storeRollout(state, action, reward)
-
-            state = next_state
-            if done: break
-        
         pg_reinforce.updateModel()
 
         episode_history.append(total_rewards)
         mean_rewards = np.mean(episode_history)
 
         print("Episode {}".format(i_episode))
-        print("Finished after {} timesteps".format(t+1))
+        print("Finished after {} timesteps".format(numSteps+1))
         print("Reward for this episode: {}".format(total_rewards))
         print("Average reward for last 100 episodes: {:.2f}".format(mean_rewards))
         if mean_rewards >= 195.0 and len(episode_history) >= 100:
