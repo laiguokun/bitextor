@@ -153,7 +153,14 @@ class PolicyGradientREINFORCE(object):
       return random.randint(0, self.num_actions-1)
     else:
       action_scores = self.session.run(self.action_scores, {self.states: states})[0]
-      action_probs  = softmax(action_scores) - 1e-5
+      action_probs  = softmax(action_scores)
+
+      sumProbs = sum(action_probs[:-1])
+      while sumProbs > 1.0:
+        action_probs *= 0.99
+        sumProbs = sum(action_probs[:-1])
+        #print("action_probs", action_probs, sumProbs)
+
       action = np.argmax(np.random.multinomial(1, action_probs))
       return action
 
