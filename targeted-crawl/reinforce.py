@@ -370,7 +370,7 @@ class PolicyNetwork(nn.Module):
         x = F.softmax(x, dim=1)
         return x 
     
-    def get_action(self, langsVisited, candidateCounts):
+    def get_action(self, langsVisited, candidateCounts, eps):
         #print("langsVisited", type(langsVisited), langsVisited.shape, langsVisited)
         langsVisited = torch.from_numpy(langsVisited).float().unsqueeze(0)
         #print("state", type(state), state.shape)
@@ -383,7 +383,10 @@ class PolicyNetwork(nn.Module):
         probs = self.forward(langsVisited, candidateCounts)
         #print("probs", type(probs), probs.shape, probs)
 
-        highest_prob_action = np.random.choice(self.NUM_ACTIONS, p=np.squeeze(probs.detach().numpy()))
+        if np.random.rand(1) < eps:
+            highest_prob_action = np.random.choice(self.NUM_ACTIONS)
+        else:
+            highest_prob_action = np.random.choice(self.NUM_ACTIONS, p=np.squeeze(probs.detach().numpy()))
         log_prob = torch.log(probs.squeeze(0)[highest_prob_action])
         #print("probs", highest_prob_action, probs)
 
@@ -440,7 +443,7 @@ def NeuralWalk(env, params, eps, currNode, candidates, visited, langsVisited, qN
     candidateCounts = candidates.GetCounts()
     #print("candidateCounts", candidateCounts.shape, candidateCounts)
     
-    action, logProb, probs = qNet.get_action(langsVisited, candidateCounts)
+    action, logProb, probs = qNet.get_action(langsVisited, candidateCounts, params.eps)
     #print("action", action, logProb)
 
     link, reward = GetNextState(env, params, currNode, action, visited, candidates)
