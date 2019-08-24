@@ -161,7 +161,7 @@ def policy_network(states):
                        initializer=tf.random_normal_initializer(stddev=0.1))
   b3 = tf.get_variable("b3", [num_actions],
                        initializer=tf.constant_initializer(0))
-  h3 = tf.matmul(h2, W3) + b3
+  h3 = tf.nn.tanh(tf.matmul(h2, W3) + b3)
   
   p = h3
   return p
@@ -178,18 +178,18 @@ def GetNextState(env, params, currNode, action, visited, candidates):
     if action == 0 or not candidates.HasLinks(action):
         numLinks = candidates.CountLinks()
         #print("numLinks", currNode.Debug(), numLinks)
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
+        #stopNode = env.nodes[0]
+        #link = Link("", 0, stopNode, stopNode)
 
-        # if numLinks > 0:
-        #    #print("action", action, candidates.Debug())
-        #    link = candidates.RandomLink()
-        #    #print("link1", link.childNode.Debug())
-        #    randomNode = True
-        # else:
-        #    stopNode = env.nodes[0]
-        #    link = Link("", 0, stopNode, stopNode)
-        #    #print("link2", link)
+        if numLinks > 0:
+           #print("action", action, candidates.Debug())
+           link = candidates.RandomLink()
+           #print("link1", link.childNode.Debug())
+           randomNode = True
+        else:
+           stopNode = env.nodes[0]
+           link = Link("", 0, stopNode, stopNode)
+           #print("link2", link)
     else:
         link = candidates.Pop(action)
 
