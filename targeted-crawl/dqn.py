@@ -523,8 +523,8 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
         #print("actions", type(actions), actions)
         action = np.random.choice(actions)
         maxQ = qValues[action]
-        print("random")
-    print("action", action, qValues)
+        #print("random")
+    #print("action", action, qValues)
 
     #print("action", action, maxQ, qValues)
     link, reward = GetNextState(env, params, action, visited, candidates)
