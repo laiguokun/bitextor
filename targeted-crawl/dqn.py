@@ -370,10 +370,10 @@ class Candidates:
     def Debug(self):
         ret = ""
         for lang in self.dict:
-            ret += "lang=" + str(lang) + ":"
-            links = self.dict[lang]
-            for link in links:
-                ret += " " + link.parentNode.url + "->" + link.childNode.url
+            ret += "lang=" + str(lang) + ":" + str(len(self.dict[lang])) + " "
+            #links = self.dict[lang]
+            #for link in links:
+            #    ret += " " + link.parentNode.url + "->" + link.childNode.url
         return ret
     
 ######################################################################################
@@ -468,6 +468,7 @@ class Qnetwork():
         #print("qValues", env.maxLangId, qValues)
 
         if len(qValues) == 0:
+            #print("empty qValues")
             qValues[0] = 0.0
             maxQ = 0.0
             argMax = 0
@@ -487,8 +488,14 @@ class Qnetwork():
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
-    assert(candidates.HasLinks(action))
-    link = candidates.Pop(action)
+    #print("candidates", action, candidates.Debug())
+    if action == 0:
+        # no explicit stop state but no candidates
+        stopNode = env.nodes[0]
+        link = Link("", 0, stopNode, stopNode)
+    else:
+        assert(candidates.HasLinks(action))
+        link = candidates.Pop(action)
  
     assert(link is not None)
     nextNode = link.childNode
@@ -516,6 +523,8 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
         #print("actions", type(actions), actions)
         action = np.random.choice(actions)
         maxQ = qValues[action]
+        print("random")
+    print("action", action, qValues)
 
     #print("action", action, maxQ, qValues)
     link, reward = GetNextState(env, params, action, visited, candidates)
@@ -562,9 +571,9 @@ def Trajectory(env, epoch, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
-    stopNode = env.nodes[0]
-    link = Link("", 0, stopNode, stopNode)
-    candidates.AddLink(link)
+    #stopNode = env.nodes[0]
+    #link = Link("", 0, stopNode, stopNode)
+    #candidates.AddLink(link)
 
     while True:
         tmp = np.random.rand(1)
@@ -607,9 +616,9 @@ def Walk(env, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
-    stopNode = env.nodes[0]
-    link = Link("", 0, stopNode, stopNode)
-    candidates.AddLink(link)
+    #stopNode = env.nodes[0]
+    #link = Link("", 0, stopNode, stopNode)
+    #candidates.AddLink(link)
 
     mainStr = "nodes:" + str(node.urlId)
     rewardStr = "rewards:"
