@@ -738,12 +738,14 @@ def main():
 
         #params.debug = True
         arrDumb = dumb(env, len(env.nodes), params)
+        arrRandom = randomCrawl(env, len(env.nodes), params)
         arrBalanced = balanced(env, len(env.nodes), params)
         arrRL = Walk(env, params, sess, qns)
         #print("arrDumb", arrDumb)
         #print("arrBalanced", arrBalanced)
         
         plt.plot(arrDumb, label="dumb")
+        plt.plot(arrRandom, label="random")
         plt.plot(arrBalanced, label="balanced")
         plt.plot(arrRL, label="RL")
         plt.legend(loc='upper left')
