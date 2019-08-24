@@ -260,7 +260,7 @@ def Train(params, env, pg_reinforce):
         if i_episode > 0 and i_episode % params.walk == 0:
             print("actions", pg_reinforce.action_buffer)
             print("reward_buffer", pg_reinforce.reward_buffer, total_rewards)
-            print()
+            print("epoch", i_episode)
 
         pg_reinforce.updateModel()
 
@@ -298,8 +298,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
     state_dim = (env.maxLangId + 1) * 2

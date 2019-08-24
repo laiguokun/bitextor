@@ -109,6 +109,7 @@ class PolicyGradientREINFORCE(object):
 
       # compute gradients
       self.gradients = self.optimizer.compute_gradients(self.loss)
+      self.gradients = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in self.gradients]
 
       # compute policy gradients
       for i, (grad, var) in enumerate(self.gradients):
