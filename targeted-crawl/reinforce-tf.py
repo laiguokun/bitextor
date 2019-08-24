@@ -16,10 +16,10 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.99
+        self.gamma = 1.0 # 0.99
         self.lrn_rate = 0.1 #3e-4
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 200001
+        self.max_epochs = 2001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -178,18 +178,18 @@ def GetNextState(env, params, currNode, action, visited, candidates):
     if action == 0 or not candidates.HasLinks(action):
         numLinks = candidates.CountLinks()
         #print("numLinks", currNode.Debug(), numLinks)
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
+        #stopNode = env.nodes[0]
+        #link = Link("", 0, stopNode, stopNode)
 
-        #if numLinks > 0:
-        #    #print("action", action, candidates.Debug())
-        #    link = candidates.RandomLink()
-        #    #print("link1", link.childNode.Debug())
-        #    randomNode = True
-        #else:
-        #    stopNode = env.nodes[0]
-        #    link = Link("", 0, stopNode, stopNode)
-        #    #print("link2", link)
+        if numLinks > 0:
+           #print("action", action, candidates.Debug())
+           link = candidates.RandomLink()
+           #print("link1", link.childNode.Debug())
+           randomNode = True
+        else:
+           stopNode = env.nodes[0]
+           link = Link("", 0, stopNode, stopNode)
+           #print("link2", link)
     else:
         link = candidates.Pop(action)
 
