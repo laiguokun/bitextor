@@ -529,7 +529,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     #print("action", action, maxQ, qValues)
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
-    #print("action", action, qValues, link, reward)
+    #print("action", action, qValues, link.childNode.Debug(), reward)
 
     return qValues, maxQ, action, link, reward
 
@@ -679,7 +679,7 @@ def Train(params, sess, saver, env, qns):
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
-        #print("epoch", epoch)
+        print("epoch", epoch)
         TIMER.Start("Trajectory")
         _ = Trajectory(env, epoch, params, sess, qns)
 
