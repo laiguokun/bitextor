@@ -13,10 +13,10 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.99
+        self.gamma = 0.999
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 1001
+        self.max_epochs = 100001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -361,6 +361,12 @@ class Candidates:
 
         return link
 
+    def HasLinks(self, action):
+        if action in self.dict and len(self.dict[action]) > 0:
+            return True
+        else:
+            return False
+
     def Debug(self):
         ret = ""
         for lang in self.dict:
@@ -481,11 +487,8 @@ class Qnetwork():
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
-    if action == 0:
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
-    else:
-        link = candidates.Pop(action)
+    assert(candidates.HasLinks(action))
+    link = candidates.Pop(action)
  
     assert(link is not None)
     nextNode = link.childNode
@@ -559,6 +562,10 @@ def Trajectory(env, epoch, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
+    stopNode = env.nodes[0]
+    link = Link("", 0, stopNode, stopNode)
+    candidates.AddLink(link)
+
     while True:
         tmp = np.random.rand(1)
         if tmp > 0.5:
@@ -599,6 +606,10 @@ def Walk(env, params, sess, qns):
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
+
+    stopNode = env.nodes[0]
+    link = Link("", 0, stopNode, stopNode)
+    candidates.AddLink(link)
 
     mainStr = "nodes:" + str(node.urlId)
     rewardStr = "rewards:"
