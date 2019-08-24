@@ -571,9 +571,9 @@ def Trajectory(env, epoch, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
-    stopNode = env.nodes[0]
-    link = Link("", 0, stopNode, stopNode)
-    candidates.AddLink(link)
+    #stopNode = env.nodes[0]
+    #link = Link("", 0, stopNode, stopNode)
+    #candidates.AddLink(link)
 
     while True:
         tmp = np.random.rand(1)
@@ -616,9 +616,9 @@ def Walk(env, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
-    stopNode = env.nodes[0]
-    link = Link("", 0, stopNode, stopNode)
-    candidates.AddLink(link)
+    #stopNode = env.nodes[0]
+    #link = Link("", 0, stopNode, stopNode)
+    #candidates.AddLink(link)
 
     mainStr = "nodes:" + str(node.urlId)
     rewardStr = "rewards:"
@@ -691,23 +691,23 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            # arrDumb = dumb(env, len(env.nodes), params)
-            # arrRandom = randomCrawl(env, len(env.nodes), params)
-            # arrBalanced = balanced(env, len(env.nodes), params)
+            arrDumb = dumb(env, len(env.nodes), params)
+            arrRandom = randomCrawl(env, len(env.nodes), params)
+            arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, params, sess, qns)
             print("epoch", epoch)
 
-            # fig = plt.figure()
-            # ax = fig.add_subplot(1,1,1)
-            # ax.plot(arrDumb, label="dumb")
-            # ax.plot(arrRandom, label="random")
-            # ax.plot(arrBalanced, label="balanced")
-            # ax.plot(arrRL, label="RL")
-            # ax.legend(loc='upper left')
-            # plt.xlabel('#crawled')
-            # plt.ylabel('#found')
-            # fig.show()
-            # plt.pause(0.001)
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            ax.plot(arrDumb, label="dumb")
+            ax.plot(arrRandom, label="random")
+            ax.plot(arrBalanced, label="balanced")
+            ax.plot(arrRL, label="RL")
+            ax.legend(loc='upper left')
+            plt.xlabel('#crawled')
+            plt.ylabel('#found')
+            fig.show()
+            plt.pause(0.001)
 
 
     return totRewards, totDiscountedRewards
