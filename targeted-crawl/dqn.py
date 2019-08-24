@@ -396,21 +396,21 @@ class Qnetwork():
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
-        self.hidden1 = tf.nn.relu(self.hidden1)
+        self.hidden1 = tf.nn.tanh(self.hidden1)
         #print("self.hidden1", self.hidden1.shape)
 
         self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden2 = tf.matmul(self.hidden1, self.W2)
         self.hidden2 = tf.add(self.hidden2, self.b2)
-        self.hidden2 = tf.nn.relu(self.hidden2)
+        self.hidden2 = tf.nn.tanh(self.hidden2)
         #print("self.hidden2", self.hidden2.shape)
 
         self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
-        self.hidden3 = tf.nn.relu(self.hidden3)
+        #self.hidden3 = tf.nn.tanh(self.hidden3)
         #print("self.hidden3", self.hidden3.shape)
 
         self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
@@ -571,9 +571,9 @@ def Trajectory(env, epoch, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
-    #stopNode = env.nodes[0]
-    #link = Link("", 0, stopNode, stopNode)
-    #candidates.AddLink(link)
+    stopNode = env.nodes[0]
+    link = Link("", 0, stopNode, stopNode)
+    candidates.AddLink(link)
 
     while True:
         tmp = np.random.rand(1)
@@ -616,9 +616,9 @@ def Walk(env, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
-    #stopNode = env.nodes[0]
-    #link = Link("", 0, stopNode, stopNode)
-    #candidates.AddLink(link)
+    stopNode = env.nodes[0]
+    link = Link("", 0, stopNode, stopNode)
+    candidates.AddLink(link)
 
     mainStr = "nodes:" + str(node.urlId)
     rewardStr = "rewards:"
@@ -679,7 +679,7 @@ def Train(params, sess, saver, env, qns):
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
-        print("epoch", epoch)
+        #print("epoch", epoch)
         TIMER.Start("Trajectory")
         _ = Trajectory(env, epoch, params, sess, qns)
 
@@ -691,23 +691,23 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            arrDumb = dumb(env, len(env.nodes), params)
-            arrRandom = randomCrawl(env, len(env.nodes), params)
-            arrBalanced = balanced(env, len(env.nodes), params)
+            # arrDumb = dumb(env, len(env.nodes), params)
+            # arrRandom = randomCrawl(env, len(env.nodes), params)
+            # arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, params, sess, qns)
             print("epoch", epoch)
 
-            fig = plt.figure()
-            ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb, label="dumb")
-            ax.plot(arrRandom, label="random")
-            ax.plot(arrBalanced, label="balanced")
-            ax.plot(arrRL, label="RL")
-            ax.legend(loc='upper left')
-            plt.xlabel('#crawled')
-            plt.ylabel('#found')
-            fig.show()
-            plt.pause(0.001)
+            # fig = plt.figure()
+            # ax = fig.add_subplot(1,1,1)
+            # ax.plot(arrDumb, label="dumb")
+            # ax.plot(arrRandom, label="random")
+            # ax.plot(arrBalanced, label="balanced")
+            # ax.plot(arrRL, label="RL")
+            # ax.legend(loc='upper left')
+            # plt.xlabel('#crawled')
+            # plt.ylabel('#found')
+            # fig.show()
+            # plt.pause(0.001)
 
 
     return totRewards, totDiscountedRewards
