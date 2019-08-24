@@ -21,7 +21,7 @@ class LearningParams:
         self.gamma = 0.99
         self.lrn_rate = 3e-4
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 200001
+        self.max_epochs = 2001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -548,9 +548,9 @@ def Update(gamma, policy_network, log_probs, rewards):
     policy_network.optimizer.zero_grad()
     policy_gradient = torch.stack(policy_gradient).sum()
     #print("policy_gradient", type(policy_gradient), policy_gradient.shape, policy_gradient)
-    #sdsds
 
     policy_gradient.backward()
+    torch.nn.utils.clip_grad_norm_(policy_network.parameters(), 10.0)
     policy_network.optimizer.step()
 
 def Train(params, saver, env, pNet):
@@ -570,17 +570,17 @@ def Train(params, saver, env, pNet):
 
         if epoch > 0 and epoch % params.walk == 0:
             arrRL = Walk(env, params, pNet)
-            arrDumb = dumb(env, len(env.nodes), params)
-            arrBalanced = balanced(env, len(env.nodes), params)
+            # arrDumb = dumb(env, len(env.nodes), params)
+            # arrBalanced = balanced(env, len(env.nodes), params)
             
-            fig = plt.figure()
-            ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb, label="dumb")
-            ax.plot(arrBalanced, label="balanced")
-            ax.plot(arrRL, label="RL")
-            ax.legend(loc='upper left')
-            fig.show()
-            plt.pause(0.001)
+            # fig = plt.figure()
+            # ax = fig.add_subplot(1,1,1)
+            # ax.plot(arrDumb, label="dumb")
+            # ax.plot(arrBalanced, label="balanced")
+            # ax.plot(arrRL, label="RL")
+            # ax.legend(loc='upper left')
+            # fig.show()
+            # plt.pause(0.001)
 
             print("epoch", epoch)
 
@@ -611,8 +611,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
@@ -628,13 +628,13 @@ def main():
     totRewards, totDiscountedRewards = Train(params, saver, env, pNet)
 
     #params.debug = True
-    arrNaive = naive(env, len(env.nodes), params)
+    arrDumb = dumb(env, len(env.nodes), params)
     arrBalanced = balanced(env, len(env.nodes), params)
     arrRL = Walk(env, params, pNet)
-    #print("arrNaive", arrNaive)
+    #print("arrDumb", arrDumb)
     #print("arrBalanced", arrBalanced)
     
-    plt.plot(arrNaive, label="naive")
+    plt.plot(arrDumb, label="dumb")
     plt.plot(arrBalanced, label="balanced")
     plt.plot(arrRL, label="RL")
     plt.legend(loc='upper left')
