@@ -17,9 +17,9 @@ from helpers import Env, Link
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
         self.gamma = 0.99
-        self.lrn_rate = 3e-4
+        self.lrn_rate = 0.1 #3e-4
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 20001
+        self.max_epochs = 200001
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
@@ -34,7 +34,7 @@ class LearningParams:
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
         self.reward = 100.0 #17.0
-        self.cost = -1.0
+        self.cost = 1.0 #-1.0
         self.unusedActionCost = 0.0 #-555.0
         self.maxDocs = 300 #9999999999
 
@@ -174,22 +174,22 @@ def GetNextState(env, params, currNode, action, visited, candidates):
     #    stopNode = env.nodes[0]
     #    link = Link("", 0, stopNode, stopNode)
     #elif not candidates.HasLinks(action):
-    randomNode = False
+    #randomNode = False
     if action == 0 or not candidates.HasLinks(action):
         numLinks = candidates.CountLinks()
-        #print("numLinks", numLinks)
-        #stopNode = env.nodes[0]
-        #link = Link("", 0, stopNode, stopNode)
+        #print("numLinks", currNode.Debug(), numLinks)
+        stopNode = env.nodes[0]
+        link = Link("", 0, stopNode, stopNode)
 
-        if numLinks > 0:
-            #print("action", action, candidates.Debug())
-            link = candidates.RandomLink()
-            #print("link1", link.childNode.Debug())
-            randomNode = True
-        else:
-            stopNode = env.nodes[0]
-            link = Link("", 0, stopNode, stopNode)
-            #print("link2", link)
+        #if numLinks > 0:
+        #    #print("action", action, candidates.Debug())
+        #    link = candidates.RandomLink()
+        #    #print("link1", link.childNode.Debug())
+        #    randomNode = True
+        #else:
+        #    stopNode = env.nodes[0]
+        #    link = Link("", 0, stopNode, stopNode)
+        #    #print("link2", link)
     else:
         link = candidates.Pop(action)
 
@@ -298,10 +298,14 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
+
+    # change language of start node. 0 = stop
+    env.nodes[sys.maxsize].lang = languages.GetLang("None")
+
     state_dim = (env.maxLangId + 1) * 2
     num_actions = params.NUM_ACTIONS
 
