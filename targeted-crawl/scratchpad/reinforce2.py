@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# https://github.com/dennybritz/reinforcement-learning
 import gym
 import itertools
 import matplotlib
@@ -47,7 +47,9 @@ class PolicyEstimator():
     
     def predict(self, state, sess=None):
         sess = sess or tf.get_default_session()
-        return sess.run(self.action_probs, { self.state: state })
+        action_probs = sess.run(self.action_probs, { self.state: state })
+        print("action_probs", action_probs)
+        return action_probs
 
     def update(self, state, target, action, sess=None):
         sess = sess or tf.get_default_session()
