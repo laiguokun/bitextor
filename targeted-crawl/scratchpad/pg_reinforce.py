@@ -162,6 +162,8 @@ class PolicyGradientREINFORCE(object):
         #print("action_probs", action_probs, sumProbs)
 
       action = np.argmax(np.random.multinomial(1, action_probs))
+      #print("action", action, states, action_probs)
+
       return action
 
   def updateModel(self):
