@@ -11,6 +11,7 @@ import tensorflow as tf
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
 
+
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
@@ -279,7 +280,9 @@ class Corpus:
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langFeatures = np.empty([batchSize, env.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
-        depth = np.empty([batchSize, 1])
+        cur_depth = np.empty([batchSize, 1])
+        num_crawled = np.empty([batchSize, 1])
+        avg_depth_crawled = np.empty([batchSize, 1])
 
         i = 0
         for transition in batch:
@@ -290,13 +293,15 @@ class Corpus:
             langIds[i, :] = transition.langIds
             langFeatures[i, :] = transition.langFeatures
             targetQ[i, :] = transition.targetQ
-            depth[i, :] = transition.depth
+            cur_depth[i, :] = transition.cur_depth
+            num_crawled[i, :] = transition.num_crawled
+            avg_depth_crawled[i, :] = transition.avg_depth_crawled
 
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ, depth)
+        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ, cur_depth, num_crawled, avg_depth_crawled)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -304,14 +309,16 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ, depth):
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ, cur_depth, num_crawled, avg_depth_crawled):
         self.currURLId = currURLId
-        self.nextURLId = nextURLId 
-        self.langRequested = langRequested 
-        self.langIds = langIds 
+        self.nextURLId = nextURLId
+        self.langRequested = langRequested
+        self.langIds = langIds
         self.langFeatures = langFeatures #np.array(langFeatures, copy=True)
-        self.targetQ = targetQ 
-        self.depth = depth
+        self.targetQ = targetQ
+        self.cur_depth = cur_depth
+        self.num_crawled = num_crawled
+        self.avg_depth_crawled = avg_depth_crawled
 
     def DebugTransition(self):
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
@@ -322,7 +329,8 @@ class Candidates:
     def __init__(self, params, env):
         self.params = params
         self.env = env
-        self.dict = {} # parent lang -> links[]
+        # self.dict = {} # parent lang -> links[]
+        self.coll = [] 
 
         #for langId in params.langIds:
         #    self.dict[langId] = []
@@ -330,18 +338,21 @@ class Candidates:
     def copy(self):
         ret = Candidates(self.params, self.env)
 
-        for key, value in self.dict.items():
-            #print("key", key, value)
-            ret.dict[key] = value.copy()
+        # for key, value in self.dict.items():
+        #     #print("key", key, value)
+        #     ret.dict[key] = value.copy()
+
+        ret.coll = self.coll.copy()
 
         return ret
     
     def AddLink(self, link):
-        langId = link.parentNode.lang
-        if langId not in self.dict:
-            self.dict[langId] = []
-        self.dict[langId].append(link)
-        
+        # langId = link.parentNode.lang
+        # if langId not in self.dict:
+        #     self.dict[langId] = []
+        # self.dict[langId].append(link)
+        self.coll.append(link)
+
     def AddLinks(self, node, visited, params):
         #print("   currNode", curr, currNode.Debug())
         newLinks = node.GetLinks(visited, params)
@@ -350,34 +361,50 @@ class Candidates:
             self.AddLink(link)
 
     def Pop(self, action):
-        links = self.dict[action]
-        assert(len(links) > 0)
+        # links = self.dict[action]
+        # assert(len(links) > 0)
 
-        idx = np.random.randint(0, len(links))
-        link = links.pop(idx)
+        # idx = np.random.randint(0, len(links))
+        # link = links.pop(idx)
+
+        # # remove all links going to same node
+        # for otherLinks in self.dict.values():
+        #     otherLinksCopy = otherLinks.copy()
+        #     for otherLink in otherLinksCopy:
+        #         if otherLink.childNode == link.childNode:
+        #             otherLinks.remove(otherLink)
+        assert(action < len(self.coll))
+        link = self.coll.pop(action)
+        assert(link is not None)
 
         # remove all links going to same node
-        for otherLinks in self.dict.values():
-            otherLinksCopy = otherLinks.copy()
-            for otherLink in otherLinksCopy:
-                if otherLink.childNode == link.childNode:
-                    otherLinks.remove(otherLink)
+        collCopy = self.coll.copy()
+        for otherLink in collCopy:
+            if otherLink.childNode == link.childNode:
+                self.coll.remove(otherLink)
 
         return link
 
-    def HasLinks(self, action):
-        if action in self.dict and len(self.dict[action]) > 0:
-            return True
-        else:
-            return False
+    # def HasLinks(self, action):
+    def HasLinks(self):
+        # if action in self.dict and len(self.dict[action]) > 0:
+        #     return True
+        # else:
+        #     return False
+
+        return len(self.coll) > 0
 
     def Debug(self):
-        ret = ""
-        for lang in self.dict:
-            ret += "lang=" + str(lang) + ":" + str(len(self.dict[lang])) + " "
+        # ret = ""
+        # for lang in self.dict:
+        #     ret += "lang=" + str(lang) + ":" + str(len(self.dict[lang])) + " "
             #links = self.dict[lang]
             #for link in links:
             #    ret += " " + link.parentNode.url + "->" + link.childNode.url
+
+        ret = ""
+        ret += "lang=" + str(lang) + ":" + str(len(self.coll)) + " "
+        return ret
         return ret
     
 ######################################################################################
@@ -393,14 +420,18 @@ class Qnetwork():
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
         self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.cur_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.num_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.avg_depth_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.input = tf.concat([self.langRequested,
                                 self.langIds,
                                 self.langsVisited,
-                                self.depth], 1)
+                                self.cur_depth,
+                                self.num_crawled,
+                                self.avg_depth_crawled], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 4, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 6, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -440,16 +471,25 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def Predict(self, sess, langRequested, langIds, langsVisited, depth_):
-        langRequestedNP = np.empty([1,1])
-        langRequestedNP[0,0] = langRequested
+    def Predict(self, sess, langRequested, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled):
+        langRequestedNP = np.empty([1, 1])
+        langRequestedNP[0, 0] = langRequested
         
         langIdsNP = np.empty([1, 2])
-        langIdsNP[0,0] = langIds[0]
-        langIdsNP[0,1] = langIds[1]
+        langIdsNP[0, 0] = langIds[0]
+        langIdsNP[0, 1] = langIds[1]
 
-        depth = np.empty([1,1])
-        depth[0, 0] = depth_
+        temp = cur_depth
+        cur_depth = np.empty([1, 1])
+        cur_depth[0, 0] = temp
+
+        temp = num_crawled
+        num_crawled = np.empty([1, 1])
+        num_crawled[0, 0] = temp
+
+        temp = avg_depth_crawled
+        avg_depth_crawled = np.empty([1, 1])
+        avg_depth_crawled[0, 0] = temp
 
         #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
         #print("   ", langRequestedNP, langIdsNP, langFeatures)
@@ -458,36 +498,57 @@ class Qnetwork():
                                 feed_dict={self.langRequested: langRequestedNP,
                                     self.langIds: langIdsNP,
                                     self.langsVisited: langsVisited,
-                                    self.depth: depth})
+                                    self.cur_depth: cur_depth,
+                                    self.num_crawled: num_crawled,
+                                    self.avg_depth_crawled: avg_depth_crawled})
         qValue = qValue[0]
         #print("   qValue", qValue.shape, qValue)
         
         return qValue
 
-    def PredictAll(self, env, sess, langIds, langsVisited, depth, candidates):
+    def PredictAll(self, env, sess, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled, candidates):
         qValues = {}
         maxQ = -9999999.0
 
-        for langId, nodes in candidates.dict.items():
-            if len(nodes) > 0:
-                qValue = self.Predict(sess, langId, langIds, langsVisited, depth)
-                qValue = qValue[0]
-                qValues[langId] = qValue
+        for idx in range(len(candidates.coll)):
+            #print("idx", idx, len(candidates.coll))
+            link = candidates.coll[idx]
+            langId = link.parentNode.lang
+            qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
+            qValue = qValue[0]
+            qValues[idx] = qValue
 
-                if maxQ < qValue:
-                    maxQ = qValue
-                    argMax = langId
+            if maxQ < qValue:
+                maxQ = qValue
+                argMax = idx
         #print("qValues", env.maxLangId, qValues)
 
         if len(qValues) == 0:
             #print("empty qValues")
-            qValues[0] = 0.0
+            qValues[-1] = 0.0
             maxQ = 0.0
-            argMax = 0
+            argMax = -1
+
+        # for langId, nodes in candidates.dict.items():
+        #     if len(nodes) > 0:
+        #         qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
+        #         qValue = qValue[0]
+        #         qValues[langId] = qValue
+
+        #         if maxQ < qValue:
+        #             maxQ = qValue
+        #             argMax = langId
+        # #print("qValues", env.maxLangId, qValues)
+
+        # if len(qValues) == 0:
+        #     #print("empty qValues")
+        #     qValues[0] = 0.0
+        #     maxQ = 0.0
+        #     argMax = 0
 
         return qValues, maxQ, argMax
 
-    def Update(self, sess, langRequested, langIds, langsVisited, targetQ, depth):
+    def Update(self, sess, langRequested, langIds, langsVisited, targetQ, cur_depth, num_crawled, avg_depth_crawled):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
@@ -495,19 +556,23 @@ class Qnetwork():
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ,
-                                            self.depth: depth})
+                                            self.cur_depth: cur_depth,
+                                            self.num_crawled: num_crawled,
+                                            self.avg_depth_crawled: avg_depth_crawled})
         #print("loss", loss)
         return loss, sumWeight
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
     #print("candidates", action, candidates.Debug())
-    if action == 0:
+    # if action == 0:
+    if action == -1:
         # no explicit stop state but no candidates
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        assert(candidates.HasLinks(action))
+        # assert(candidates.HasLinks(action))
+        assert(candidates.HasLinks())
         link = candidates.Pop(action)
  
     assert(link is not None)
@@ -528,8 +593,8 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, depth, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, depth, candidates)
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA):
+    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled, candidates)
 
     if np.random.rand(1) < eps:
         actions = list(qValues.keys())
@@ -546,8 +611,9 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, depth, sess,
 
     return qValues, maxQ, action, link, reward
 
-def Neural(env, params, candidates, visited, langsVisited, depth, sess, qnA, qnB):
-    _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, depth, sess, qnA)
+def Neural(env, params, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA, qnB):
+    _, maxQ, action, link, reward = \
+        NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -561,8 +627,8 @@ def Neural(env, params, candidates, visited, langsVisited, depth, sess, qnA, qnB
     nextLangsVisited = langsVisited.copy()
     nextLangsVisited[0, link.childNode.lang] += 1
 
-    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, depth, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited, depth)
+    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, cur_depth, num_crawled, avg_depth_crawled, nextCandidates)
+    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited, cur_depth, num_crawled, avg_depth_crawled)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
@@ -573,7 +639,9 @@ def Neural(env, params, candidates, visited, langsVisited, depth, sess, qnA, qnB
                             params.langIds,
                             langsVisited,
                             targetQ,
-                            depth,)
+                            cur_depth,
+                            num_crawled,
+                            avg_depth_crawled)
 
     return transition
 
@@ -583,6 +651,8 @@ def Trajectory(env, epoch, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
+    num_crawled = 0
+    avg_depth_crawled = 0
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
@@ -609,9 +679,11 @@ def Trajectory(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
         
-        depth = len(node.url.replace("://", "", 1).split("/"))
+        cur_depth = len(node.url.replace("://", "", 1).split("/"))
+        avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
+        num_crawled += 1
 
-        transition = Neural(env, params, candidates, visited, langsVisited, depth, sess, qnA, qnB)
+        transition = Neural(env, params, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA, qnB)
 
         if transition.nextURLId == 0:
             break
@@ -630,6 +702,8 @@ def Walk(env, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
+    num_crawled = 0
+    avg_depth_crawled = 0
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
@@ -658,10 +732,13 @@ def Walk(env, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        depth = len(node.url.replace("://", "", 1).split("/"))
+        cur_depth = len(node.url.replace("://", "", 1).split("/"))
+        avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
+        num_crawled += 1
 
         #print("candidates", candidates.Debug())
-        qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, depth, sess, qnA)
+        qValues, _, action, link, reward = \
+            NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA)
         node = link.childNode
         print("action", action, qValues)
 
@@ -755,9 +832,10 @@ def main():
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
 
-    # hostName = "http://vade-retro.fr/"    # smallest domain for debugging
+    hostName = "http://www.visitbritain.com/"
     hostName = "http://www.buchmann.ch/"
-    #hostName = "http://www.visitbritain.com/"
+    # hostName = "http://vade-retro.fr/"    # smallest domain for debugging
+    
     env = Env(sqlconn, hostName)
 
     # change language of start node. 0 = stop
