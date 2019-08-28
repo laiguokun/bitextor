@@ -11,6 +11,7 @@ import tensorflow as tf
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
 
+
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
@@ -328,7 +329,8 @@ class Candidates:
     def __init__(self, params, env):
         self.params = params
         self.env = env
-        self.dict = {} # parent lang -> links[]
+        # self.dict = {} # parent lang -> links[]
+        self.coll = [] 
 
         #for langId in params.langIds:
         #    self.dict[langId] = []
@@ -336,18 +338,21 @@ class Candidates:
     def copy(self):
         ret = Candidates(self.params, self.env)
 
-        for key, value in self.dict.items():
-            #print("key", key, value)
-            ret.dict[key] = value.copy()
+        # for key, value in self.dict.items():
+        #     #print("key", key, value)
+        #     ret.dict[key] = value.copy()
+
+        ret.coll = self.coll.copy()
 
         return ret
     
     def AddLink(self, link):
-        langId = link.parentNode.lang
-        if langId not in self.dict:
-            self.dict[langId] = []
-        self.dict[langId].append(link)
-        
+        # langId = link.parentNode.lang
+        # if langId not in self.dict:
+        #     self.dict[langId] = []
+        # self.dict[langId].append(link)
+        self.coll.append(link)
+
     def AddLinks(self, node, visited, params):
         #print("   currNode", curr, currNode.Debug())
         newLinks = node.GetLinks(visited, params)
@@ -356,34 +361,50 @@ class Candidates:
             self.AddLink(link)
 
     def Pop(self, action):
-        links = self.dict[action]
-        assert(len(links) > 0)
+        # links = self.dict[action]
+        # assert(len(links) > 0)
 
-        idx = np.random.randint(0, len(links))
-        link = links.pop(idx)
+        # idx = np.random.randint(0, len(links))
+        # link = links.pop(idx)
+
+        # # remove all links going to same node
+        # for otherLinks in self.dict.values():
+        #     otherLinksCopy = otherLinks.copy()
+        #     for otherLink in otherLinksCopy:
+        #         if otherLink.childNode == link.childNode:
+        #             otherLinks.remove(otherLink)
+        assert(action < len(self.coll))
+        link = self.coll.pop(action)
+        assert(link is not None)
 
         # remove all links going to same node
-        for otherLinks in self.dict.values():
-            otherLinksCopy = otherLinks.copy()
-            for otherLink in otherLinksCopy:
-                if otherLink.childNode == link.childNode:
-                    otherLinks.remove(otherLink)
+        collCopy = self.coll.copy()
+        for otherLink in collCopy:
+            if otherLink.childNode == link.childNode:
+                self.coll.remove(otherLink)
 
         return link
 
-    def HasLinks(self, action):
-        if action in self.dict and len(self.dict[action]) > 0:
-            return True
-        else:
-            return False
+    # def HasLinks(self, action):
+    def HasLinks(self):
+        # if action in self.dict and len(self.dict[action]) > 0:
+        #     return True
+        # else:
+        #     return False
+
+        return len(self.coll) > 0
 
     def Debug(self):
-        ret = ""
-        for lang in self.dict:
-            ret += "lang=" + str(lang) + ":" + str(len(self.dict[lang])) + " "
+        # ret = ""
+        # for lang in self.dict:
+        #     ret += "lang=" + str(lang) + ":" + str(len(self.dict[lang])) + " "
             #links = self.dict[lang]
             #for link in links:
             #    ret += " " + link.parentNode.url + "->" + link.childNode.url
+
+        ret = ""
+        ret += "lang=" + str(lang) + ":" + str(len(self.coll)) + " "
+        return ret
         return ret
     
 ######################################################################################
@@ -489,22 +510,41 @@ class Qnetwork():
         qValues = {}
         maxQ = -9999999.0
 
-        for langId, nodes in candidates.dict.items():
-            if len(nodes) > 0:
-                qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
-                qValue = qValue[0]
-                qValues[langId] = qValue
+        for idx in range(len(candidates.coll)):
+            #print("idx", idx, len(candidates.coll))
+            link = candidates.coll[idx]
+            langId = link.parentNode.lang
+            qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
+            qValue = qValue[0]
+            qValues[idx] = qValue
 
-                if maxQ < qValue:
-                    maxQ = qValue
-                    argMax = langId
+            if maxQ < qValue:
+                maxQ = qValue
+                argMax = idx
         #print("qValues", env.maxLangId, qValues)
 
         if len(qValues) == 0:
             #print("empty qValues")
-            qValues[0] = 0.0
+            qValues[-1] = 0.0
             maxQ = 0.0
-            argMax = 0
+            argMax = -1
+
+        # for langId, nodes in candidates.dict.items():
+        #     if len(nodes) > 0:
+        #         qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
+        #         qValue = qValue[0]
+        #         qValues[langId] = qValue
+
+        #         if maxQ < qValue:
+        #             maxQ = qValue
+        #             argMax = langId
+        # #print("qValues", env.maxLangId, qValues)
+
+        # if len(qValues) == 0:
+        #     #print("empty qValues")
+        #     qValues[0] = 0.0
+        #     maxQ = 0.0
+        #     argMax = 0
 
         return qValues, maxQ, argMax
 
@@ -525,12 +565,14 @@ class Qnetwork():
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
     #print("candidates", action, candidates.Debug())
-    if action == 0:
+    # if action == 0:
+    if action == -1:
         # no explicit stop state but no candidates
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        assert(candidates.HasLinks(action))
+        # assert(candidates.HasLinks(action))
+        assert(candidates.HasLinks())
         link = candidates.Pop(action)
  
     assert(link is not None)
@@ -793,7 +835,7 @@ def main():
     hostName = "http://www.visitbritain.com/"
     hostName = "http://www.buchmann.ch/"
     # hostName = "http://vade-retro.fr/"    # smallest domain for debugging
-
+    
     env = Env(sqlconn, hostName)
 
     # change language of start node. 0 = stop
