@@ -13,7 +13,7 @@ from helpers import Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
-        self.gamma = 0.999
+        self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
         self.max_epochs = 100001
@@ -318,7 +318,7 @@ class Candidates:
     def __init__(self, params, env):
         self.params = params
         self.env = env
-        self.coll = []
+        self.dict = {} # parent lang -> links[]
 
         #for langId in params.langIds:
         #    self.dict[langId] = []
@@ -326,14 +326,17 @@ class Candidates:
     def copy(self):
         ret = Candidates(self.params, self.env)
 
-        for value in self.coll:
+        for key, value in self.dict.items():
             #print("key", key, value)
-            ret.coll.append(value.copy())
+            ret.dict[key] = value.copy()
 
         return ret
     
     def AddLink(self, link):
-        self.coll.append(link)
+        langId = link.parentNode.lang
+        if langId not in self.dict:
+            self.dict[langId] = []
+        self.dict[langId].append(link)
         
     def AddLinks(self, node, visited, params):
         #print("   currNode", curr, currNode.Debug())
@@ -342,30 +345,35 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
-    def Pop(self, idx):
-        assert(idx < len(self.coll))
-        link = self.coll.pop(idx)
+    def Pop(self, action):
+        links = self.dict[action]
+        assert(len(links) > 0)
+
+        idx = np.random.randint(0, len(links))
+        link = links.pop(idx)
 
         # remove all links going to same node
-        collCopy = self.coll.copy()
-        for copyLink in collCopy:
-            if copyLink.childNode == link.childNode:
-                self.coll.remove(copyLink)
+        for otherLinks in self.dict.values():
+            otherLinksCopy = otherLinks.copy()
+            for otherLink in otherLinksCopy:
+                if otherLink.childNode == link.childNode:
+                    otherLinks.remove(otherLink)
 
         return link
 
-    def HasLinks(self):
-        if len(self.coll) > 0:
+    def HasLinks(self, action):
+        if action in self.dict and len(self.dict[action]) > 0:
             return True
         else:
             return False
 
     def Debug(self):
         ret = ""
-        ret += "lang=" + str(lang) + ":" + str(len(self.coll)) + " "
-        #links = self.dict[lang]
-        #for link in links:
-        #    ret += " " + link.parentNode.url + "->" + link.childNode.url
+        for lang in self.dict:
+            ret += "lang=" + str(lang) + ":" + str(len(self.dict[lang])) + " "
+            #links = self.dict[lang]
+            #for link in links:
+            #    ret += " " + link.parentNode.url + "->" + link.childNode.url
         return ret
     
 ######################################################################################
@@ -448,8 +456,7 @@ class Qnetwork():
         qValues = {}
         maxQ = -9999999.0
 
-        for link in candidates.coll:
-            
+        for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
                 qValue = self.Predict(sess, langId, langIds, langsVisited)
                 qValue = qValue[0]
@@ -672,7 +679,7 @@ def Train(params, sess, saver, env, qns):
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
-        print("epoch", epoch)
+        #print("epoch", epoch)
         TIMER.Start("Trajectory")
         _ = Trajectory(env, epoch, params, sess, qns)
 
@@ -729,8 +736,8 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
     env = Env(sqlconn, hostName)
 
