@@ -509,13 +509,21 @@ class Qnetwork():
     def PredictAll(self, env, sess, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled, candidates):
         qValues = {}
         maxQ = -9999999.0
+        cache = {}
 
         for idx in range(len(candidates.coll)):
             #print("idx", idx, len(candidates.coll))
             link = candidates.coll[idx]
             langId = link.parentNode.lang
-            qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
-            qValue = qValue[0]
+
+            cacheKey = (langId, cur_depth, num_crawled, avg_depth_crawled)
+            if cacheKey in cache:
+                qValue = cache[cacheKey]
+                #print("cached", cacheKey, qValue)
+            else:
+                qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
+                qValue = qValue[0]
+                cache[cacheKey] = qValue
             qValues[idx] = qValue
 
             if maxQ < qValue:
@@ -832,9 +840,9 @@ def main():
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
 
-    hostName = "http://www.visitbritain.com/"
+    #hostName = "http://www.visitbritain.com/"
     hostName = "http://www.buchmann.ch/"
-    # hostName = "http://vade-retro.fr/"    # smallest domain for debugging
+    #hostName = "http://vade-retro.fr/"    # smallest domain for debugging
     
     env = Env(sqlconn, hostName)
 
