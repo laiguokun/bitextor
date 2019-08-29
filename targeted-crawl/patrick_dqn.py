@@ -833,9 +833,8 @@ def Train(params, sess, saver, env, qns, env_test):
             ax.legend(loc='upper left')
             plt.xlabel('#crawled')
             plt.ylabel('#found')
-
-            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'Train', epoch))
-            #fig.show())
+            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'train', epoch))
+            #fig.show()
 
             #plt.pause(0.001)
 
@@ -849,7 +848,7 @@ def Train(params, sess, saver, env, qns, env_test):
             ax.legend(loc='upper left')
             plt.xlabel('#crawled')
             plt.ylabel('#found')
-            fig.savefig("{}/{}_epoch{}".format(params.saveDirPlots, 'Test', epoch))
+            fig.savefig("{}/{}_epoch{}".format(params.saveDirPlots, 'test', epoch))
 
 
     return totRewards, totDiscountedRewards
@@ -885,8 +884,8 @@ def main():
     # hostName = "http://www.buchmann.ch/"
     hostName = "http://vade-retro.fr/"    # smallest domain for debugging
 
-    hostName_test = "http://www.visitbritain.com/"
-    #hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
+    # hostName_test = "http://www.visitbritain.com/"
+    hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
 
     env = Env(sqlconn, hostName)
     env_test = Env(sqlconn, hostName_test)
