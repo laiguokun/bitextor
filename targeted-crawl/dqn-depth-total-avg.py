@@ -14,7 +14,7 @@ from helpers import Env, Link
 
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
+    def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair):
         self.gamma = 0.999
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
@@ -30,6 +30,8 @@ class LearningParams:
         self.FEATURES_PER_ACTION = 1
 
         self.saveDir = saveDir
+        self.saveDirPlots = saveDirPlots
+
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
         self.reward = 100.0 #17.0
@@ -227,10 +229,10 @@ def AddTodo(langsTodo, visited, link):
 ######################################################################################
 ######################################################################################
 class Qnets():
-    def __init__(self, params, env):
+    def __init__(self, params, max_env_maxLangId):
         self.q = []
-        self.q.append(Qnetwork(params, env))
-        self.q.append(Qnetwork(params, env))
+        self.q.append(Qnetwork(params, max_env_maxLangId))
+        self.q.append(Qnetwork(params, max_env_maxLangId))
 
 ######################################################################################
 class Corpus:
@@ -409,13 +411,12 @@ class Candidates:
     
 ######################################################################################
 class Qnetwork():
-    def __init__(self, params, env):
+    def __init__(self, params, max_env_maxLangId):
         self.params = params
-        self.env = env
         self.corpus = Corpus(params, self)
 
         HIDDEN_DIM = 512
-        NUM_FEATURES = env.maxLangId + 1
+        NUM_FEATURES = max_env_maxLangId + 1
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
@@ -777,7 +778,7 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
-def Train(params, sess, saver, env, qns):
+def Train(params, sess, saver, env, qns, env_test):
     totRewards = []
     totDiscountedRewards = []
 
@@ -798,19 +799,41 @@ def Train(params, sess, saver, env, qns):
             arrRandom = randomCrawl(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, params, sess, qns)
+
+            arrDumb_test = dumb(env_test, len(env_test.nodes), params)
+            arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
+            arrBalanced_test = balanced(env_test, len(env_test.nodes), params)
+            arrRL_test = Walk(env_test, params, sess, qns)
+
             print("epoch", epoch)
 
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb, label="dumb")
-            ax.plot(arrRandom, label="random")
-            ax.plot(arrBalanced, label="balanced")
-            ax.plot(arrRL, label="RL")
+            ax.plot(arrDumb, label="dumb_train", color='maroon')
+            ax.plot(arrRandom, label="random_train", color='firebrick')
+            ax.plot(arrBalanced, label="balanced_train", color='red')
+            ax.plot(arrRL, label="RL_train", color='salmon')
+
             ax.legend(loc='upper left')
             plt.xlabel('#crawled')
             plt.ylabel('#found')
-            fig.show()
-            plt.pause(0.001)
+
+            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'Train', epoch))
+            #fig.show())
+
+            #plt.pause(0.001)
+
+            fig = plt.figure()
+            ax = fig.add_subplot(1,1,1)
+            ax.plot(arrDumb_test, label="dumb_test", color='navy')
+            ax.plot(arrRandom_test, label="random_test", color='blue')
+            ax.plot(arrBalanced_test, label="balanced_test", color='dodgerblue')
+            ax.plot(arrRL_test, label="RL_test", color='lightskyblue')
+
+            ax.legend(loc='upper left')
+            plt.xlabel('#crawled')
+            plt.ylabel('#found')
+            fig.savefig("{}/{}_epoch{}".format(params.saveDirPlots, 'Test', epoch))
 
 
     return totRewards, totDiscountedRewards
@@ -827,6 +850,8 @@ def main():
                          help="The 2 language we're interested in, separated by ,")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                          help="Directory that model WIP are saved to. If existing model exists then load it")
+    oparser.add_argument("--save-plots", dest="saveDirPlots", default="plot",
+                     help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
     options = oparser.parse_args()
@@ -837,29 +862,37 @@ def main():
     sqlconn = MySQL(options.configFile)
 
     languages = Languages(sqlconn.mycursor)
-    params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair)
 
 
     #hostName = "http://www.visitbritain.com/"
     hostName = "http://www.buchmann.ch/"
     #hostName = "http://vade-retro.fr/"    # smallest domain for debugging
-    
+
+    hostName_test = "http://www.visitbritain.com/"
+    #hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
+
     env = Env(sqlconn, hostName)
+    env_test = Env(sqlconn, hostName_test)
 
     # change language of start node. 0 = stop
     env.nodes[sys.maxsize].lang = languages.GetLang("None")
+    env_test.nodes[sys.maxsize].lang = languages.GetLang("None")
     #for node in env.nodes.values():
     #    print(node.Debug())
 
+    max_env_maxLangId = max([env.maxLangId, env_test.maxLangId])
+    env.maxLangId = env_test.maxLangId = max_env_maxLangId
+
     tf.reset_default_graph()
-    qns = Qnets(params, env)
+    qns = Qnets(params, max_env_maxLangId)
     init = tf.global_variables_initializer()
 
     saver = None #tf.train.Saver()
     with tf.Session() as sess:
         sess.run(init)
 
-        totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
+        totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns, env_test)
 
         #params.debug = True
         arrDumb = dumb(env, len(env.nodes), params)
