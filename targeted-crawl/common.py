@@ -51,13 +51,15 @@ class Languages:
         self.coll = {}
 
         sql = "SELECT id, lang FROM language"
+
+
         self.mycursor.execute(sql)
         ress = self.mycursor.fetchall()
         assert (ress is not None)
 
         for res in ress:
             self.coll[res[1]] = res[0]
-    
+
     def GetLang(self, str):
         str = StrNone(str)
         if str in self.coll:
@@ -76,5 +78,3 @@ class Languages:
         self.coll[str] = langId
 
         return langId
-
-        

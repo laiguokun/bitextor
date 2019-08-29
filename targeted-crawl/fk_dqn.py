@@ -6,9 +6,14 @@ import argparse
 import hashlib
 import pylab as plt
 import tensorflow as tf
-
+from random import shuffle
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
+from copy import deepcopy
+
+
+
+MAX_LANG_ID = 127
 
 ######################################################################################
 class LearningParams:
@@ -16,14 +21,14 @@ class LearningParams:
         self.gamma = 0.999
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
-        self.max_epochs = 100001
+        self.max_epochs = 400
         self.eps = 0.1
         self.maxBatchSize = 64
         self.minCorpusSize = 200
         self.trainNumIter = 10
 
         self.debug = False
-        self.walk = 50
+        self.walk = 10
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -227,10 +232,10 @@ def AddTodo(langsTodo, visited, link):
 ######################################################################################
 ######################################################################################
 class Qnets():
-    def __init__(self, params, max_env_maxLangId):
+    def __init__(self, params, MAX_LANG_ID):
         self.q = []
-        self.q.append(Qnetwork(params, max_env_maxLangId))
-        self.q.append(Qnetwork(params, max_env_maxLangId))
+        self.q.append(Qnetwork(params, MAX_LANG_ID))
+        self.q.append(Qnetwork(params, MAX_LANG_ID))
 
 ######################################################################################
 class Corpus:
@@ -278,7 +283,7 @@ class Corpus:
         #print("batchSize", batchSize)
         langRequested = np.empty([batchSize, 1], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langFeatures = np.empty([batchSize, env.maxLangId + 1])
+        langFeatures = np.empty([batchSize, MAX_LANG_ID + 1])
         targetQ = np.empty([batchSize, 1])
 
         i = 0
@@ -380,14 +385,14 @@ class Candidates:
 
 ######################################################################################
 class Qnetwork():
-    def __init__(self, params, max_env_maxLangId):
+    def __init__(self, params, MAX_LANG_ID):
         self.params = params
         self.corpus = Corpus(params, self)
 
         HIDDEN_DIM = 512
 
 
-        NUM_FEATURES = max_env_maxLangId + 1
+        NUM_FEATURES = MAX_LANG_ID + 1
         print('NUM_FEATURES', NUM_FEATURES)
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
@@ -469,7 +474,7 @@ class Qnetwork():
                 if maxQ < qValue:
                     maxQ = qValue
                     argMax = langId
-        #print("qValues", env.maxLangId, qValues)
+        #print("qValues", MAX_LANG_ID, qValues)
 
         if len(qValues) == 0:
             #print("empty qValues")
@@ -571,7 +576,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
+    langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -616,7 +621,7 @@ def Trajectory(env, epoch, params, sess, qns):
 def Walk(env, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
+    langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -678,63 +683,81 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
-def Train(params, sess, saver, env, qns, env_test):
+def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
     totRewards = []
     totDiscountedRewards = []
-
+    orig_qns_results = {}
+    for hostName, env in list(env_test_dic.items() + env_train_dic.items()):
+        orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
+        
+        
+    env_list = list(env_train_dic.values())
+        
     for epoch in range(params.max_epochs):
         print("epoch", epoch)
-        TIMER.Start("Trajectory")
-        _ = Trajectory(env, epoch, params, sess, qns)
-
-        TIMER.Pause("Trajectory")
-
-        TIMER.Start("Update")
-        qns.q[0].corpus.Train(sess, env, params)
-        qns.q[1].corpus.Train(sess, env, params)
-        TIMER.Pause("Update")
-
+        shuffle(env_list)        
+        for env in env_list:        
+            TIMER.Start("Trajectory")
+            _ = Trajectory(env, epoch, params, sess, qns)
+            TIMER.Pause("Trajectory")
+        
+        
+        for env in env_list:
+            TIMER.Start("Update")
+            qns.q[0].corpus.Train(sess, env, params)
+            qns.q[1].corpus.Train(sess, env, params)
+            TIMER.Pause("Update")
+            
         if epoch > 0 and epoch % params.walk == 0:
-            arrDumb = dumb(env, len(env.nodes), params)
-            arrRandom = randomCrawl(env, len(env.nodes), params)
-            arrBalanced = balanced(env, len(env.nodes), params)
-            arrRL = Walk(env, params, sess, qns)
-
-
-            arrDumb_test = dumb(env_test, len(env_test.nodes), params)
-            arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
-            arrBalanced_test = balanced(env_test, len(env_test.nodes), params)
-            arrRL_test = Walk(env_test, params, sess, qns)
-
-            print("epoch", epoch)
-
-            fig = plt.figure()
-            ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb, label="dumb_train", color='maroon')
-            ax.plot(arrRandom, label="random_train", color='firebrick')
-            ax.plot(arrBalanced, label="balanced_train", color='red')
-            ax.plot(arrRL, label="RL_train", color='salmon')
-
-            ax.legend(loc='upper left')
-            plt.xlabel('#crawled')
-            plt.ylabel('#found')
-
-            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'Train', epoch))
+            
+            
+            
+#            arrDumb = dumb(env, len(env.nodes), params)
+#            arrRandom = randomCrawl(env, len(env.nodes), params)
+#            arrBalanced = balanced(env, len(env.nodes), params)
+#            arrRL = Walk(env, params, sess, qns)
+#            fig = plt.figure()
+#            ax = fig.add_subplot(1,1,1)
+#            ax.plot(arrDumb, label="dumb_train", color='maroon')
+#            ax.plot(arrRandom, label="random_train", color='firebrick')
+#            ax.plot(arrBalanced, label="balanced_train", color='red')
+#            ax.plot(arrRL, label="RL_train", color='salmon')
+#
+#            ax.legend(loc='upper left')
+#            plt.xlabel('#crawled')
+#            plt.ylabel('#found')
+#
+#            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'Train', epoch))
             #fig.show())
 
             #plt.pause(0.001)
-
-            fig = plt.figure()
-            ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb_test, label="dumb_test", color='navy')
-            ax.plot(arrRandom_test, label="random_test", color='blue')
-            ax.plot(arrBalanced_test, label="balanced_test", color='dodgerblue')
-            ax.plot(arrRL_test, label="RL_test", color='lightskyblue')
-
-            ax.legend(loc='upper left')
-            plt.xlabel('#crawled')
-            plt.ylabel('#found')
-            fig.savefig("{}/{}_epoch{}".format(params.saveDirPlots, 'Test', epoch))
+            for env_dic, t in zip([env_train_dic, env_test_dic], ['train', 'test']):
+                for hostName, env in env_dic.items():
+                    
+                    arrDumb_test = dumb(env, len(env.nodes), params)
+                    #arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
+                    arrBalanced_test = balanced(env, len(env.nodes), params)
+                    arrRL_test = Walk(env, params, sess, qns)
+        
+                    print("epoch", epoch)
+        
+        
+        
+                    fig = plt.figure()
+                    ax = fig.add_subplot(1,1,1)
+                    ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
+                    #ax.plot(arrRandom_test, label="random_test", color='dodgerblue')
+                    ax.plot(arrBalanced_test, label="balanced", color='blue')
+                    ax.plot(arrRL_test, label="RL", color='navy')
+                    ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
+                    
+                    print("arrRL_test", len(arrRL_test), arrRL_test )
+                    
+                    ax.legend(loc='upper left')
+                    plt.xlabel('#crawled')
+                    plt.ylabel('#found')
+                    plt.title(hostName+'(from test set)')
+                    fig.savefig("{}/{}/epoch-{}_host-{}".format(params.saveDirPlots, t, epoch, hostName))
 
             #fig.show()
 
@@ -755,10 +778,14 @@ def main():
                          help="The 2 language we're interested in, separated by ,")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                          help="Directory that model WIP are saved to. If existing model exists then load it")
-    oparser.add_argument("--save-plots", dest="saveDirPlots", default="plot",
+    oparser.add_argument("--save-plots", dest="saveDirPlots", default="",
                      help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
+    oparser.add_argument("--n-hosts-train", dest="n_train", type=int,
+                         default=1, help="If True then only unique transition are used in each batch")    
+    oparser.add_argument("--m-hosts-test", dest="m_test", type=int,
+                         default=1, help="If True then only unique transition are used in each batch")    
     options = oparser.parse_args()
 
     np.random.seed(99)
@@ -767,50 +794,142 @@ def main():
     sqlconn = MySQL(options.configFile)
 
     languages = Languages(sqlconn.mycursor)
-    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair)
 
+
+
+    #allhostNames = ["http://vade-retro.fr/", "http://vade-retro.fr/"]
     #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
-    hostName_test = "http://www.visitbritain.com/"
-    env = Env(sqlconn, hostName)
-    env_test = Env(sqlconn, hostName_test)
+    allhostNames = ["http://www.buchmann.ch/",
+                    "http://vade-retro.fr/",
+                    "http://www.visitbritain.com/",
+                    "http://www.lespressesdureel.com/",
+                    "http://www.otc-cta.gc.ca/",
+                    "http://tagar.es/",
+                    "http://lacor.es/",
+                    "http://telasmos.org/",
+                    "http://www.haitilibre.com/",
+                    "http://legisquebec.gouv.qc.ca",
+                    "http://hobby-france.com/",
+                    "http://www.al-fann.net/",
+                    "http://www.antique-prints.de/",
+                    "http://www.gamersyde.com/",
+                    "http://inter-pix.com/",
+                    "http://www.acklandsgrainger.com/",
+                    "http://www.predialparque.pt/",
+                    "http://carta.ro/",
+                    "http://www.restopages.be/",
+                    "http://www.burnfateasy.info/",
+                    "http://www.bedandbreakfast.eu/",
+                    "http://ghc.freeguppy.org/",
+                    "http://www.bachelorstudies.fr/",
+                    "http://chopescollection.be/",
+                    "http://www.lavery.ca/",
+                    "http://www.thecanadianencyclopedia.ca/",
+                    "http://www.vistastamps.com/",
+                    "http://www.linker-kassel.com/",
+                    "http://www.enterprise.fr/"]
+
+#                    "http://who.int/",
+    shuffle(allhostNames)
+    
+    assert len(allhostNames) >= options.n_train + options.m_test
+    
+    hostNames_train = ["http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
+    hostNames_test = ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
+
+    if options.saveDirPlots:
+        
+        save_plots = 'plot'
+        
+        if not os.path.exists(save_plots): os.mkdir(save_plots)
+    else:
+        
+        par_d = 'train={}test={}'.format(options.n_train, options.m_test )
+        
+        if not os.path.exists(par_d) : os.mkdir(par_d)
+        
+        new_run = max([int(run.replace('run', '')) for run in os.listdir(par_d)] +[0]) + 1
+        
+        save_plots = '{}/run{}'.format(par_d, new_run)
+        
+        os.mkdir(save_plots)
+        os.mkdir('{}/{}'.format(save_plots, 'train'))
+        os.mkdir('{}/{}'.format(save_plots, 'test'))
+
+
+
+    print("Training hosts are:")
+    for h in hostNames_train:
+        print(h)
+    print()
+    print("Testing hosts are:")
+    for h in hostNames_test:
+        print(h)
+    print()
+    
+    with open('{}/hosts.info'.format(save_plots), 'w') as f:
+        f.write('Training hosts are:\n')
+        for h in hostNames_train:
+            f.write(h+'\n')
+        f.write('\nTesting hosts are:\n')
+        for h in hostNames_test:
+            f.write(h+'\n')
+            
+            
+    params = LearningParams(languages, options.saveDir, save_plots, options.deleteDuplicateTransitions, options.langPair)
+
+    env_train_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_train}
+    env_test_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_test}
+    
+
+    #hostName = "http://www.buchmann.ch/"
+    #hostName_test = "http://www.visitbritain.com/"
+    #env = Env(sqlconn, hostName)
+    #env_test = Env(sqlconn, hostName_test)
     # change language of start node. 0 = stop
-    env.nodes[sys.maxsize].lang = languages.GetLang("None")
-    env_test.nodes[sys.maxsize].lang = languages.GetLang("None")
+    #env.nodes[sys.maxsize].lang = languages.GetLang("None")
+    #env_test.nodes[sys.maxsize].lang = languages.GetLang("None")
     #for node in env.nodes.values():
     #    print(node.Debug())
 
-    max_env_maxLangId = max([env.maxLangId, env_test.maxLangId])
-    env.maxLangId = env_test.maxLangId = max_env_maxLangId
+
+
+        
+    for dic in [env_train_dic, env_test_dic]:
+        for hostName, env in env_test_dic.items():
+            env.maxLangId = MAX_LANG_ID
+            env.nodes[sys.maxsize].lang = languages.GetLang("None")
+            dic[hostName] = env
+        
+        
 
     tf.reset_default_graph()
-    qns = Qnets(params, max_env_maxLangId)
+    qns = Qnets(params, MAX_LANG_ID)
     #qns_test = Qnets(params, env_test)
     init = tf.global_variables_initializer()
 
     saver = None #tf.train.Saver()
-    os.mkdir(options.saveDirPlots)
     with tf.Session() as sess:
         sess.run(init)
 
-        totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns, env_test)
+        totRewards, totDiscountedRewards = Train(params, sess, saver, env_train_dic, qns, env_test_dic)
 
         #params.debug = True
-        arrDumb = dumb(env, len(env.nodes), params)
-        arrRandom = randomCrawl(env, len(env.nodes), params)
-        arrBalanced = balanced(env, len(env.nodes), params)
-        arrRL = Walk(env_test, params, sess, qns)
-        #print("arrDumb", arrDumb)
-        #print("arrBalanced", arrBalanced)
-
-        plt.plot(arrDumb, label="dumb")
-        plt.plot(arrRandom, label="random")
-        plt.plot(arrBalanced, label="balanced")
-        plt.plot(arrRL, label="RL")
-        plt.legend(loc='upper left')
-        plt.xlabel('#crawled')
-        plt.ylabel('#found')
-        plt.show()
+#        arrDumb = dumb(env, len(env.nodes), params)
+#        arrRandom = randomCrawl(env, len(env.nodes), params)
+#        arrBalanced = balanced(env, len(env.nodes), params)
+#        arrRL = Walk(env_test, params, sess, qns)
+#        #print("arrDumb", arrDumb)
+#        #print("arrBalanced", arrBalanced)
+#
+#        plt.plot(arrDumb, label="dumb")
+#        plt.plot(arrRandom, label="random")
+#        plt.plot(arrBalanced, label="balanced")
+#        plt.plot(arrRL, label="RL")
+#        plt.legend(loc='upper left')
+#        plt.xlabel('#crawled')
+#        plt.ylabel('#found')
+#        plt.show()
 
 ######################################################################################
 main()
