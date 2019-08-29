@@ -687,8 +687,8 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
     totRewards = []
     totDiscountedRewards = []
     orig_qns_results = {}
-    for hostName, env_test in env_test_dic.items():
-        orig_qns_results[hostName] = list(Walk(env_test, params, sess, qns))
+    for hostName, env in list(env_test_dic.items() + env_train_dic.items()):
+        orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
         
         
     env_list = list(env_train_dic.values())
@@ -731,7 +731,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
             #fig.show())
 
             #plt.pause(0.001)
-            for env_dic in [env_train_dic, env_test_dic]:
+            for env_dic, t in zip([env_train_dic, env_test_dic], ['train', 'test']):
                 for hostName, env in env_dic.items():
                     
                     arrDumb_test = dumb(env, len(env.nodes), params)
@@ -757,7 +757,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     plt.xlabel('#crawled')
                     plt.ylabel('#found')
                     plt.title(hostName+'(from test set)')
-                    fig.savefig("{}/{}_epoch-{}_host-".format(params.saveDirPlots, 'Test', epoch, hostName))
+                    fig.savefig("{}/{}/epoch-{}_host-{}".format(params.saveDirPlots, t, epoch, hostName))
 
             #fig.show()
 
@@ -853,6 +853,8 @@ def main():
         save_plots = '{}/run{}'.format(par_d, new_run)
         
         os.mkdir(save_plots)
+        os.mkdir('{}/{}'.format(save_plots, 'train'))
+        os.mkdir('{}/{}'.format(save_plots, 'test'))
 
 
 
