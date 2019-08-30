@@ -757,7 +757,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     plt.xlabel('#crawled')
                     plt.ylabel('#found')
                     plt.title(hostName+' ({})'.format(t))
-                    fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch))
+                    fig.savefig('{}/{}/{}/epoch-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch))
 
             #fig.show()
 
@@ -844,7 +844,7 @@ def main():
         if not os.path.exists(save_plots): os.mkdir(save_plots)
     else:
         
-        par_d = 'train={}test={}'.format(options.n_train, options.m_test )
+        par_d = 'train{}test{}'.format(options.n_train, options.m_test )
         
         if not os.path.exists(par_d) : os.mkdir(par_d)
         
@@ -857,9 +857,9 @@ def main():
         os.mkdir('{}/{}'.format(save_plots, 'test'))
         
         for hostName in hostNames_train:
-            os.mkdir('{}/{}'.format(save_plots, 'train', extract(hostName).domain))
+            os.mkdir('{}/{}/{}'.format(save_plots, 'train', extract(hostName).domain))
         for hostName in hostNames_test:
-            os.mkdir('{}/{}'.format(save_plots, 'test', extract(hostName).domain))
+            os.mkdir('{}/{}/{}'.format(save_plots, 'test', extract(hostName).domain))
 
     print("Training hosts are:")
     for h in hostNames_train:
