@@ -25,7 +25,7 @@ class LearningParams:
         self.trainNumIter = 10
         
         self.debug = False
-        self.walk = 20
+        self.walk = 5
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
