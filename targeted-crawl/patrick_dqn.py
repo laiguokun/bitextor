@@ -442,7 +442,7 @@ class Qnetwork():
                                 self.avg_depth_crawled], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 8, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 7, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -900,10 +900,10 @@ def main():
 
     # hostName = "http://www.visitbritain.com/"
     hostName = "http://www.buchmann.ch/"
-    # hostName = "http://vade-retro.fr/"    # smallest domain for debugging
+    hostName = "http://vade-retro.fr/"    # smallest domain for debugging
 
     hostName_test = "http://www.visitbritain.com/"
-    # hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
+    hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
 
     env = Env(sqlconn, hostName)
     env_test = Env(sqlconn, hostName_test)
