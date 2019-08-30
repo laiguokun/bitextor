@@ -320,13 +320,14 @@ class Transition:
         self.nextURLId = nextURLId
         self.langRequested = langRequested
         self.langIds = langIds
-        self.langFeatures = langFeatures #np.array(langFeatures, copy=True)
-        self.targetQ = targetQ
+        self.langFeatures = np.array(langFeatures, copy=True)
+        self.targetQ = np.array(targetQ, copy=True)
         self.cur_depth = cur_depth
         self.prev_depth = prev_depth
         self.is_child = is_child
         self.num_crawled = num_crawled
         self.avg_depth_crawled = avg_depth_crawled
+        #print("Transition", targetQ, cur_depth, prev_depth, is_child, num_crawled, avg_depth_crawled)
 
     def DebugTransition(self):
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
@@ -900,10 +901,10 @@ def main():
 
     #hostName = "http://www.visitbritain.com/"
     hostName = "http://www.buchmann.ch/"
-    # hostName = "http://vade-retro.fr/"    # smallest domain for debugging
+    #hostName = "http://vade-retro.fr/"    # smallest domain for debugging
 
     hostName_test = "http://www.visitbritain.com/"
-    # hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
+    #hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
 
     env = Env(sqlconn, hostName)
     env_test = Env(sqlconn, hostName_test)
