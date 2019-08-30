@@ -273,7 +273,7 @@ class Corpus:
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, sess, batch)
+                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
                 self.losses.append(loss)
                 self.sumWeights.append(sumWeight)
             self.transitions.clear()
@@ -845,21 +845,21 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     arrRL_test = Walk(env, params, sess, qns)
         
                     print("epoch", epoch)
-                    #fig = plt.figure()
-                    #ax = fig.add_subplot(1,1,1)
-                    #ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
+                    fig = plt.figure()
+                    ax = fig.add_subplot(1,1,1)
+                    ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
                     #ax.plot(arrRandom_test, label="random_test", color='dodgerblue')
-                    #ax.plot(arrBalanced_test, label="balanced", color='blue')
-                    #ax.plot(arrRL_test, label="RL", color='navy')
-                    #ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
+                    ax.plot(arrBalanced_test, label="balanced", color='blue')
+                    ax.plot(arrRL_test, label="RL", color='navy')
+                    ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
                     
-                    #print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
+                    print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
                     
-                    #ax.legend(loc='upper left')
-                    #plt.xlabel('#crawled')
-                    #plt.ylabel('#found')
-                    #plt.title(hostName+' ({})'.format(t))
-                    #fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch, hostName))
+                    ax.legend(loc='upper left')
+                    plt.xlabel('#crawled')
+                    plt.ylabel('#found')
+                    plt.title(hostName+' ({})'.format(t))
+                    fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch, hostName))
 
     return totRewards, totDiscountedRewards
 
