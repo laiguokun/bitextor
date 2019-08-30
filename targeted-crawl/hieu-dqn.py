@@ -402,7 +402,6 @@ class Candidates:
         ret = ""
         ret += "lang=" + str(lang) + ":" + str(len(self.coll)) + " "
         return ret
-        return ret
     
 ######################################################################################
 class Qnetwork():
@@ -629,10 +628,6 @@ def Trajectory(env, epoch, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
     candidates = Candidates(params, env)
-    cur_depth = 0
-    num_crawled = 0
-    avg_depth_crawled = 0
-    prev_url = ""
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
@@ -659,13 +654,6 @@ def Trajectory(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        prev_depth = cur_depth
-        is_child = 1 if node.url.startswith(prev_url) else 0
-        prev_url = node.url
-        cur_depth = len(node.url.replace("://", "", 1).split("/"))
-        avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
-        num_crawled += 1
-
         transition = Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB)
 
         if transition.nextURLId == 0:
@@ -685,10 +673,6 @@ def Walk(env, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
     candidates = Candidates(params, env)
-    cur_depth = 0
-    num_crawled = 0
-    avg_depth_crawled = 0
-    prev_url = ""
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
@@ -716,13 +700,6 @@ def Walk(env, params, sess, qns):
 
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
-
-        prev_depth = cur_depth
-        is_child = 1 if node.url.startswith(prev_url) else 0
-        prev_url = node.url
-        cur_depth = len(node.url.replace("://", "", 1).split("/"))
-        avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
-        num_crawled += 1
 
         #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = \
@@ -757,9 +734,9 @@ def Walk(env, params, sess, qns):
 def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
     totRewards = []
     totDiscountedRewards = []
-    orig_qns_results = {}
-    for hostName, env in list(env_test_dic.items()) + list(env_train_dic.items()):
-        orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
+    #orig_qns_results = {}
+    #for hostName, env in list(env_test_dic.items()) + list(env_train_dic.items()):
+    #    orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
         
     env_list = list(env_train_dic.values())
         
@@ -777,7 +754,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
         TIMER.Pause("Update")
             
         if epoch > 0 and epoch % params.walk == 0:
-            for env_dic, t in zip([env_train_dic, env_test_dic], ['train', 'test']):
+            for env_dic, sset in zip([env_train_dic, env_test_dic], ['train', 'test']):
                 for hostName, env in env_dic.items():
                     
                     arrDumb_test = dumb(env, len(env.nodes), params)
@@ -786,21 +763,21 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     arrRL_test = Walk(env, params, sess, qns)
         
                     print("epoch", epoch)
-                    #fig = plt.figure()
-                    #ax = fig.add_subplot(1,1,1)
-                    #ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
+                    fig = plt.figure()
+                    ax = fig.add_subplot(1,1,1)
+                    ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
                     #ax.plot(arrRandom_test, label="random_test", color='dodgerblue')
-                    #ax.plot(arrBalanced_test, label="balanced", color='blue')
-                    #ax.plot(arrRL_test, label="RL", color='navy')
+                    ax.plot(arrBalanced_test, label="balanced", color='blue')
+                    ax.plot(arrRL_test, label="RL", color='navy')
                     #ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
                     
-                    #print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
+                    print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
                     
-                    #ax.legend(loc='upper left')
-                    #plt.xlabel('#crawled')
-                    #plt.ylabel('#found')
-                    #plt.title(hostName+' ({})'.format(t))
-                    #fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch, hostName))
+                    ax.legend(loc='upper left')
+                    plt.xlabel('#crawled')
+                    plt.ylabel('#found')
+                    plt.title(hostName+' ({})'.format(sset))
+                    fig.savefig('{dir}/{sset}-{domain}-{epoch}'.format(dir=params.saveDirPlots, sset=sset, domain=extract(hostName).domain, epoch=epoch))
 
     return totRewards, totDiscountedRewards
 
@@ -816,7 +793,7 @@ def main():
                          help="The 2 language we're interested in, separated by ,")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                          help="Directory that model WIP are saved to. If existing model exists then load it")
-    oparser.add_argument("--save-plots", dest="saveDirPlots", default="",
+    oparser.add_argument("--save-plots", dest="saveDirPlots", default="plots",
                      help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
@@ -833,74 +810,16 @@ def main():
 
     languages = Languages(sqlconn.mycursor)
 
-
-
-    #allhostNames = ["http://vade-retro.fr/", "http://vade-retro.fr/"]
-    #hostName = "http://vade-retro.fr/"
-    allhostNames = ["http://www.buchmann.ch/",
-                    "http://vade-retro.fr/",
-                    "http://www.visitbritain.com/",
-                    "http://www.lespressesdureel.com/",
-                    "http://www.otc-cta.gc.ca/",
-                    "http://tagar.es/",
-                    "http://lacor.es/",
-                    "http://telasmos.org/",
-                    "http://www.haitilibre.com/",
-                    "http://legisquebec.gouv.qc.ca",
-                    "http://hobby-france.com/",
-                    "http://www.al-fann.net/",
-                    "http://www.antique-prints.de/",
-                    "http://www.gamersyde.com/",
-                    "http://inter-pix.com/",
-                    "http://www.acklandsgrainger.com/",
-                    "http://www.predialparque.pt/",
-                    "http://carta.ro/",
-                    "http://www.restopages.be/",
-                    "http://www.burnfateasy.info/",
-                    "http://www.bedandbreakfast.eu/",
-                    "http://ghc.freeguppy.org/",
-                    "http://www.bachelorstudies.fr/",
-                    "http://chopescollection.be/",
-                    "http://www.lavery.ca/",
-                    "http://www.thecanadianencyclopedia.ca/",
-                    "http://www.vistastamps.com/",
-                    "http://www.linker-kassel.com/",
-                    "http://www.enterprise.fr/"]
-
-#                    "http://who.int/",
-    shuffle(allhostNames)
+    #["http://vade-retro.fr/",] #
+    hostNames_train = ["http://vade-retro.fr/"] 
+    hostNames_test = ["http://vade-retro.fr/"] 
+    #hostNames_train = ["http://www.buchmann.ch/"]
+    #hostNames_test = ["http://www.visitbritain.com/"]
+    #hostNames_train = ["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
+    #hostNames_test = ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
     
-    assert len(allhostNames) >= options.n_train + options.m_test
-#["http://vade-retro.fr/",] #
-    hostNames_train = ["http://vade-retro.fr/"] #["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
-    hostNames_test = ["http://vade-retro.fr/"] # ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
-
-    if options.saveDirPlots:
-        
-        save_plots = 'plot'
-        
-        if not os.path.exists(save_plots):
-            os.mkdir(save_plots)
-    else:
-        par_d = 'train={}test={}'.format(options.n_train, options.m_test )
-        if not os.path.exists(par_d):
-            os.mkdir(par_d)
-        new_run = max([int(run.replace('run', '')) for run in os.listdir(par_d)] +[0]) + 1
-
-        save_plots = '{}/run{}'.format(par_d, new_run)        
-        os.mkdir(save_plots)
-        os.mkdir('{}/{}'.format(save_plots, 'train'))
-        os.mkdir('{}/{}'.format(save_plots, 'test'))
-        
-        for hostName in hostNames_train:
-            d = '{}/{}'.format(save_plots, 'train', extract(hostName).domain)
-            if not os.path.exists(par_d):
-                os.mkdir(d)
-
-        for hostName in hostNames_test:
-            d = '{}/{}'.format(save_plots, 'test', extract(hostName).domain)
-            if not os.path.exists(par_d):
-                os.mkdir(d)
+    if not os.path.exists(options.saveDirPlots):
+        os.mkdir(options.saveDirPlots)
 
     print("Training hosts are:")
     for h in hostNames_train:
@@ -911,7 +830,7 @@ def main():
         print(h)
     print()
     
-    with open('{}/hosts.info'.format(save_plots), 'w') as f:
+    with open('{}/hosts.info'.format(options.saveDirPlots), 'w') as f:
         f.write('Training hosts are:\n')
         for h in hostNames_train:
             f.write(h+'\n')
@@ -920,7 +839,7 @@ def main():
             f.write(h+'\n')
             
             
-    params = LearningParams(languages, options.saveDir, save_plots, options.deleteDuplicateTransitions, options.langPair)
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair)
 
     env_train_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_train}
     env_test_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_test}
