@@ -467,33 +467,13 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def Predict(self, sess, langRequested, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled):
+    def Predict(self, sess, langRequested, langIds, langsVisited):
         langRequestedNP = np.empty([1, 1])
         langRequestedNP[0, 0] = langRequested
         
         langIdsNP = np.empty([1, 2])
         langIdsNP[0, 0] = langIds[0]
         langIdsNP[0, 1] = langIds[1]
-
-        temp = cur_depth
-        cur_depth = np.empty([1, 1])
-        cur_depth[0, 0] = temp
-
-        temp = prev_depth
-        prev_depth = np.empty([1, 1])
-        prev_depth[0, 0] = temp
-
-        temp = is_child
-        is_child = np.empty([1, 1])
-        is_child[0, 0] = temp
-
-        # temp = num_crawled
-        # num_crawled = np.empty([1, 1])
-        # num_crawled[0, 0] = temp
-
-        temp = avg_depth_crawled
-        avg_depth_crawled = np.empty([1, 1])
-        avg_depth_crawled[0, 0] = temp
 
         #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
         #print("   ", langRequestedNP, langIdsNP, langFeatures)
@@ -522,7 +502,7 @@ class Qnetwork():
                 qValue = cache[cacheKey]
                 #print("cached", cacheKey, qValue)
             else:
-                qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled)
+                qValue = self.Predict(sess, langId, langIds, langsVisited)
                 qValue = qValue[0]
                 cache[cacheKey] = qValue
             qValues[idx] = qValue
@@ -634,7 +614,7 @@ def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth
     nextLangsVisited[0, link.childNode.lang] += 1
 
     _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled)
+    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
