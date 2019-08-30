@@ -579,7 +579,7 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA):
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
 
     if np.random.rand(1) < eps:
@@ -599,7 +599,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, p
 
 def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA, qnB):
     _, maxQ, action, link, reward = \
-        NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA)
+        NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -736,7 +736,7 @@ def Walk(env, params, sess, qns):
 
         #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = \
-            NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA)
+            NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         print("action", action)
 
