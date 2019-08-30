@@ -487,7 +487,7 @@ class Qnetwork():
         
         return qValue
 
-    def PredictAll(self, env, sess, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, candidates):
+    def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         qValues = {}
         maxQ = -9999999.0
         cache = {}
@@ -497,7 +497,7 @@ class Qnetwork():
             link = candidates.coll[idx]
             langId = link.parentNode.lang
 
-            cacheKey = (langId, cur_depth, prev_depth, is_child, avg_depth_crawled)
+            cacheKey = (langId, )
             if cacheKey in cache:
                 qValue = cache[cacheKey]
                 #print("cached", cacheKey, qValue)
@@ -580,7 +580,7 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, candidates)
+    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
 
     if np.random.rand(1) < eps:
         actions = list(qValues.keys())
@@ -613,7 +613,7 @@ def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth
     nextLangsVisited = langsVisited.copy()
     nextLangsVisited[0, link.childNode.lang] += 1
 
-    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, nextCandidates)
+    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
     nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
 
     newVal = reward + params.gamma * nextMaxQ
