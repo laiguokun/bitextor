@@ -483,9 +483,9 @@ class Qnetwork():
                                 feed_dict={self.langRequested: langRequestedNP,
                                     self.langIds: langIdsNP,
                                     self.langsVisited: langsVisited})
-        print("qValue", qValue)
+        #print("qValue", qValue)
         qValue = qValue[0]
-        print("   qValue", qValue.shape, qValue)
+        #print("   qValue", qValue.shape, qValue)
         
         return qValue
 
@@ -616,7 +616,11 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[0, link.childNode.lang] += 1
 
     _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
+    #print("nextAction", nextAction)
+    if nextAction == -1:
+        nextMaxQ = 0
+    else:   
+        nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
