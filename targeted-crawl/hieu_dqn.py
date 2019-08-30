@@ -628,10 +628,6 @@ def Trajectory(env, epoch, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
     candidates = Candidates(params, env)
-    cur_depth = 0
-    num_crawled = 0
-    avg_depth_crawled = 0
-    prev_url = ""
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
@@ -658,8 +654,6 @@ def Trajectory(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        prev_depth = cur_depth
-        is_child = 1 if node.url.startswith(prev_url) else 0
         prev_url = node.url
         cur_depth = len(node.url.replace("://", "", 1).split("/"))
         avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
@@ -684,10 +678,6 @@ def Walk(env, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
     candidates = Candidates(params, env)
-    cur_depth = 0
-    num_crawled = 0
-    avg_depth_crawled = 0
-    prev_url = ""
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
