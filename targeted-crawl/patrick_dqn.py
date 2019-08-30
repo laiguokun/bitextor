@@ -25,7 +25,7 @@ class LearningParams:
         self.trainNumIter = 10
         
         self.debug = False
-        self.walk = 50
+        self.walk = 5
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -283,7 +283,9 @@ class Corpus:
         langFeatures = np.empty([batchSize, env.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
         cur_depth = np.empty([batchSize, 1])
-        num_crawled = np.empty([batchSize, 1])
+        prev_depth = np.empty([batchSize, 1])
+        is_child = np.empty([batchSize, 1])
+        # num_crawled = np.empty([batchSize, 1])
         avg_depth_crawled = np.empty([batchSize, 1])
 
         i = 0
@@ -296,14 +298,16 @@ class Corpus:
             langFeatures[i, :] = transition.langFeatures
             targetQ[i, :] = transition.targetQ
             cur_depth[i, :] = transition.cur_depth
-            num_crawled[i, :] = transition.num_crawled
+            prev_depth[i, :] = transition.prev_depth
+            is_child[i, :] = transition.is_child
+            # num_crawled[i, :] = transition.num_crawled
             avg_depth_crawled[i, :] = transition.avg_depth_crawled
 
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ, cur_depth, num_crawled, avg_depth_crawled)
+        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -311,16 +315,19 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ, cur_depth, num_crawled, avg_depth_crawled):
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled):
         self.currURLId = currURLId
         self.nextURLId = nextURLId
         self.langRequested = langRequested
         self.langIds = langIds
-        self.langFeatures = langFeatures #np.array(langFeatures, copy=True)
-        self.targetQ = targetQ
+        self.langFeatures = np.array(langFeatures, copy=True)
+        self.targetQ = np.array(targetQ, copy=True)
         self.cur_depth = cur_depth
-        self.num_crawled = num_crawled
+        self.prev_depth = prev_depth
+        self.is_child = is_child
+        # self.num_crawled = num_crawled
         self.avg_depth_crawled = avg_depth_crawled
+        #print("Transition", targetQ, cur_depth, prev_depth, is_child, num_crawled, avg_depth_crawled)
 
     def DebugTransition(self):
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
@@ -422,17 +429,21 @@ class Qnetwork():
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
         self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
         self.cur_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.num_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.prev_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.is_child = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        # self.num_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.avg_depth_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.input = tf.concat([self.langRequested,
                                 self.langIds,
                                 self.langsVisited,
                                 self.cur_depth,
-                                self.num_crawled,
+                                self.prev_depth,
+                                self.is_child,
+                                # self.num_crawled,
                                 self.avg_depth_crawled], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 6, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 7, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -472,7 +483,7 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def Predict(self, sess, langRequested, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled):
+    def Predict(self, sess, langRequested, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled):
         langRequestedNP = np.empty([1, 1])
         langRequestedNP[0, 0] = langRequested
         
@@ -484,9 +495,17 @@ class Qnetwork():
         cur_depth = np.empty([1, 1])
         cur_depth[0, 0] = temp
 
-        temp = num_crawled
-        num_crawled = np.empty([1, 1])
-        num_crawled[0, 0] = temp
+        temp = prev_depth
+        prev_depth = np.empty([1, 1])
+        prev_depth[0, 0] = temp
+
+        temp = is_child
+        is_child = np.empty([1, 1])
+        is_child[0, 0] = temp
+
+        # temp = num_crawled
+        # num_crawled = np.empty([1, 1])
+        # num_crawled[0, 0] = temp
 
         temp = avg_depth_crawled
         avg_depth_crawled = np.empty([1, 1])
@@ -500,14 +519,16 @@ class Qnetwork():
                                     self.langIds: langIdsNP,
                                     self.langsVisited: langsVisited,
                                     self.cur_depth: cur_depth,
-                                    self.num_crawled: num_crawled,
+                                    self.prev_depth: prev_depth,
+                                    self.is_child: is_child,
+                                    # self.num_crawled: num_crawled,
                                     self.avg_depth_crawled: avg_depth_crawled})
         qValue = qValue[0]
         #print("   qValue", qValue.shape, qValue)
         
         return qValue
 
-    def PredictAll(self, env, sess, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled, candidates):
+    def PredictAll(self, env, sess, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, candidates):
         qValues = {}
         maxQ = -9999999.0
         cache = {}
@@ -517,12 +538,12 @@ class Qnetwork():
             link = candidates.coll[idx]
             langId = link.parentNode.lang
 
-            cacheKey = (langId, cur_depth, num_crawled, avg_depth_crawled)
+            cacheKey = (langId, cur_depth, prev_depth, is_child, avg_depth_crawled)
             if cacheKey in cache:
                 qValue = cache[cacheKey]
                 #print("cached", cacheKey, qValue)
             else:
-                qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
+                qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled)
                 qValue = qValue[0]
                 cache[cacheKey] = qValue
             qValues[idx] = qValue
@@ -540,7 +561,7 @@ class Qnetwork():
 
         # for langId, nodes in candidates.dict.items():
         #     if len(nodes) > 0:
-        #         qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled)
+        #         qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled)
         #         qValue = qValue[0]
         #         qValues[langId] = qValue
 
@@ -557,7 +578,7 @@ class Qnetwork():
 
         return qValues, maxQ, argMax
 
-    def Update(self, sess, langRequested, langIds, langsVisited, targetQ, cur_depth, num_crawled, avg_depth_crawled):
+    def Update(self, sess, langRequested, langIds, langsVisited, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
@@ -566,7 +587,9 @@ class Qnetwork():
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ,
                                             self.cur_depth: cur_depth,
-                                            self.num_crawled: num_crawled,
+                                            self.prev_depth: prev_depth,
+                                            self.is_child: is_child,
+                                            # self.num_crawled: num_crawled,
                                             self.avg_depth_crawled: avg_depth_crawled})
         #print("loss", loss)
         return loss, sumWeight
@@ -602,8 +625,8 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, cur_depth, num_crawled, avg_depth_crawled, candidates)
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA):
+    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, candidates)
 
     if np.random.rand(1) < eps:
         actions = list(qValues.keys())
@@ -620,9 +643,9 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, n
 
     return qValues, maxQ, action, link, reward
 
-def Neural(env, params, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA, qnB):
+def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA, qnB):
     _, maxQ, action, link, reward = \
-        NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA)
+        NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -636,8 +659,8 @@ def Neural(env, params, candidates, visited, langsVisited, cur_depth, num_crawle
     nextLangsVisited = langsVisited.copy()
     nextLangsVisited[0, link.childNode.lang] += 1
 
-    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, cur_depth, num_crawled, avg_depth_crawled, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited, cur_depth, num_crawled, avg_depth_crawled)
+    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, nextCandidates)
+    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
@@ -649,7 +672,9 @@ def Neural(env, params, candidates, visited, langsVisited, cur_depth, num_crawle
                             langsVisited,
                             targetQ,
                             cur_depth,
-                            num_crawled,
+                            prev_depth,
+                            is_child,
+                            # num_crawled,
                             avg_depth_crawled)
 
     return transition
@@ -660,8 +685,10 @@ def Trajectory(env, epoch, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
+    cur_depth = 0
     num_crawled = 0
     avg_depth_crawled = 0
+    prev_url = ""
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
@@ -687,12 +714,15 @@ def Trajectory(env, epoch, params, sess, qns):
 
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
-        
+
+        prev_depth = cur_depth
+        is_child = 1 if node.url.startswith(prev_url) else 0
+        prev_url = node.url
         cur_depth = len(node.url.replace("://", "", 1).split("/"))
         avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
         num_crawled += 1
 
-        transition = Neural(env, params, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA, qnB)
+        transition = Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA, qnB)
 
         if transition.nextURLId == 0:
             break
@@ -711,8 +741,10 @@ def Walk(env, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
+    cur_depth = 0
     num_crawled = 0
     avg_depth_crawled = 0
+    prev_url = ""
     node = env.nodes[sys.maxsize]
 
     #stopNode = env.nodes[0]
@@ -741,15 +773,18 @@ def Walk(env, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
+        prev_depth = cur_depth
+        is_child = 1 if node.url.startswith(prev_url) else 0
+        prev_url = node.url
         cur_depth = len(node.url.replace("://", "", 1).split("/"))
         avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
         num_crawled += 1
 
         #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = \
-            NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, num_crawled, avg_depth_crawled, sess, qnA)
+            NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA)
         node = link.childNode
-        print("action", action, qValues)
+        print("action", action)
 
         totReward += reward
         totDiscountedReward += discount * reward
@@ -796,12 +831,12 @@ def Train(params, sess, saver, env, qns, env_test):
 
         if epoch > 0 and epoch % params.walk == 0:
             arrDumb = dumb(env, len(env.nodes), params)
-            arrRandom = randomCrawl(env, len(env.nodes), params)
+            #arrRandom = randomCrawl(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, params, sess, qns)
 
             arrDumb_test = dumb(env_test, len(env_test.nodes), params)
-            arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
+            #arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
             arrBalanced_test = balanced(env_test, len(env_test.nodes), params)
             arrRL_test = Walk(env_test, params, sess, qns)
 
@@ -810,30 +845,29 @@ def Train(params, sess, saver, env, qns, env_test):
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
             ax.plot(arrDumb, label="dumb_train", color='maroon')
-            ax.plot(arrRandom, label="random_train", color='firebrick')
+            #ax.plot(arrRandom, label="random_train", color='firebrick')
             ax.plot(arrBalanced, label="balanced_train", color='red')
             ax.plot(arrRL, label="RL_train", color='salmon')
 
             ax.legend(loc='upper left')
             plt.xlabel('#crawled')
             plt.ylabel('#found')
-
-            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'Train', epoch))
-            #fig.show())
+            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'train', epoch))
+            #fig.show()
 
             #plt.pause(0.001)
 
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
             ax.plot(arrDumb_test, label="dumb_test", color='navy')
-            ax.plot(arrRandom_test, label="random_test", color='blue')
+            #ax.plot(arrRandom_test, label="random_test", color='blue')
             ax.plot(arrBalanced_test, label="balanced_test", color='dodgerblue')
             ax.plot(arrRL_test, label="RL_test", color='lightskyblue')
 
             ax.legend(loc='upper left')
             plt.xlabel('#crawled')
             plt.ylabel('#found')
-            fig.savefig("{}/{}_epoch{}".format(params.saveDirPlots, 'Test', epoch))
+            fig.savefig("{}/{}_epoch{}".format(params.saveDirPlots, 'test', epoch))
 
 
     return totRewards, totDiscountedRewards
@@ -865,11 +899,12 @@ def main():
     params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair)
 
 
-    #hostName = "http://www.visitbritain.com/"
+    # hostName = "http://www.visitbritain.com/"
     hostName = "http://www.buchmann.ch/"
     #hostName = "http://vade-retro.fr/"    # smallest domain for debugging
 
     hostName_test = "http://www.visitbritain.com/"
+    #hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
     #hostName_test = "http://vade-retro.fr/"    # smallest domain for debugging
 
     env = Env(sqlconn, hostName)
@@ -896,14 +931,14 @@ def main():
 
         #params.debug = True
         arrDumb = dumb(env, len(env.nodes), params)
-        arrRandom = randomCrawl(env, len(env.nodes), params)
+        #arrRandom = randomCrawl(env, len(env.nodes), params)
         arrBalanced = balanced(env, len(env.nodes), params)
         arrRL = Walk(env, params, sess, qns)
         #print("arrDumb", arrDumb)
         #print("arrBalanced", arrBalanced)
         
         plt.plot(arrDumb, label="dumb")
-        plt.plot(arrRandom, label="random")
+        #plt.plot(arrRandom, label="random")
         plt.plot(arrBalanced, label="balanced")
         plt.plot(arrRL, label="RL")
         plt.legend(loc='upper left')
