@@ -654,11 +654,6 @@ def Trajectory(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        prev_url = node.url
-        cur_depth = len(node.url.replace("://", "", 1).split("/"))
-        avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
-        num_crawled += 1
-
         transition = Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB)
 
         if transition.nextURLId == 0:
@@ -759,7 +754,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
         TIMER.Pause("Update")
             
         if epoch > 0 and epoch % params.walk == 0:
-            for env_dic, t in zip([env_train_dic, env_test_dic], ['train', 'test']):
+            for env_dic, sset in zip([env_train_dic, env_test_dic], ['train', 'test']):
                 for hostName, env in env_dic.items():
                     
                     arrDumb_test = dumb(env, len(env.nodes), params)
@@ -781,8 +776,8 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     ax.legend(loc='upper left')
                     plt.xlabel('#crawled')
                     plt.ylabel('#found')
-                    plt.title(hostName+' ({})'.format(t))
-                    fig.savefig('{}/{}/{}/epoch-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch))
+                    plt.title(hostName+' ({})'.format(sset))
+                    fig.savefig('{dir}/{sset}-{domain}-{epoch}'.format(dir=params.saveDirPlots, sset=sset, domain=extract(hostName).domain, epoch=epoch))
 
     return totRewards, totDiscountedRewards
 
@@ -798,7 +793,7 @@ def main():
                          help="The 2 language we're interested in, separated by ,")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                          help="Directory that model WIP are saved to. If existing model exists then load it")
-    oparser.add_argument("--save-plots", dest="saveDirPlots", default="",
+    oparser.add_argument("--save-plots", dest="saveDirPlots", default="plots",
                      help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
@@ -816,40 +811,15 @@ def main():
     languages = Languages(sqlconn.mycursor)
 
     #["http://vade-retro.fr/",] #
-    #hostNames_train = ["http://vade-retro.fr/"] #["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
-    #hostNames_test = ["http://vade-retro.fr/"] # ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
+    #hostNames_train = ["http://vade-retro.fr/"] 
+    #hostNames_test = ["http://vade-retro.fr/"] 
     hostNames_train = ["http://www.buchmann.ch/"]
     hostNames_test = ["http://www.visitbritain.com/"]
     #hostNames_train = ["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
     #hostNames_test = ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
     
-    if options.saveDirPlots:
-        
-        save_plots = 'plot'
-        
-        if not os.path.exists(save_plots):
-            os.mkdir(save_plots)
-    else:
-        par_d = 'train={}test={}'.format(options.n_train, options.m_test )
-        if not os.path.exists(par_d):
-            os.mkdir(par_d)
-        new_run = max([int(run.replace('run', '')) for run in os.listdir(par_d)] +[0]) + 1
-
-        save_plots = '{}/run{}'.format(par_d, new_run)        
-        os.mkdir(save_plots)
-        os.mkdir('{}/{}'.format(save_plots, 'train'))
-        os.mkdir('{}/{}'.format(save_plots, 'test'))
-        
-        for hostName in hostNames_train:
-            d = '{}/{}/{}'.format(save_plots, 'train', extract(hostName).domain)
-            print("d", d)
-            if not os.path.exists(d):
-                os.mkdir(d)
-
-        for hostName in hostNames_test:
-            d = '{}/{}/{}'.format(save_plots, 'test', extract(hostName).domain)
-            if not os.path.exists(d):
-                os.mkdir(d)
+    if not os.path.exists(options.saveDirPlots):
+        os.mkdir(options.saveDirPlots)
 
     print("Training hosts are:")
     for h in hostNames_train:
@@ -860,7 +830,7 @@ def main():
         print(h)
     print()
     
-    with open('{}/hosts.info'.format(save_plots), 'w') as f:
+    with open('{}/hosts.info'.format(options.saveDirPlots), 'w') as f:
         f.write('Training hosts are:\n')
         for h in hostNames_train:
             f.write(h+'\n')
@@ -869,7 +839,7 @@ def main():
             f.write(h+'\n')
             
             
-    params = LearningParams(languages, options.saveDir, save_plots, options.deleteDuplicateTransitions, options.langPair)
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair)
 
     env_train_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_train}
     env_test_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_test}
