@@ -60,9 +60,6 @@ class Languages:
         for res in ress:
             self.coll[res[1]] = res[0]
             self.maxLangId = res[0]
-
-    def GetLangId(self):
-        return self.maxLangId
         
     def GetLang(self, str):
         str = StrNone(str)

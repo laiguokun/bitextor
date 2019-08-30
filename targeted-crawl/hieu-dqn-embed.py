@@ -13,11 +13,9 @@ from helpers import Env, Link
 from copy import deepcopy
 from tldextract import extract
 
-MAX_LANG_ID = 127
-
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair):
+    def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
         self.gamma = 0.999
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
@@ -41,6 +39,9 @@ class LearningParams:
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
         self.maxDocs = 9999999999
+
+        self.maxLangId = maxLangId
+        self.defaultLang = defaultLang
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -232,10 +233,10 @@ def AddTodo(langsTodo, visited, link):
 ######################################################################################
 ######################################################################################
 class Qnets():
-    def __init__(self, params, MAX_LANG_ID):
+    def __init__(self, params):
         self.q = []
-        self.q.append(Qnetwork(params, MAX_LANG_ID))
-        self.q.append(Qnetwork(params, MAX_LANG_ID))
+        self.q.append(Qnetwork(params))
+        self.q.append(Qnetwork(params))
 
 ######################################################################################
 class Corpus:
@@ -283,7 +284,7 @@ class Corpus:
         #print("batchSize", batchSize)
         langRequested = np.empty([batchSize, 1], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langFeatures = np.empty([batchSize, MAX_LANG_ID + 1])
+        langFeatures = np.empty([batchSize, params.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
 
         i = 0
@@ -405,12 +406,12 @@ class Candidates:
     
 ######################################################################################
 class Qnetwork():
-    def __init__(self, params, MAX_LANG_ID):
+    def __init__(self, params):
         self.params = params
         self.corpus = Corpus(params, self)
 
         HIDDEN_DIM = 512
-        NUM_FEATURES = MAX_LANG_ID + 1
+        NUM_FEATURES = params.maxLangId + 1
 
         self.embeddings = tf.Variable(tf.random_uniform([NUM_FEATURES + 1, HIDDEN_DIM], 0, 0.01))
 
@@ -476,6 +477,7 @@ class Qnetwork():
         langIdsNP[0, 0] = langIds[0]
         langIdsNP[0, 1] = langIds[1]
 
+        #print("langRequested", langRequested)
         #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
         #print("   ", langRequestedNP, langIdsNP, langFeatures)
         #print("numURLs", numURLs)
@@ -618,16 +620,20 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
     #print("nextAction", nextAction)
     if nextAction == -1:
+        nextLang = params.defaultLang
         nextMaxQ = 0
     else:   
-        nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
+        nextLink, _ = GetNextState(env, params, nextAction, nextVisited, nextCandidates)
+        nextNode = nextLink.childNode
+        nextLang = nextNode.lang
+        nextMaxQ = qnB.Predict(sess, nextLang, params.langIds, nextLangsVisited)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
 
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
-                            action,
+                            nextLang,
                             params.langIds,
                             langsVisited,
                             targetQ)
@@ -638,7 +644,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
+    langsVisited = np.zeros([1, params.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -683,7 +689,7 @@ def Trajectory(env, epoch, params, sess, qns):
 def Walk(env, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
+    langsVisited = np.zeros([1, params.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -823,10 +829,10 @@ def main():
     languages = Languages(sqlconn.mycursor)
 
     #["http://vade-retro.fr/",] #
-    hostNames_train = ["http://vade-retro.fr/"] 
-    hostNames_test = ["http://vade-retro.fr/"] 
-    #hostNames_train = ["http://www.buchmann.ch/"]
-    #hostNames_test = ["http://www.visitbritain.com/"]
+    #hostNames_train = ["http://vade-retro.fr/"] 
+    #hostNames_test = ["http://vade-retro.fr/"] 
+    hostNames_train = ["http://www.buchmann.ch/"]
+    hostNames_test = ["http://www.visitbritain.com/"]
     #hostNames_train = ["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
     #hostNames_test = ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
     
@@ -851,21 +857,20 @@ def main():
             f.write(h+'\n')
             
             
-    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair)
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
     env_train_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_train}
     env_test_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_test}
         
     for dic in [env_train_dic, env_test_dic]:
         for hostName, env in env_test_dic.items():
-            env.maxLangId = MAX_LANG_ID
-            env.nodes[sys.maxsize].lang = languages.GetLang("None")
+            env.nodes[sys.maxsize].lang = params.defaultLang
             dic[hostName] = env
         
         
 
     tf.reset_default_graph()
-    qns = Qnets(params, MAX_LANG_ID)
+    qns = Qnets(params)
     #qns_test = Qnets(params, env_test)
     init = tf.global_variables_initializer()
 
