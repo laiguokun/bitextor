@@ -783,7 +783,7 @@ def Walk(env, params, sess, qns):
         qValues, _, action, link, reward = \
             NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA)
         node = link.childNode
-        print("action", action, qValues)
+        print("action", action)
 
         totReward += reward
         totDiscountedReward += discount * reward
@@ -830,12 +830,12 @@ def Train(params, sess, saver, env, qns, env_test):
 
         if epoch > 0 and epoch % params.walk == 0:
             arrDumb = dumb(env, len(env.nodes), params)
-            arrRandom = randomCrawl(env, len(env.nodes), params)
+            #arrRandom = randomCrawl(env, len(env.nodes), params)
             arrBalanced = balanced(env, len(env.nodes), params)
             arrRL = Walk(env, params, sess, qns)
 
             arrDumb_test = dumb(env_test, len(env_test.nodes), params)
-            arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
+            #arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
             arrBalanced_test = balanced(env_test, len(env_test.nodes), params)
             arrRL_test = Walk(env_test, params, sess, qns)
 
@@ -844,7 +844,7 @@ def Train(params, sess, saver, env, qns, env_test):
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
             ax.plot(arrDumb, label="dumb_train", color='maroon')
-            ax.plot(arrRandom, label="random_train", color='firebrick')
+            #ax.plot(arrRandom, label="random_train", color='firebrick')
             ax.plot(arrBalanced, label="balanced_train", color='red')
             ax.plot(arrRL, label="RL_train", color='salmon')
 
@@ -859,7 +859,7 @@ def Train(params, sess, saver, env, qns, env_test):
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
             ax.plot(arrDumb_test, label="dumb_test", color='navy')
-            ax.plot(arrRandom_test, label="random_test", color='blue')
+            #ax.plot(arrRandom_test, label="random_test", color='blue')
             ax.plot(arrBalanced_test, label="balanced_test", color='dodgerblue')
             ax.plot(arrRL_test, label="RL_test", color='lightskyblue')
 
@@ -929,14 +929,14 @@ def main():
 
         #params.debug = True
         arrDumb = dumb(env, len(env.nodes), params)
-        arrRandom = randomCrawl(env, len(env.nodes), params)
+        #arrRandom = randomCrawl(env, len(env.nodes), params)
         arrBalanced = balanced(env, len(env.nodes), params)
         arrRL = Walk(env, params, sess, qns)
         #print("arrDumb", arrDumb)
         #print("arrBalanced", arrBalanced)
         
         plt.plot(arrDumb, label="dumb")
-        plt.plot(arrRandom, label="random")
+        #plt.plot(arrRandom, label="random")
         plt.plot(arrBalanced, label="balanced")
         plt.plot(arrRL, label="RL")
         plt.legend(loc='upper left')
