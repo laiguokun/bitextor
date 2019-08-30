@@ -723,7 +723,7 @@ def Walk(env, params, sess, qns):
         qValues, _, action, link, reward = \
             NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
-        print("action", action)
+        print("action", action, node.Debug())
 
         totReward += reward
         totDiscountedReward += discount * reward
