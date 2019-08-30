@@ -734,9 +734,9 @@ def Walk(env, params, sess, qns):
 def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
     totRewards = []
     totDiscountedRewards = []
-    orig_qns_results = {}
-    for hostName, env in list(env_test_dic.items()) + list(env_train_dic.items()):
-        orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
+    #orig_qns_results = {}
+    #for hostName, env in list(env_test_dic.items()) + list(env_train_dic.items()):
+    #    orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
         
     env_list = list(env_train_dic.values())
         
@@ -769,7 +769,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     #ax.plot(arrRandom_test, label="random_test", color='dodgerblue')
                     ax.plot(arrBalanced_test, label="balanced", color='blue')
                     ax.plot(arrRL_test, label="RL", color='navy')
-                    ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
+                    #ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
                     
                     print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
                     
