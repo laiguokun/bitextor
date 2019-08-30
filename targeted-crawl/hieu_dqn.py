@@ -402,7 +402,6 @@ class Candidates:
         ret = ""
         ret += "lang=" + str(lang) + ":" + str(len(self.coll)) + " "
         return ret
-        return ret
     
 ######################################################################################
 class Qnetwork():
@@ -717,13 +716,6 @@ def Walk(env, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
 
-        prev_depth = cur_depth
-        is_child = 1 if node.url.startswith(prev_url) else 0
-        prev_url = node.url
-        cur_depth = len(node.url.replace("://", "", 1).split("/"))
-        avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
-        num_crawled += 1
-
         #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = \
             NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
@@ -786,21 +778,21 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     arrRL_test = Walk(env, params, sess, qns)
         
                     print("epoch", epoch)
-                    #fig = plt.figure()
-                    #ax = fig.add_subplot(1,1,1)
-                    #ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
+                    fig = plt.figure()
+                    ax = fig.add_subplot(1,1,1)
+                    ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
                     #ax.plot(arrRandom_test, label="random_test", color='dodgerblue')
-                    #ax.plot(arrBalanced_test, label="balanced", color='blue')
-                    #ax.plot(arrRL_test, label="RL", color='navy')
-                    #ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
+                    ax.plot(arrBalanced_test, label="balanced", color='blue')
+                    ax.plot(arrRL_test, label="RL", color='navy')
+                    ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
                     
-                    #print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
+                    print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
                     
-                    #ax.legend(loc='upper left')
-                    #plt.xlabel('#crawled')
-                    #plt.ylabel('#found')
-                    #plt.title(hostName+' ({})'.format(t))
-                    #fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch, hostName))
+                    ax.legend(loc='upper left')
+                    plt.xlabel('#crawled')
+                    plt.ylabel('#found')
+                    plt.title(hostName+' ({})'.format(t))
+                    fig.savefig('{}/{}/{}/epoch-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch))
 
     return totRewards, totDiscountedRewards
 
@@ -833,48 +825,14 @@ def main():
 
     languages = Languages(sqlconn.mycursor)
 
-
-
-    #allhostNames = ["http://vade-retro.fr/", "http://vade-retro.fr/"]
-    #hostName = "http://vade-retro.fr/"
-    allhostNames = ["http://www.buchmann.ch/",
-                    "http://vade-retro.fr/",
-                    "http://www.visitbritain.com/",
-                    "http://www.lespressesdureel.com/",
-                    "http://www.otc-cta.gc.ca/",
-                    "http://tagar.es/",
-                    "http://lacor.es/",
-                    "http://telasmos.org/",
-                    "http://www.haitilibre.com/",
-                    "http://legisquebec.gouv.qc.ca",
-                    "http://hobby-france.com/",
-                    "http://www.al-fann.net/",
-                    "http://www.antique-prints.de/",
-                    "http://www.gamersyde.com/",
-                    "http://inter-pix.com/",
-                    "http://www.acklandsgrainger.com/",
-                    "http://www.predialparque.pt/",
-                    "http://carta.ro/",
-                    "http://www.restopages.be/",
-                    "http://www.burnfateasy.info/",
-                    "http://www.bedandbreakfast.eu/",
-                    "http://ghc.freeguppy.org/",
-                    "http://www.bachelorstudies.fr/",
-                    "http://chopescollection.be/",
-                    "http://www.lavery.ca/",
-                    "http://www.thecanadianencyclopedia.ca/",
-                    "http://www.vistastamps.com/",
-                    "http://www.linker-kassel.com/",
-                    "http://www.enterprise.fr/"]
-
-#                    "http://who.int/",
-    shuffle(allhostNames)
+    #["http://vade-retro.fr/",] #
+    #hostNames_train = ["http://vade-retro.fr/"] #["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
+    #hostNames_test = ["http://vade-retro.fr/"] # ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
+    hostNames_train = ["http://www.buchmann.ch/"]
+    hostNames_test = ["http://www.visitbritain.com/"]
+    #hostNames_train = ["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
+    #hostNames_test = ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
     
-    assert len(allhostNames) >= options.n_train + options.m_test
-#["http://vade-retro.fr/",] #
-    hostNames_train = ["http://vade-retro.fr/"] #["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
-    hostNames_test = ["http://vade-retro.fr/"] # ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
-
     if options.saveDirPlots:
         
         save_plots = 'plot'
@@ -893,13 +851,14 @@ def main():
         os.mkdir('{}/{}'.format(save_plots, 'test'))
         
         for hostName in hostNames_train:
-            d = '{}/{}'.format(save_plots, 'train', extract(hostName).domain)
-            if not os.path.exists(par_d):
+            d = '{}/{}/{}'.format(save_plots, 'train', extract(hostName).domain)
+            print("d", d)
+            if not os.path.exists(d):
                 os.mkdir(d)
 
         for hostName in hostNames_test:
-            d = '{}/{}'.format(save_plots, 'test', extract(hostName).domain)
-            if not os.path.exists(par_d):
+            d = '{}/{}/{}'.format(save_plots, 'test', extract(hostName).domain)
+            if not os.path.exists(d):
                 os.mkdir(d)
 
     print("Training hosts are:")
