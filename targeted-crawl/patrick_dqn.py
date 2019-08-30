@@ -783,7 +783,7 @@ def Walk(env, params, sess, qns):
         qValues, _, action, link, reward = \
             NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, num_crawled, avg_depth_crawled, sess, qnA)
         node = link.childNode
-        print("action", action, qValues)
+        print("action", action)
 
         totReward += reward
         totDiscountedReward += discount * reward
@@ -929,14 +929,14 @@ def main():
 
         #params.debug = True
         arrDumb = dumb(env, len(env.nodes), params)
-        arrRandom = randomCrawl(env, len(env.nodes), params)
+        #arrRandom = randomCrawl(env, len(env.nodes), params)
         arrBalanced = balanced(env, len(env.nodes), params)
         arrRL = Walk(env, params, sess, qns)
         #print("arrDumb", arrDumb)
         #print("arrBalanced", arrBalanced)
         
         plt.plot(arrDumb, label="dumb")
-        plt.plot(arrRandom, label="random")
+        #plt.plot(arrRandom, label="random")
         plt.plot(arrBalanced, label="balanced")
         plt.plot(arrRL, label="RL")
         plt.legend(loc='upper left')
