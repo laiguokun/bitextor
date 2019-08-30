@@ -53,13 +53,19 @@ class Node:
 
         self.normURL = None
 
+        self.parents = []
+
         #print("self.lang", self.lang, langIds, urlId, url, docIds)
         #for lang in langIds:
         #    assert(self.lang == lang)
 
+    def addParent(self, parentNode):
+        self.parents.append(parentNode)
+
     def CreateLink(self, text, textLang, childNode):            
         link = Link(text, textLang, self, childNode)
         self.links.add(link)
+        childNode.addParent(self)
 
     def GetLinks(self, visited, params):
         ret = []
