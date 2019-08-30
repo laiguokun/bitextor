@@ -811,10 +811,10 @@ def main():
     languages = Languages(sqlconn.mycursor)
 
     #["http://vade-retro.fr/",] #
-    #hostNames_train = ["http://vade-retro.fr/"] 
-    #hostNames_test = ["http://vade-retro.fr/"] 
-    hostNames_train = ["http://www.buchmann.ch/"]
-    hostNames_test = ["http://www.visitbritain.com/"]
+    hostNames_train = ["http://vade-retro.fr/"] 
+    hostNames_test = ["http://vade-retro.fr/"] 
+    #hostNames_train = ["http://www.buchmann.ch/"]
+    #hostNames_test = ["http://www.visitbritain.com/"]
     #hostNames_train = ["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
     #hostNames_test = ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
     
