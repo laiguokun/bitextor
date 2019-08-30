@@ -285,11 +285,6 @@ class Corpus:
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langFeatures = np.empty([batchSize, MAX_LANG_ID + 1])
         targetQ = np.empty([batchSize, 1])
-        cur_depth = np.empty([batchSize, 1])
-        prev_depth = np.empty([batchSize, 1])
-        is_child = np.empty([batchSize, 1])
-        # num_crawled = np.empty([batchSize, 1])
-        avg_depth_crawled = np.empty([batchSize, 1])
 
         i = 0
         for transition in batch:
@@ -300,17 +295,12 @@ class Corpus:
             langIds[i, :] = transition.langIds
             langFeatures[i, :] = transition.langFeatures
             targetQ[i, :] = transition.targetQ
-            cur_depth[i, :] = transition.cur_depth
-            prev_depth[i, :] = transition.prev_depth
-            is_child[i, :] = transition.is_child
-            # num_crawled[i, :] = transition.num_crawled
-            avg_depth_crawled[i, :] = transition.avg_depth_crawled
 
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled)
+        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -567,7 +557,7 @@ class Qnetwork():
 
         return qValues, maxQ, argMax
 
-    def Update(self, sess, langRequested, langIds, langsVisited, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled):
+    def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
