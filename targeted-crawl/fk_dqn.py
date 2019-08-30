@@ -10,7 +10,7 @@ from random import shuffle
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
 from copy import deepcopy
-
+from tldextract import extract
 
 
 MAX_LANG_ID = 127
@@ -266,19 +266,19 @@ class Corpus:
 
         return batch
 
-    def Train(self, sess, env, params):
+    def Train(self, sess, params):
         if len(self.transitions) >= params.minCorpusSize:
             #for transition in self.transitions:
             #    print(DebugTransition(transition))
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
+                loss, sumWeight = self.UpdateQN(params, sess, batch)
                 self.losses.append(loss)
                 self.sumWeights.append(sumWeight)
             self.transitions.clear()
 
-    def UpdateQN(self, params, env, sess, batch):
+    def UpdateQN(self, params, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
         langRequested = np.empty([batchSize, 1], dtype=np.int)
@@ -687,7 +687,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
     totRewards = []
     totDiscountedRewards = []
     orig_qns_results = {}
-    for hostName, env in list(env_test_dic.items() + env_train_dic.items()):
+    for hostName, env in list(env_test_dic.items()) + list(env_train_dic.items()):
         orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
         
         
@@ -702,11 +702,11 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
             TIMER.Pause("Trajectory")
         
         
-        for env in env_list:
-            TIMER.Start("Update")
-            qns.q[0].corpus.Train(sess, env, params)
-            qns.q[1].corpus.Train(sess, env, params)
-            TIMER.Pause("Update")
+
+        TIMER.Start("Update")
+        qns.q[0].corpus.Train(sess, params)
+        qns.q[1].corpus.Train(sess, params)
+        TIMER.Pause("Update")
             
         if epoch > 0 and epoch % params.walk == 0:
             
@@ -751,13 +751,13 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     ax.plot(arrRL_test, label="RL", color='navy')
                     ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
                     
-                    print("arrRL_test", len(arrRL_test), arrRL_test )
+                    print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
                     
                     ax.legend(loc='upper left')
                     plt.xlabel('#crawled')
                     plt.ylabel('#found')
-                    plt.title(hostName+'(from test set)')
-                    fig.savefig("{}/{}/epoch-{}_host-{}".format(params.saveDirPlots, t, epoch, hostName))
+                    plt.title(hostName+' ({})'.format(t))
+                    fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch))
 
             #fig.show()
 
@@ -833,9 +833,9 @@ def main():
     shuffle(allhostNames)
     
     assert len(allhostNames) >= options.n_train + options.m_test
-    
-    hostNames_train = ["http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
-    hostNames_test = ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
+#["http://vade-retro.fr/",] #
+    hostNames_train = ["http://www.buchmann.ch/",] #["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
+    hostNames_test = ["http://vade-retro.fr/",] # ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
 
     if options.saveDirPlots:
         
@@ -855,8 +855,11 @@ def main():
         os.mkdir(save_plots)
         os.mkdir('{}/{}'.format(save_plots, 'train'))
         os.mkdir('{}/{}'.format(save_plots, 'test'))
-
-
+        
+        for hostName in hostNames_train:
+            os.mkdir('{}/{}'.format(save_plots, 'train', extract(hostName).domain))
+        for hostName in hostNames_test:
+            os.mkdir('{}/{}'.format(save_plots, 'test', extract(hostName).domain))
 
     print("Training hosts are:")
     for h in hostNames_train:
