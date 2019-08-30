@@ -273,7 +273,7 @@ class Corpus:
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
+                loss, sumWeight = self.UpdateQN(params, sess, batch)
                 self.losses.append(loss)
                 self.sumWeights.append(sumWeight)
             self.transitions.clear()
@@ -431,22 +431,13 @@ class Qnetwork():
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
         self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.cur_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.prev_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.is_child = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        # self.num_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.avg_depth_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+
         self.input = tf.concat([self.langRequested,
                                 self.langIds,
-                                self.langsVisited,
-                                self.cur_depth,
-                                self.prev_depth,
-                                self.is_child,
-                                # self.num_crawled,
-                                self.avg_depth_crawled], 1)
+                                self.langsVisited], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 7, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -520,12 +511,7 @@ class Qnetwork():
         qValue = sess.run([self.qValue], 
                                 feed_dict={self.langRequested: langRequestedNP,
                                     self.langIds: langIdsNP,
-                                    self.langsVisited: langsVisited,
-                                    self.cur_depth: cur_depth,
-                                    self.prev_depth: prev_depth,
-                                    self.is_child: is_child,
-                                    # self.num_crawled: num_crawled,
-                                    self.avg_depth_crawled: avg_depth_crawled})
+                                    self.langsVisited: langsVisited})
         qValue = qValue[0]
         #print("   qValue", qValue.shape, qValue)
         
@@ -588,12 +574,7 @@ class Qnetwork():
                                     feed_dict={self.langRequested: langRequested, 
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
-                                            self.nextQ: targetQ,
-                                            self.cur_depth: cur_depth,
-                                            self.prev_depth: prev_depth,
-                                            self.is_child: is_child,
-                                            # self.num_crawled: num_crawled,
-                                            self.avg_depth_crawled: avg_depth_crawled})
+                                            self.nextQ: targetQ})
         #print("loss", loss)
         return loss, sumWeight
 
@@ -845,21 +826,21 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     arrRL_test = Walk(env, params, sess, qns)
         
                     print("epoch", epoch)
-                    fig = plt.figure()
-                    ax = fig.add_subplot(1,1,1)
-                    ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
+                    #fig = plt.figure()
+                    #ax = fig.add_subplot(1,1,1)
+                    #ax.plot(arrDumb_test, label="dumb", color='lightskyblue')
                     #ax.plot(arrRandom_test, label="random_test", color='dodgerblue')
-                    ax.plot(arrBalanced_test, label="balanced", color='blue')
-                    ax.plot(arrRL_test, label="RL", color='navy')
-                    ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
+                    #ax.plot(arrBalanced_test, label="balanced", color='blue')
+                    #ax.plot(arrRL_test, label="RL", color='navy')
+                    #ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
                     
-                    print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
+                    #print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
                     
-                    ax.legend(loc='upper left')
-                    plt.xlabel('#crawled')
-                    plt.ylabel('#found')
-                    plt.title(hostName+' ({})'.format(t))
-                    fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch, hostName))
+                    #ax.legend(loc='upper left')
+                    #plt.xlabel('#crawled')
+                    #plt.ylabel('#found')
+                    #plt.title(hostName+' ({})'.format(t))
+                    #fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch, hostName))
 
     return totRewards, totDiscountedRewards
 
