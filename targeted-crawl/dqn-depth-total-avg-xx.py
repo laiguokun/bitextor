@@ -11,6 +11,7 @@ import tensorflow as tf
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
 
+NUM_ADDED_FEATURES = 7
 
 ######################################################################################
 class LearningParams:
@@ -285,7 +286,7 @@ class Corpus:
         cur_depth = np.empty([batchSize, 1])
         num_crawled = np.empty([batchSize, 1])
         avg_depth_crawled = np.empty([batchSize, 1])
-        xx = np.empty([batchSize, 1])
+        xx = np.empty([batchSize, NUM_ADDED_FEATURES])
 
         i = 0
         for transition in batch:
@@ -420,7 +421,6 @@ class Qnetwork():
 
         HIDDEN_DIM = 512
         NUM_FEATURES = max_env_maxLangId + 1
-        NUM_ADDED_FEATURES = 1
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
@@ -428,7 +428,7 @@ class Qnetwork():
         self.cur_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.num_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.avg_depth_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.xx = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.xx = tf.placeholder(shape=[None, NUM_ADDED_FEATURES], dtype=tf.float32)
         self.input = tf.concat([self.langRequested,
                                 self.langIds,
                                 self.langsVisited,
@@ -499,8 +499,9 @@ class Qnetwork():
         avg_depth_crawled[0, 0] = temp
 
         temp = xx
-        xx = np.empty([1, 1])
-        xx[0, 0] = temp
+        xx = np.empty([1, NUM_ADDED_FEATURES])
+        for j in range(0, NUM_ADDED_FEATURES):
+            xx[0, j] = temp[j]
 
         #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
         #print("   ", langRequestedNP, langIdsNP, langFeatures)
@@ -522,13 +523,16 @@ class Qnetwork():
         qValues = {}
         maxQ = -9999999.0
         cache = {}
+        argMax = 0
 
         for idx in range(len(candidates.coll)):
             #print("idx", idx, len(candidates.coll))
             link = candidates.coll[idx]
             langId = link.parentNode.lang
 
-            cacheKey = (langId, cur_depth, num_crawled, avg_depth_crawled, xx)
+            f2s = lambda x : "{}".format(x)
+
+            cacheKey = (langId, cur_depth, num_crawled, avg_depth_crawled, "_".join(map(f2s, xx)))
             if cacheKey in cache:
                 qValue = cache[cacheKey]
                 #print("cached", cacheKey, qValue)
@@ -720,20 +724,43 @@ def Trajectory(env, epoch, params, sess, qns):
     return ret
 
 def featurexx(node):
+    features = []
     #ratio of aligned parents
-    parents = 0;
     aligned = 0;
-    for parent in node.parents:
-        if parent.alignedNode is not None:
-            aligned += 1
-        return 0.0
-    return (aligned + 0.0) / (parents + 0.00001)
+    if len(node.parents) > 0:
+        for parent in node.parents:
+            if parent.alignedNode is not None:
+                aligned += 1
+        features.append(aligned / len(node.parents))
+    else:
+        features.append(0.0)
+    #number of aligned parents
+    features.append(aligned)
+    #number of parents
+    features.append(len(node.parents))
     #order of link from begin
     #order of link from end
     #order of link relatively 0-1
     #position of link in parent text relatively
     #length of parent text
-    #number of links in parent (number of siblings + 1)
+    #number of links in parents (sum)
+    maxLinksInParent = 0;
+    minLinksInParent = 9999999;
+    sumLinksInParent = 0;
+    for parent in node.parents:
+        linkCount = len(parent.links)
+        if linkCount < minLinksInParent:
+            minLinksInParent = linkCount
+        if linkCount > maxLinksInParent:
+            maxLinksInParent = linkCount
+        sumLinksInParent += linkCount
+    features.append(sumLinksInParent)
+    #average number of links in parent
+    features.append((sumLinksInParent / len(node.parents)) if len(node.parents) > 0 else 0)
+    #minimal number of links in parent
+    features.append(minLinksInParent)
+    #maximal number of links in parent
+    features.append(maxLinksInParent)
     #text length/link count ratio in parent document
     #length of link caption
     #length of target url
@@ -752,7 +779,7 @@ def featurexx(node):
     #number of fetched documents of the same domain
     #number of fetched documents of the same domain of the same language as parent
     #number of documents in parent language on the same domain/count of documents fetched from the same domain ratio
-
+    return features
 
 ######################################################################################
 def Walk(env, params, sess, qns):
