@@ -273,7 +273,7 @@ class Corpus:
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
+                loss, sumWeight = self.UpdateQN(params, sess, batch)
                 self.losses.append(loss)
                 self.sumWeights.append(sumWeight)
             self.transitions.clear()
@@ -288,8 +288,8 @@ class Corpus:
         cur_depth = np.empty([batchSize, 1])
         prev_depth = np.empty([batchSize, 1])
         is_child = np.empty([batchSize, 1])
-        # num_crawled = np.empty([batchSize, 1])
         avg_depth_crawled = np.empty([batchSize, 1])
+        num_crawled = np.empty([batchSize, 1])
 
         i = 0
         for transition in batch:
@@ -303,14 +303,14 @@ class Corpus:
             cur_depth[i, :] = transition.cur_depth
             prev_depth[i, :] = transition.prev_depth
             is_child[i, :] = transition.is_child
-            # num_crawled[i, :] = transition.num_crawled
             avg_depth_crawled[i, :] = transition.avg_depth_crawled
+            num_crawled[i, :] = transition.num_crawled
 
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled)
+        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -318,7 +318,7 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled):
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled):
         self.currURLId = currURLId
         self.nextURLId = nextURLId
         self.langRequested = langRequested
@@ -328,8 +328,8 @@ class Transition:
         self.cur_depth = cur_depth
         self.prev_depth = prev_depth
         self.is_child = is_child
-        # self.num_crawled = num_crawled
         self.avg_depth_crawled = avg_depth_crawled
+        self.num_crawled = num_crawled
         #print("Transition", targetQ, cur_depth, prev_depth, is_child, num_crawled, avg_depth_crawled)
 
     def DebugTransition(self):
@@ -434,19 +434,19 @@ class Qnetwork():
         self.cur_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.prev_depth = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.is_child = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        # self.num_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.avg_depth_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.num_crawled = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.input = tf.concat([self.langRequested,
                                 self.langIds,
                                 self.langsVisited,
                                 self.cur_depth,
                                 self.prev_depth,
                                 self.is_child,
-                                # self.num_crawled,
-                                self.avg_depth_crawled], 1)
+                                self.avg_depth_crawled,
+                                self.num_crawled], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 7, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 8, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -486,7 +486,7 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def Predict(self, sess, langRequested, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled):
+    def Predict(self, sess, langRequested, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled):
         langRequestedNP = np.empty([1, 1])
         langRequestedNP[0, 0] = langRequested
         
@@ -506,9 +506,9 @@ class Qnetwork():
         is_child = np.empty([1, 1])
         is_child[0, 0] = temp
 
-        # temp = num_crawled
-        # num_crawled = np.empty([1, 1])
-        # num_crawled[0, 0] = temp
+        temp = num_crawled
+        num_crawled = np.empty([1, 1])
+        num_crawled[0, 0] = temp
 
         temp = avg_depth_crawled
         avg_depth_crawled = np.empty([1, 1])
@@ -524,14 +524,14 @@ class Qnetwork():
                                     self.cur_depth: cur_depth,
                                     self.prev_depth: prev_depth,
                                     self.is_child: is_child,
-                                    # self.num_crawled: num_crawled,
-                                    self.avg_depth_crawled: avg_depth_crawled})
+                                    self.avg_depth_crawled: avg_depth_crawled,
+                                    self.num_crawled: num_crawled})
         qValue = qValue[0]
         #print("   qValue", qValue.shape, qValue)
         
         return qValue
 
-    def PredictAll(self, env, sess, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, candidates):
+    def PredictAll(self, env, sess, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled, candidates):
         qValues = {}
         maxQ = -9999999.0
         cache = {}
@@ -541,12 +541,12 @@ class Qnetwork():
             link = candidates.coll[idx]
             langId = link.parentNode.lang
 
-            cacheKey = (langId, cur_depth, prev_depth, is_child, avg_depth_crawled)
+            cacheKey = (langId, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled)
             if cacheKey in cache:
                 qValue = cache[cacheKey]
                 #print("cached", cacheKey, qValue)
             else:
-                qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled)
+                qValue = self.Predict(sess, langId, langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled)
                 qValue = qValue[0]
                 cache[cacheKey] = qValue
             qValues[idx] = qValue
@@ -581,7 +581,7 @@ class Qnetwork():
 
         return qValues, maxQ, argMax
 
-    def Update(self, sess, langRequested, langIds, langsVisited, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled):
+    def Update(self, sess, langRequested, langIds, langsVisited, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
@@ -592,8 +592,8 @@ class Qnetwork():
                                             self.cur_depth: cur_depth,
                                             self.prev_depth: prev_depth,
                                             self.is_child: is_child,
-                                            # self.num_crawled: num_crawled,
-                                            self.avg_depth_crawled: avg_depth_crawled})
+                                            self.avg_depth_crawled: avg_depth_crawled,
+                                            self.num_crawled: num_crawled})
         #print("loss", loss)
         return loss, sumWeight
 
@@ -628,8 +628,8 @@ def GetNextState(env, params, action, visited, candidates):
 
     return link, reward
 
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, candidates)
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled, sess, qnA):
+    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled, candidates)
 
     if np.random.rand(1) < eps:
         actions = list(qValues.keys())
@@ -646,9 +646,9 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, cur_depth, p
 
     return qValues, maxQ, action, link, reward
 
-def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA, qnB):
+def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled, sess, qnA, qnB, url):
     _, maxQ, action, link, reward = \
-        NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA)
+        NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled, sess, qnA)
     assert(link is not None)
     #print("action", action, qValues, link, reward)
     
@@ -662,8 +662,15 @@ def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth
     nextLangsVisited = langsVisited.copy()
     nextLangsVisited[0, link.childNode.lang] += 1
 
-    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled)
+    next_prev_depth = cur_depth
+    next_cur_depth = len(link.childNode.url.replace("://", "", 1).split("/"))
+
+    next_is_child = 1 if link.childNode.url.startswith(url) else 0
+
+    next_avg_depth_crawled = (avg_depth_crawled * num_crawled + next_cur_depth) / (num_crawled + 1)
+
+    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, next_cur_depth, next_prev_depth, next_is_child, next_avg_depth_crawled, num_crawled + 1, nextCandidates)
+    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited, next_cur_depth, next_prev_depth, next_is_child, next_avg_depth_crawled, num_crawled + 1)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
@@ -677,9 +684,8 @@ def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth
                             cur_depth,
                             prev_depth,
                             is_child,
-                            # num_crawled,
-                            avg_depth_crawled)
-
+                            avg_depth_crawled,
+                            num_crawled)
     return transition
 
 ######################################################################################
@@ -725,7 +731,7 @@ def Trajectory(env, epoch, params, sess, qns):
         avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
         num_crawled += 1
 
-        transition = Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA, qnB)
+        transition = Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled, sess, qnA, qnB, node.url)
 
         if transition.nextURLId == 0:
             break
@@ -785,7 +791,7 @@ def Walk(env, params, sess, qns):
 
         #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = \
-            NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA)
+            NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, num_crawled, sess, qnA)
         node = link.childNode
         print("action", action)
 
@@ -859,7 +865,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     plt.xlabel('#crawled')
                     plt.ylabel('#found')
                     plt.title(hostName+' ({})'.format(t))
-                    fig.savefig('{}/{}/{}/epoch-{}_host-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch, hostName))
+                    fig.savefig('{}/{}/{}/epoch-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch))
 
     return totRewards, totDiscountedRewards
 
@@ -892,10 +898,7 @@ def main():
 
     languages = Languages(sqlconn.mycursor)
 
-
-
-    #allhostNames = ["http://vade-retro.fr/", "http://vade-retro.fr/"]
-    #hostName = "http://vade-retro.fr/"
+    """
     allhostNames = ["http://www.buchmann.ch/",
                     "http://vade-retro.fr/",
                     "http://www.visitbritain.com/",
@@ -925,41 +928,38 @@ def main():
                     "http://www.vistastamps.com/",
                     "http://www.linker-kassel.com/",
                     "http://www.enterprise.fr/"]
-
-#                    "http://who.int/",
     shuffle(allhostNames)
-    
+    """
+
     assert len(allhostNames) >= options.n_train + options.m_test
-#["http://vade-retro.fr/",] #
-    hostNames_train = ["http://vade-retro.fr/"] #["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
-    hostNames_test = ["http://vade-retro.fr/"] # ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
+    hostNames_train = ["http://www.buchmann.ch/",
+                       "http://www.lespressesdureel.com/",
+                       "http://www.enterprise.fr/",
+                       "http://tagar.es/"]
+    hostNames_test = ["http://www.visitbritain.com/"]
+
+    # Test on small domain!
+    # hostNames_train = ["http://vade-retro.fr/"]
+    # hostNames_test = ["http://vade-retro.fr/"]
 
     if options.saveDirPlots:
-        
         save_plots = 'plot'
-        
         if not os.path.exists(save_plots):
             os.mkdir(save_plots)
     else:
-        par_d = 'train={}test={}'.format(options.n_train, options.m_test )
+        par_d = 'train{}test{}'.format(options.n_train, options.m_test )
         if not os.path.exists(par_d):
             os.mkdir(par_d)
         new_run = max([int(run.replace('run', '')) for run in os.listdir(par_d)] +[0]) + 1
-
-        save_plots = '{}/run{}'.format(par_d, new_run)        
+        save_plots = '{}/run{}'.format(par_d, new_run)
         os.mkdir(save_plots)
         os.mkdir('{}/{}'.format(save_plots, 'train'))
         os.mkdir('{}/{}'.format(save_plots, 'test'))
         
         for hostName in hostNames_train:
-            d = '{}/{}'.format(save_plots, 'train', extract(hostName).domain)
-            if not os.path.exists(par_d):
-                os.mkdir(d)
-
+            os.mkdir('{}/{}/{}'.format(save_plots, 'train', extract(hostName).domain))
         for hostName in hostNames_test:
-            d = '{}/{}'.format(save_plots, 'test', extract(hostName).domain)
-            if not os.path.exists(par_d):
-                os.mkdir(d)
+            os.mkdir('{}/{}/{}'.format(save_plots, 'test', extract(hostName).domain))
 
     print("Training hosts are:")
     for h in hostNames_train:
@@ -985,7 +985,7 @@ def main():
     env_test_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_test}
         
     for dic in [env_train_dic, env_test_dic]:
-        for hostName, env in env_test_dic.items():
+        for hostName, env in dic.items():
             env.maxLangId = MAX_LANG_ID
             env.nodes[sys.maxsize].lang = languages.GetLang("None")
             dic[hostName] = env
