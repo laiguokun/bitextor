@@ -931,7 +931,7 @@ def main():
     shuffle(allhostNames)
     """
 
-    assert len(allhostNames) >= options.n_train + options.m_test
+    # assert len(allhostNames) >= options.n_train + options.m_test
     hostNames_train = ["http://www.buchmann.ch/",
                        "http://www.lespressesdureel.com/",
                        "http://www.enterprise.fr/",
