@@ -308,18 +308,13 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ, cur_depth, prev_depth, is_child, avg_depth_crawled):
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId
         self.langRequested = langRequested
         self.langIds = langIds
         self.langFeatures = np.array(langFeatures, copy=True)
         self.targetQ = np.array(targetQ, copy=True)
-        self.cur_depth = cur_depth
-        self.prev_depth = prev_depth
-        self.is_child = is_child
-        # self.num_crawled = num_crawled
-        self.avg_depth_crawled = avg_depth_crawled
         #print("Transition", targetQ, cur_depth, prev_depth, is_child, num_crawled, avg_depth_crawled)
 
     def DebugTransition(self):
@@ -597,7 +592,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
 
     return qValues, maxQ, action, link, reward
 
-def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA, qnB):
+def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     _, maxQ, action, link, reward = \
         NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
@@ -624,12 +619,7 @@ def Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth
                             action,
                             params.langIds,
                             langsVisited,
-                            targetQ,
-                            cur_depth,
-                            prev_depth,
-                            is_child,
-                            # num_crawled,
-                            avg_depth_crawled)
+                            targetQ)
 
     return transition
 
@@ -676,7 +666,7 @@ def Trajectory(env, epoch, params, sess, qns):
         avg_depth_crawled = (avg_depth_crawled * num_crawled + cur_depth) / (num_crawled + 1)
         num_crawled += 1
 
-        transition = Neural(env, params, candidates, visited, langsVisited, cur_depth, prev_depth, is_child, avg_depth_crawled, sess, qnA, qnB)
+        transition = Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB)
 
         if transition.nextURLId == 0:
             break
