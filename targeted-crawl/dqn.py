@@ -678,6 +678,31 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
+def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(arrDumb, label="dumb_train", color='maroon')
+    #ax.plot(arrRandom, label="random_train", color='firebrick')
+    ax.plot(arrBalanced, label="balanced_train", color='red')
+    ax.plot(arrRL, label="RL_train", color='salmon')
+
+    ax.legend(loc='upper left')
+    plt.xlabel('#crawled')
+    plt.ylabel('#found')
+
+    fig.savefig("{}/{}_epoch{}.png".format(saveDirPlots, namePrefix, epoch))
+    fig.show()
+
+######################################################################################
+def CreatePlotData(sess, params, qns, env):
+    arrDumb = dumb(env, len(env.nodes), params)
+    #arrRandom = randomCrawl(env, len(env.nodes), params)
+    arrBalanced = balanced(env, len(env.nodes), params)
+    arrRL = Walk(env, params, sess, qns)
+    
+    return arrDumb, arrBalanced, arrRL
+
+######################################################################################
 def Train(params, sess, saver, env, qns):
     totRewards = []
     totDiscountedRewards = []
@@ -695,26 +720,9 @@ def Train(params, sess, saver, env, qns):
         TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
-            arrDumb = dumb(env, len(env.nodes), params)
-            arrRandom = randomCrawl(env, len(env.nodes), params)
-            arrBalanced = balanced(env, len(env.nodes), params)
-            arrRL = Walk(env, params, sess, qns)
             print("epoch", epoch)
-
-            fig = plt.figure()
-            ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb, label="dumb_train", color='maroon')
-            ax.plot(arrRandom, label="random_train", color='firebrick')
-            ax.plot(arrBalanced, label="balanced_train", color='red')
-            ax.plot(arrRL, label="RL_train", color='salmon')
-
-            ax.legend(loc='upper left')
-            plt.xlabel('#crawled')
-            plt.ylabel('#found')
-
-            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'Train', epoch))
-            fig.show()
-
+            arrDumb, arrBalanced, arrRL = CreatePlotData(sess, params, qns, env)
+            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "train")
 
     return totRewards, totDiscountedRewards
 
