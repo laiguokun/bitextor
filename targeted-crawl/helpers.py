@@ -13,7 +13,6 @@ class Link:
         self.textLang = textLang 
         self.parentNode = parentNode
         self.childNode = childNode
-        childNode.addParent(parentNode)
 
 def NormalizeURL(url):
     url = url.lower()
@@ -54,14 +53,9 @@ class Node:
 
         self.normURL = None
 
-        self.parents = []
-
         #print("self.lang", self.lang, langIds, urlId, url, docIds)
         #for lang in langIds:
         #    assert(self.lang == lang)
-
-    def addParent(self, parentNode):
-        self.parents.append(parentNode)
 
     def CreateLink(self, text, textLang, childNode):            
         link = Link(text, textLang, self, childNode)
