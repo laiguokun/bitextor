@@ -692,7 +692,7 @@ def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix):
     plt.xlabel('#crawled')
     plt.ylabel('#found')
 
-    fig.savefig("{}/{}_epoch{}.png".format(saveDirPlots, namePrefix, epoch))
+    fig.savefig("{}/{}-{}.png".format(saveDirPlots, namePrefix, epoch))
     fig.show()
 
 ######################################################################################
@@ -742,7 +742,12 @@ def GetEnv(sqlconn, languages, url):
         print("unpickle", url)
         with open(filePath, 'rb') as f:
             env = pickle.load(f)
+    # change language of start node. 0 = stop
     env.nodes[sys.maxsize].lang = languages.GetLang("None")
+
+    #for node in env.nodes.values():
+    #    print(node.Debug())
+
     #print("loaded", url)
     return env
 
@@ -784,12 +789,6 @@ def main():
 
     env = GetEnv(sqlconn, languages, hostName)
     envTest = GetEnv(sqlconn, languages, hostNameTest)
-
-    # change language of start node. 0 = stop
-    env.nodes[sys.maxsize].lang = languages.GetLang("None")
-    envTest.nodes[sys.maxsize].lang = languages.GetLang("None")
-    #for node in env.nodes.values():
-    #    print(node.Debug())
 
     tf.reset_default_graph()
     qns = Qnets(params)
