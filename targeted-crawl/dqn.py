@@ -699,8 +699,8 @@ def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix, url):
     ax = fig.add_subplot(1,1,1)
     ax.plot(arrDumb, label="dumb ", color='maroon')
     #ax.plot(arrRandom, label="random", color='firebrick')
-    ax.plot(arrBalanced, label="balanced " + str(avgBalanced), color='red')
-    ax.plot(arrRL, label="RL " + str(avgRL), color='salmon')
+    ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
+    ax.plot(arrRL, label="RL {0:.1f}".format(avgRL), color='salmon')
 
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
