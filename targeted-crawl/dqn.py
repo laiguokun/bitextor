@@ -684,7 +684,7 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
-def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix, url):
+def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, sset, url):
     domain = extract(url).domain
 
     avgBalanced = avgRL = 0.0
@@ -705,9 +705,9 @@ def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix, url):
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
     plt.ylabel('#found')
-    plt.title("{sset} {domain}".format(sset=namePrefix, domain=domain))
+    plt.title("{sset} {domain}".format(sset=sset, domain=domain))
 
-    fig.savefig("{}/{}-{}.png".format(saveDirPlots, namePrefix, epoch))
+    fig.savefig("{dir}/{sset}-{epoch}.png".format(dir=saveDirPlots, sset=sset, epoch=epoch))
     fig.show()
 
 ######################################################################################
