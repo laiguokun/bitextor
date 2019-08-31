@@ -689,10 +689,10 @@ def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix, url):
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot(arrDumb, label="dumb_train", color='maroon')
-    #ax.plot(arrRandom, label="random_train", color='firebrick')
-    ax.plot(arrBalanced, label="balanced_train", color='red')
-    ax.plot(arrRL, label="RL_train", color='salmon')
+    ax.plot(arrDumb, label="dumb", color='maroon')
+    #ax.plot(arrRandom, label="random", color='firebrick')
+    ax.plot(arrBalanced, label="balanced", color='red')
+    ax.plot(arrRL, label="RL", color='salmon')
 
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
