@@ -12,7 +12,7 @@ from helpers import Env, Link
 
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
+    def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
         self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
@@ -28,6 +28,8 @@ class LearningParams:
         self.FEATURES_PER_ACTION = 1
 
         self.saveDir = saveDir
+        self.saveDirPlots = saveDirPlots
+
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
         self.reward = 100.0 #17.0
@@ -701,15 +703,17 @@ def Train(params, sess, saver, env, qns):
 
             fig = plt.figure()
             ax = fig.add_subplot(1,1,1)
-            ax.plot(arrDumb, label="dumb")
-            ax.plot(arrRandom, label="random")
-            ax.plot(arrBalanced, label="balanced")
-            ax.plot(arrRL, label="RL")
+            ax.plot(arrDumb, label="dumb_train", color='maroon')
+            ax.plot(arrRandom, label="random_train", color='firebrick')
+            ax.plot(arrBalanced, label="balanced_train", color='red')
+            ax.plot(arrRL, label="RL_train", color='salmon')
+
             ax.legend(loc='upper left')
             plt.xlabel('#crawled')
             plt.ylabel('#found')
+
+            fig.savefig("{}/{}_epoch{}.png".format(params.saveDirPlots, 'Train', epoch))
             fig.show()
-            plt.pause(0.001)
 
 
     return totRewards, totDiscountedRewards
@@ -726,6 +730,8 @@ def main():
                          help="The 2 language we're interested in, separated by ,")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                          help="Directory that model WIP are saved to. If existing model exists then load it")
+    oparser.add_argument("--save-plots", dest="saveDirPlots", default="plot",
+                     help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
     options = oparser.parse_args()
@@ -736,7 +742,9 @@ def main():
     sqlconn = MySQL(options.configFile)
 
     languages = Languages(sqlconn.mycursor)
-    params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
+
+    if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
     hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
