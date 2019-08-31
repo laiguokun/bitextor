@@ -6,6 +6,8 @@ import argparse
 import hashlib
 import pylab as plt
 import tensorflow as tf
+import pickle
+from tldextract import extract
 
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
@@ -757,16 +759,16 @@ def main():
 
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
-    hostName = "http://vade-retro.fr/"
-    #hostName = "http://www.buchmann.ch/"
+    #hostName = "http://vade-retro.fr/"
+    hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
 
-    hostNameTest = "http://vade-retro.fr/"
+    #hostNameTest = "http://vade-retro.fr/"
     #hostNameTest = "http://www.buchmann.ch/"
-    #hostNameTest = "http://www.visitbritain.com/"
+    hostNameTest = "http://www.visitbritain.com/"
 
-    env = Env(sqlconn, hostName)
-    envTest = Env(sqlconn, hostNameTest)
+    env = GetEnv(sqlconn, languages, hostName)
+    envTest = GetEnv(sqlconn, languages, hostNameTest)
 
     # change language of start node. 0 = stop
     env.nodes[sys.maxsize].lang = languages.GetLang("None")
@@ -783,6 +785,20 @@ def main():
         sess.run(init)
 
         totRewards, totDiscountedRewards = Train(params, sess, saver, qns, env, envTest)
+
+######################################################################################
+def GetEnv(sqlconn, languages, url):
+    domain = extract(url).domain
+    filePath = 'pickled_domains/'+domain
+    if not os.path.exists(filePath):
+        print("mysql load", url)
+        env = Env(sqlconn, url)
+    else:
+        print("unpickle", url)
+        with open(filePath, 'rb') as f:
+            env = pickle.load(f)
+    env.nodes[sys.maxsize].lang = languages.GetLang("None")
+    return env
 
 ######################################################################################
 main()
