@@ -9,11 +9,13 @@ import tensorflow as tf
 from random import shuffle
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
-from copy import deepcopy
+import copy
 from tldextract import extract
-
+import pickle
 
 MAX_LANG_ID = 127
+
+
 
 ######################################################################################
 class LearningParams:
@@ -232,79 +234,66 @@ def AddTodo(langsTodo, visited, link):
 ######################################################################################
 ######################################################################################
 class Qnets():
-    def __init__(self, params, MAX_LANG_ID):
-        self.q = []
-        self.q.append(Qnetwork(params, MAX_LANG_ID))
-        self.q.append(Qnetwork(params, MAX_LANG_ID))
+    def __init__(self, params, MAX_LANG_ID, ccopy=False):
+        
+        if ccopy:
+            self.q = list([copy.copy(a) for a in ccopy])
+            self.params = params
+            self.MAX_LANG_ID = MAX_LANG_ID       
+        else:
+            
+            self.params = params
+            self.MAX_LANG_ID = MAX_LANG_ID
+            self.q = []
+            self.q.append(Qnetwork(params, MAX_LANG_ID))
+            self.q.append(Qnetwork(params, MAX_LANG_ID))
+    
+    def __copy__(self):
+        
+        return Qnets(self.params, self.MAX_LANG_ID, ccopy=list(self.q))
 
 ######################################################################################
-class Corpus:
-    def __init__(self, params, qn):
-        self.params = params
-        self.qn = qn
-        self.transitions = []
-        self.losses = []
-        self.sumWeights = []
-
-    def AddTransition(self, transition):
-        if self.params.deleteDuplicateTransitions:
-            for currTrans in self.transitions:
-                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
-                    return
-            # completely new trans
-
-        self.transitions.append(transition)
-
-    def GetBatchWithoutDelete(self, maxBatchSize):
-        batch = []
-
-        size = len(self.transitions)
-        for i in range(maxBatchSize):
-            idx = np.random.randint(0, size)
-            transition = self.transitions[idx]
-            batch.append(transition)
-
-        return batch
-
-    def Train(self, sess, params):
-        if len(self.transitions) >= params.minCorpusSize:
-            #for transition in self.transitions:
-            #    print(DebugTransition(transition))
-
-            for i in range(params.trainNumIter):
-                batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, sess, batch)
-                self.losses.append(loss)
-                self.sumWeights.append(sumWeight)
-            self.transitions.clear()
-
-    def UpdateQN(self, params, sess, batch):
-        batchSize = len(batch)
-        #print("batchSize", batchSize)
-        langRequested = np.empty([batchSize, 1], dtype=np.int)
-        langIds = np.empty([batchSize, 2], dtype=np.int)
-        langFeatures = np.empty([batchSize, MAX_LANG_ID + 1])
-        targetQ = np.empty([batchSize, 1])
-
-        i = 0
-        for transition in batch:
-            #curr = transition.curr
-            #next = transition.next
-
-            langRequested[i, :] = transition.langRequested
-            langIds[i, :] = transition.langIds
-            langFeatures[i, :] = transition.langFeatures
-            targetQ[i, :] = transition.targetQ
-
-            i += 1
-
-        #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
-        TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ)
-        TIMER.Pause("UpdateQN.1")
-
-        #print("loss", loss)
-        return loss, sumWeight
+#class Corpus:
+#    def __init__(self, params, qn):
+#        self.params = params
+#        #self.qn = qn
+#        self.transitions = []
+#        self.losses = []
+#        self.sumWeights = []
+#
+#    def AddTransition(self, transition):
+#        if self.params.deleteDuplicateTransitions:
+#            for currTrans in self.transitions:
+#                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
+#                    return
+#            # completely new trans
+#
+#        self.transitions.append(transition)
+#
+#    def GetBatchWithoutDelete(self, maxBatchSize):
+#        batch = []
+#
+#        size = len(self.transitions)
+#        for i in range(maxBatchSize):
+#            idx = np.random.randint(0, size)
+#            transition = self.transitions[idx]
+#            batch.append(transition)
+#
+#        return batch
+#
+#    def Train_Corpus(self, sess, params):
+#        if len(self.transitions) >= params.minCorpusSize:
+#            #for transition in self.transitions:
+#            #    print(DebugTransition(transition))
+#
+#            for i in range(params.trainNumIter):
+#                batch = self.GetBatchWithoutDelete(params.maxBatchSize)
+#                loss, sumWeight = self.UpdateQN(params, sess, batch)
+#                self.losses.append(loss)
+#                self.sumWeights.append(sumWeight)
+#            self.transitions.clear()
+#
+#    
 
 ######################################################################################
 class Transition:
@@ -385,9 +374,10 @@ class Candidates:
 
 ######################################################################################
 class Qnetwork():
-    def __init__(self, params, MAX_LANG_ID):
+    def __init__(self, params, MAX_LANG_ID, copy=False):
+      
         self.params = params
-        self.corpus = Corpus(params, self)
+        #self.corpus = Corpus(params, self)
 
         HIDDEN_DIM = 512
 
@@ -440,7 +430,45 @@ class Qnetwork():
         self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
 
         self.updateModel = self.trainer.minimize(self.loss)
+        
+        
+        self.transitions = []
+        self.losses = []
+        self.sumWeights = []
 
+    def AddTransition(self, transition):
+        if self.params.deleteDuplicateTransitions:
+            for currTrans in self.transitions:
+                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
+                    return
+            # completely new trans
+
+        self.transitions.append(transition)
+
+    def GetBatchWithoutDelete(self, maxBatchSize):
+        batch = []
+
+        size = len(self.transitions)
+        for i in range(maxBatchSize):
+            idx = np.random.randint(0, size)
+            transition = self.transitions[idx]
+            batch.append(transition)
+
+        return batch
+
+    def Train_Corpus(self, sess, params):
+        if len(self.transitions) >= params.minCorpusSize:
+            #for transition in self.transitions:
+            #    print(DebugTransition(transition))
+
+            for i in range(params.trainNumIter):
+                batch = self.GetBatchWithoutDelete(params.maxBatchSize)
+                loss, sumWeight = self.UpdateQN(params, sess, batch)
+                self.losses.append(loss)
+                self.sumWeights.append(sumWeight)
+            self.transitions.clear()
+    
+    
     def Predict(self, sess, langRequested, langIds, langsVisited):
         langRequestedNP = np.empty([1,1])
         langRequestedNP[0,0] = langRequested
@@ -492,6 +520,35 @@ class Qnetwork():
                                             self.langIds: langIds,
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
+        #print("loss", loss)
+        return loss, sumWeight
+    
+    
+    def UpdateQN(self, params, sess, batch):
+        batchSize = len(batch)
+        #print("batchSize", batchSize)
+        langRequested = np.empty([batchSize, 1], dtype=np.int)
+        langIds = np.empty([batchSize, 2], dtype=np.int)
+        langFeatures = np.empty([batchSize, MAX_LANG_ID + 1])
+        targetQ = np.empty([batchSize, 1])
+
+        i = 0
+        for transition in batch:
+            #curr = transition.curr
+            #next = transition.next
+
+            langRequested[i, :] = transition.langRequested
+            langIds[i, :] = transition.langIds
+            langFeatures[i, :] = transition.langFeatures
+            targetQ[i, :] = transition.targetQ
+
+            i += 1
+
+        #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
+        TIMER.Start("UpdateQN.1")
+        loss, sumWeight = self.Update(sess, langRequested, langIds, langFeatures, targetQ)
+        TIMER.Pause("UpdateQN.1")
+
         #print("loss", loss)
         return loss, sumWeight
 
@@ -609,7 +666,7 @@ def Trajectory(env, epoch, params, sess, qns):
         if transition.nextURLId == 0:
             break
         else:
-            qnA.corpus.AddTransition(transition)
+            qnA.AddTransition(transition)
             node = env.nodes[transition.nextURLId]
 
         if len(visited) > params.maxDocs:
@@ -618,7 +675,7 @@ def Trajectory(env, epoch, params, sess, qns):
     return ret
 
 ######################################################################################
-def Walk(env, params, sess, qns):
+def Walk(env, params, sess, qns, test_time=False):
     ret = []
     visited = set()
     langsVisited = np.zeros([1, MAX_LANG_ID + 1]) # langId -> count
@@ -637,7 +694,7 @@ def Walk(env, params, sess, qns):
     totReward = 0.0
     totDiscountedReward = 0.0
     discount = 1.0
-
+    UPDATE_PARAM = 10
     while True:
         qnA = qns.q[0]
         assert(node.urlId not in visited)
@@ -650,7 +707,7 @@ def Walk(env, params, sess, qns):
 
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
-
+        
         #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
@@ -668,13 +725,17 @@ def Walk(env, params, sess, qns):
 
         discount *= params.gamma
         i += 1
-
+        
+#        if not i % UPDATE_PARAM and test_time:
+#            qns.q[0].Train_Corpus(sess, params)
+#            qns.q[1].Train_Corpus(sess, params)
+        
         if node.urlId == 0:
             break
 
         if len(visited) > params.maxDocs:
             break
-
+        
     mainStr += " " + str(i)
     rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
 
@@ -687,8 +748,8 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
     totRewards = []
     totDiscountedRewards = []
     orig_qns_results = {}
-    for hostName, env in list(env_test_dic.items()) + list(env_train_dic.items()):
-        orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
+#    for hostName, env in list(env_test_dic.items()) + list(env_train_dic.items()):
+#        orig_qns_results[hostName] = list(Walk(env, params, sess, qns))
         
         
     env_list = list(env_train_dic.values())
@@ -704,8 +765,8 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
         
 
         TIMER.Start("Update")
-        qns.q[0].corpus.Train(sess, params)
-        qns.q[1].corpus.Train(sess, params)
+        qns.q[0].Train_Corpus(sess, params)
+        qns.q[1].Train_Corpus(sess, params)
         TIMER.Pause("Update")
             
         if epoch > 0 and epoch % params.walk == 0:
@@ -733,12 +794,13 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
             #plt.pause(0.001)
             for env_dic, t in zip([env_train_dic, env_test_dic], ['train', 'test']):
                 for hostName, env in env_dic.items():
-                    
+                    print(t, hostName)
+                    qns_test = qns.__copy__()
                     arrDumb_test = dumb(env, len(env.nodes), params)
                     #arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
                     arrBalanced_test = balanced(env, len(env.nodes), params)
-                    arrRL_test = Walk(env, params, sess, qns)
-        
+                    arrRL_test = Walk(env, params, sess, qns_test, test_time=True)
+                    assert qns_test != qns
                     print("epoch", epoch)
         
         
@@ -749,7 +811,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     #ax.plot(arrRandom_test, label="random_test", color='dodgerblue')
                     ax.plot(arrBalanced_test, label="balanced", color='blue')
                     ax.plot(arrRL_test, label="RL", color='navy')
-                    ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
+                    #ax.plot(orig_qns_results[hostName], label='RL_untrained', color='magenta')
                     
                     print(hostName, "arrRL_test", len(arrRL_test), arrRL_test )
                     
@@ -759,7 +821,7 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     plt.title(hostName+' ({})'.format(t))
                     fig.savefig('{}/{}/{}/epoch-{}'.format(params.saveDirPlots, t, extract(hostName).domain, epoch))
 
-            #fig.show()
+                    fig.show()
 
             #plt.pause(0.001)
 
@@ -833,9 +895,9 @@ def main():
     shuffle(allhostNames)
     
     assert len(allhostNames) >= options.n_train + options.m_test
-#["http://vade-retro.fr/",] #
-    hostNames_train = ["http://www.buchmann.ch/",] #["http://carta.ro/","http://www.bachelorstudies.fr/", "http://www.buchmann.ch/", "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
-    hostNames_test = ["http://vade-retro.fr/",] # ["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
+#["http://vade-retro.fr/",] #["http://www.buchmann.ch/",] #
+    hostNames_train = ["http://www.haitilibre.com/"]# "http://www.visitbritain.com/"]#["http://vade-retro.fr/",] # ["http://www.buchmann.ch/",]#"http://carta.ro/","http://www.bachelorstudies.fr/",  "http://chopescollection.be/", "http://www.visitbritain.com/", "http://www.burnfateasy.info/"] #allhostNames[0:options.n_train]
+    hostNames_test =  ["http://www.haitilibre.com/"]#["http://www.lavery.ca/",] #allhostNames[options.n_train:options.n_train+options.m_test]
 
     if options.saveDirPlots:
         
@@ -881,10 +943,27 @@ def main():
             
     params = LearningParams(languages, options.saveDir, save_plots, options.deleteDuplicateTransitions, options.langPair)
 
-    env_train_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_train}
-    env_test_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_test}
+    env_train_dic = {}
+    for  hostName in hostNames_train:
+        dom = extract(hostName).domain
+        with open(dom, 'rb') as f:
+            env_train_dic[hostName] = pickle.load(f)
+        
+    env_test_dic = {}
+    for  hostName in hostNames_test:
+        dom = extract(hostName).domain
+        with open(dom, 'rb') as f:
+            env_test_dic[hostName] = pickle.load(f)
+                
+
     
 
+    
+    
+    
+    #env_test_dic = {hostName:Env(sqlconn, hostName) for hostName in hostNames_test}
+    
+    print(env_train_dic)
     #hostName = "http://www.buchmann.ch/"
     #hostName_test = "http://www.visitbritain.com/"
     #env = Env(sqlconn, hostName)
@@ -899,7 +978,7 @@ def main():
 
         
     for dic in [env_train_dic, env_test_dic]:
-        for hostName, env in env_test_dic.items():
+        for hostName, env in dic.items():
             env.maxLangId = MAX_LANG_ID
             env.nodes[sys.maxsize].lang = languages.GetLang("None")
             dic[hostName] = env
