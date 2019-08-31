@@ -684,7 +684,13 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
-def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, sset, url):
+def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
+    arrDumb = dumb(env, len(env.nodes), params)
+    #arrRandom = randomCrawl(env, len(env.nodes), params)
+    arrBalanced = balanced(env, len(env.nodes), params)
+    arrRL = Walk(env, params, sess, qns)
+
+    url = env.rootURL
     domain = extract(url).domain
 
     avgBalanced = avgRL = 0.0
@@ -707,17 +713,8 @@ def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, sset, url):
     plt.ylabel('#found')
     plt.title("{sset} {domain}".format(sset=sset, domain=domain))
 
-    fig.savefig("{dir}/{sset}-{epoch}.png".format(dir=saveDirPlots, sset=sset, epoch=epoch))
+    fig.savefig("{dir}/{sset}-{domain}-{epoch}.png".format(dir=saveDirPlots, sset=sset, domain=domain, epoch=epoch))
     fig.show()
-
-######################################################################################
-def CreatePlotData(sess, params, qns, env):
-    arrDumb = dumb(env, len(env.nodes), params)
-    #arrRandom = randomCrawl(env, len(env.nodes), params)
-    arrBalanced = balanced(env, len(env.nodes), params)
-    arrRL = Walk(env, params, sess, qns)
-    
-    return arrDumb, arrBalanced, arrRL
 
 ######################################################################################
 def Train(params, sess, saver, qns, env, envTest):
@@ -738,11 +735,8 @@ def Train(params, sess, saver, qns, env, envTest):
 
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
-            arrDumb, arrBalanced, arrRL = CreatePlotData(sess, params, qns, env)
-            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "train", env.rootURL)
-
-            arrDumb, arrBalanced, arrRL = CreatePlotData(sess, params, qns, envTest)
-            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "test", envTest.rootURL)
+            SavePlot(sess, qns, params, env, params.saveDirPlots, epoch, "train")
+            SavePlot(sess, qns, params, envTest, params.saveDirPlots, epoch, "test")
 
     return totRewards, totDiscountedRewards
 
