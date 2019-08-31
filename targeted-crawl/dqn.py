@@ -736,10 +736,16 @@ def main():
     languages = Languages(sqlconn.mycursor)
     params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
 
-    #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hostName = "http://vade-retro.fr/"
+    #hostName = "http://www.buchmann.ch/"
     #hostName = "http://www.visitbritain.com/"
+
+    hostNameTest = "http://vade-retro.fr/"
+    #hostNameTest = "http://www.buchmann.ch/"
+    #hostNameTest = "http://www.visitbritain.com/"
+
     env = Env(sqlconn, hostName)
+    envTest = Env(sqlconn, hostNameTest)
 
     # change language of start node. 0 = stop
     env.nodes[sys.maxsize].lang = languages.GetLang("None")
@@ -755,23 +761,6 @@ def main():
         sess.run(init)
 
         totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
-
-        #params.debug = True
-        arrDumb = dumb(env, len(env.nodes), params)
-        arrRandom = randomCrawl(env, len(env.nodes), params)
-        arrBalanced = balanced(env, len(env.nodes), params)
-        arrRL = Walk(env, params, sess, qns)
-        #print("arrDumb", arrDumb)
-        #print("arrBalanced", arrBalanced)
-        
-        plt.plot(arrDumb, label="dumb")
-        plt.plot(arrRandom, label="random")
-        plt.plot(arrBalanced, label="balanced")
-        plt.plot(arrRL, label="RL")
-        plt.legend(loc='upper left')
-        plt.xlabel('#crawled')
-        plt.ylabel('#found')
-        plt.show()
 
 ######################################################################################
 main()
