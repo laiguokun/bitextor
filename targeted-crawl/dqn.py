@@ -4,10 +4,14 @@ import sys
 import numpy as np
 import argparse
 import hashlib
-import pylab as plt
 import tensorflow as tf
 import pickle
 from tldextract import extract
+
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
+import pylab as plt
 
 from common import MySQL, Languages, Timer
 from helpers import Env, Link
