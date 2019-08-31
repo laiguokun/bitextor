@@ -687,12 +687,20 @@ def Walk(env, params, sess, qns):
 def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix, url):
     domain = extract(url).domain
 
+    avgBalanced = avgRL = 0.0
+    for i in range(len(arrDumb)):
+        if arrDumb[i] > 0:
+            avgBalanced += arrBalanced[i] / arrDumb[i]
+            avgRL += arrRL[i] / arrDumb[i]
+    avgBalanced = avgBalanced / len(arrDumb)
+    avgRL = avgRL / len(arrDumb)
+
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot(arrDumb, label="dumb", color='maroon')
+    ax.plot(arrDumb, label="dumb ", color='maroon')
     #ax.plot(arrRandom, label="random", color='firebrick')
-    ax.plot(arrBalanced, label="balanced", color='red')
-    ax.plot(arrRL, label="RL", color='salmon')
+    ax.plot(arrBalanced, label="balanced " + str(avgBalanced), color='red')
+    ax.plot(arrRL, label="RL " + str(avgRL), color='salmon')
 
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
