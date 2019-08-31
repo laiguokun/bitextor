@@ -35,6 +35,9 @@ class LearningParams:
         self.unusedActionCost = 0.0 #-555.0
         self.maxDocs = 9999999999
 
+        self.maxLangId = maxLangId
+        self.defaultLang = defaultLang
+
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
         self.langIds = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
@@ -276,7 +279,7 @@ class Corpus:
         #print("batchSize", batchSize)
         langRequested = np.empty([batchSize, 1], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langFeatures = np.empty([batchSize, env.maxLangId + 1])
+        langFeatures = np.empty([batchSize, params.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
 
         i = 0
@@ -440,7 +443,7 @@ class Qnetwork():
         langIdsNP[0,1] = langIds[1]
 
         #print("input", langRequestedNP.shape, langIdsNP.shape, langFeatures.shape)
-        #print("   ", langRequestedNP, langIdsNP, langFeatures)
+        #print("   ", langRequestedNP, langIdsNP, langsVisited)
         #print("numURLs", numURLs)
         qValue = sess.run([self.qValue], 
                                 feed_dict={self.langRequested: langRequestedNP,
@@ -566,7 +569,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
+    langsVisited = np.zeros([1, params.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -611,7 +614,7 @@ def Trajectory(env, epoch, params, sess, qns):
 def Walk(env, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, env.maxLangId + 1]) # langId -> count
+    langsVisited = np.zeros([1, params.maxLangId + 1]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
