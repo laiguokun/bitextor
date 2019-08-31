@@ -25,7 +25,7 @@ class LearningParams:
         self.trainNumIter = 10
         
         self.debug = False
-        self.walk = 50
+        self.walk = 10
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -732,6 +732,21 @@ def Train(params, sess, saver, qns, env, envTest):
     return totRewards, totDiscountedRewards
 
 ######################################################################################
+def GetEnv(sqlconn, languages, url):
+    domain = extract(url).domain
+    filePath = 'pickled_domains/'+domain
+    if not os.path.exists(filePath):
+        print("mysql load", url)
+        env = Env(sqlconn, url)
+    else:
+        print("unpickle", url)
+        with open(filePath, 'rb') as f:
+            env = pickle.load(f)
+    env.nodes[sys.maxsize].lang = languages.GetLang("None")
+    #print("loaded", url)
+    return env
+
+######################################################################################
 def main():
     global TIMER
     TIMER = Timer()
@@ -785,20 +800,6 @@ def main():
         sess.run(init)
 
         totRewards, totDiscountedRewards = Train(params, sess, saver, qns, env, envTest)
-
-######################################################################################
-def GetEnv(sqlconn, languages, url):
-    domain = extract(url).domain
-    filePath = 'pickled_domains/'+domain
-    if not os.path.exists(filePath):
-        print("mysql load", url)
-        env = Env(sqlconn, url)
-    else:
-        print("unpickle", url)
-        with open(filePath, 'rb') as f:
-            env = pickle.load(f)
-    env.nodes[sys.maxsize].lang = languages.GetLang("None")
-    return env
 
 ######################################################################################
 main()
