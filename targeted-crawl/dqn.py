@@ -684,7 +684,9 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
-def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix):
+def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix, url):
+    domain = extract(url).domain
+
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(arrDumb, label="dumb_train", color='maroon')
@@ -695,6 +697,7 @@ def SavePlot(arrDumb, arrBalanced, arrRL, saveDirPlots, epoch, namePrefix):
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
     plt.ylabel('#found')
+    plt.title("{sset} {domain}".format(sset=namePrefix, domain=domain))
 
     fig.savefig("{}/{}-{}.png".format(saveDirPlots, namePrefix, epoch))
     fig.show()
@@ -728,10 +731,10 @@ def Train(params, sess, saver, qns, env, envTest):
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
             arrDumb, arrBalanced, arrRL = CreatePlotData(sess, params, qns, env)
-            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "train")
+            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "train", env.rootURL)
 
             arrDumb, arrBalanced, arrRL = CreatePlotData(sess, params, qns, envTest)
-            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "test")
+            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "test", envTest.rootURL)
 
     return totRewards, totDiscountedRewards
 
