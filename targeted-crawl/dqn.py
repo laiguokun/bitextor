@@ -703,7 +703,7 @@ def CreatePlotData(sess, params, qns, env):
     return arrDumb, arrBalanced, arrRL
 
 ######################################################################################
-def Train(params, sess, saver, env, qns):
+def Train(params, sess, saver, qns, env, envTest):
     totRewards = []
     totDiscountedRewards = []
 
@@ -723,6 +723,9 @@ def Train(params, sess, saver, env, qns):
             print("epoch", epoch)
             arrDumb, arrBalanced, arrRL = CreatePlotData(sess, params, qns, env)
             SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "train")
+
+            arrDumb, arrBalanced, arrRL = CreatePlotData(sess, params, qns, envTest)
+            SavePlot(arrDumb, arrBalanced, arrRL, params.saveDirPlots, epoch, "test")
 
     return totRewards, totDiscountedRewards
 
@@ -767,6 +770,7 @@ def main():
 
     # change language of start node. 0 = stop
     env.nodes[sys.maxsize].lang = languages.GetLang("None")
+    envTest.nodes[sys.maxsize].lang = languages.GetLang("None")
     #for node in env.nodes.values():
     #    print(node.Debug())
 
@@ -778,7 +782,7 @@ def main():
     with tf.Session() as sess:
         sess.run(init)
 
-        totRewards, totDiscountedRewards = Train(params, sess, saver, env, qns)
+        totRewards, totDiscountedRewards = Train(params, sess, saver, qns, env, envTest)
 
 ######################################################################################
 main()
