@@ -778,9 +778,9 @@ def Train(params, sess, saver, env_train_dic, qns, env_test_dic):
                     arrDumb_test = dumb(env, len(env.nodes), params)
                     #arrRandom_test = randomCrawl(env_test, len(env_test.nodes), params)
                     arrBalanced_test = balanced(env, len(env.nodes), params)
-                    arrRL_test = Walk(env, params, sess, qns)
-        
+                    arrRL_test = Walk(env, params, sess, qns)        
                     print("epoch", epoch)
+                    
                     fig = plt.figure()
                     ax = fig.add_subplot(1,1,1)
                     ax.plot(arrDumb_test, label="dumb", color='lightskyblue')

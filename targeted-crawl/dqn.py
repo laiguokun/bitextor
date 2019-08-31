@@ -12,7 +12,7 @@ from helpers import Env, Link
 
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair):
+    def __init__(self, languages, saveDir, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
         self.gamma = 0.99
         self.lrn_rate = 0.1
         self.alpha = 1.0 # 0.7
@@ -225,10 +225,10 @@ def AddTodo(langsTodo, visited, link):
 ######################################################################################
 ######################################################################################
 class Qnets():
-    def __init__(self, params, env):
+    def __init__(self, params):
         self.q = []
-        self.q.append(Qnetwork(params, env))
-        self.q.append(Qnetwork(params, env))
+        self.q.append(Qnetwork(params))
+        self.q.append(Qnetwork(params))
 
 ######################################################################################
 class Corpus:
@@ -378,13 +378,12 @@ class Candidates:
     
 ######################################################################################
 class Qnetwork():
-    def __init__(self, params, env):
+    def __init__(self, params):
         self.params = params
-        self.env = env
         self.corpus = Corpus(params, self)
 
         HIDDEN_DIM = 512
-        NUM_FEATURES = env.maxLangId + 1
+        NUM_FEATURES = params.maxLangId + 1
 
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
@@ -734,7 +733,7 @@ def main():
     sqlconn = MySQL(options.configFile)
 
     languages = Languages(sqlconn.mycursor)
-    params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair)
+    params = LearningParams(languages, options.saveDir, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
     hostName = "http://vade-retro.fr/"
     #hostName = "http://www.buchmann.ch/"
@@ -753,7 +752,7 @@ def main():
     #    print(node.Debug())
 
     tf.reset_default_graph()
-    qns = Qnets(params, env)
+    qns = Qnets(params)
     init = tf.global_variables_initializer()
 
     saver = None #tf.train.Saver()
