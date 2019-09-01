@@ -632,6 +632,7 @@ def Walk(env, params, sess, qns):
 
     mainStr = "nodes:" + str(node.urlId)
     rewardStr = "rewards:"
+    actionStr = "actions:"
 
     i = 0
     numAligned = 0
@@ -655,7 +656,8 @@ def Walk(env, params, sess, qns):
         #print("candidates", candidates.Debug())
         qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
-        print("action", action, qValues)
+        #print("action", action, qValues)
+        actionStr += str(action) + " "
 
         totReward += reward
         totDiscountedReward += discount * reward
@@ -679,9 +681,15 @@ def Walk(env, params, sess, qns):
     mainStr += " " + str(i) 
     rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
 
+    print(actionStr)
     print(mainStr)
     print(rewardStr)
     return ret
+
+######################################################################################
+def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
+    for env in envs:
+        SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
 
 ######################################################################################
 def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
@@ -717,7 +725,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     fig.show()
 
 ######################################################################################
-def Train(params, sess, saver, qns, env, envTest):
+def Train(params, sess, saver, qns, env, envsTest):
     totRewards = []
     totDiscountedRewards = []
 
@@ -736,9 +744,17 @@ def Train(params, sess, saver, qns, env, envTest):
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
             SavePlot(sess, qns, params, env, params.saveDirPlots, epoch, "train")
-            SavePlot(sess, qns, params, envTest, params.saveDirPlots, epoch, "test")
+            SavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 
     return totRewards, totDiscountedRewards
+
+######################################################################################
+def GetEnvs(sqlconn, languages, urls):
+    ret = []
+    for url in urls:
+        env = GetEnv(sqlconn, languages, url)
+        ret.append(env)
+    return ret
 
 ######################################################################################
 def GetEnv(sqlconn, languages, url):
@@ -794,10 +810,10 @@ def main():
 
     #hostNameTest = "http://vade-retro.fr/"
     #hostNameTest = "http://www.buchmann.ch/"
-    hostNameTest = "http://www.visitbritain.com/"
+    hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
     env = GetEnv(sqlconn, languages, hostName)
-    envTest = GetEnv(sqlconn, languages, hostNameTest)
+    envsTest = GetEnvs(sqlconn, languages, hostsTest)
 
     tf.reset_default_graph()
     qns = Qnets(params)
@@ -807,7 +823,7 @@ def main():
     with tf.Session() as sess:
         sess.run(init)
 
-        totRewards, totDiscountedRewards = Train(params, sess, saver, qns, env, envTest)
+        totRewards, totDiscountedRewards = Train(params, sess, saver, qns, env, envsTest)
 
 ######################################################################################
 main()
