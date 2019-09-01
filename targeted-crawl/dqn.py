@@ -721,6 +721,7 @@ def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
 
 ######################################################################################
 def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
+    print("Walking", env.rootURL)
     arrDumb = dumb(env, len(env.nodes), params)
     #arrRandom = randomCrawl(env, len(env.nodes), params)
     arrBalanced = balanced(env, len(env.nodes), params)
@@ -806,7 +807,7 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
     #hostName = "http://vade-retro.fr/"
-    hosts = ["http://www.buchmann.ch/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hostName = "http://www.visitbritain.com/"
 
     #hostNameTest = "http://vade-retro.fr/"
