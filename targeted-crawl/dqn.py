@@ -298,19 +298,19 @@ class Corpus:
 
         return batch
 
-    def Train(self, sess, env, params):
+    def Train(self, sess, params):
         if len(self.transitions) >= params.minCorpusSize:
             #for transition in self.transitions:
             #    print(DebugTransition(transition))
 
             for i in range(params.trainNumIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, env, sess, batch)
+                loss, sumWeight = self.UpdateQN(params, sess, batch)
                 self.losses.append(loss)
                 self.sumWeights.append(sumWeight)
             self.transitions.clear()
         
-    def UpdateQN(self, params, env, sess, batch):
+    def UpdateQN(self, params, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
         langRequested = np.empty([batchSize, 1], dtype=np.int)
@@ -766,10 +766,10 @@ def Train(params, sess, saver, qns, envs, envsTest):
 
             TIMER.Pause("Trajectory")
 
-            TIMER.Start("Update")
-            qns.q[0].corpus.Train(sess, env, params)
-            qns.q[1].corpus.Train(sess, env, params)
-            TIMER.Pause("Update")
+        TIMER.Start("Update")
+        qns.q[0].corpus.Train(sess, params)
+        qns.q[1].corpus.Train(sess, params)
+        TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
