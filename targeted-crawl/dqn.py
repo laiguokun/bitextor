@@ -235,6 +235,34 @@ def AddTodo(langsTodo, visited, link):
 
 ######################################################################################
 ######################################################################################
+def GetEnvs(sqlconn, languages, urls):
+    ret = []
+    for url in urls:
+        env = GetEnv(sqlconn, languages, url)
+        ret.append(env)
+    return ret
+
+######################################################################################
+def GetEnv(sqlconn, languages, url):
+    domain = extract(url).domain
+    filePath = 'pickled_domains/'+domain
+    if not os.path.exists(filePath):
+        print("mysql load", url)
+        env = Env(sqlconn, url)
+    else:
+        print("unpickle", url)
+        with open(filePath, 'rb') as f:
+            env = pickle.load(f)
+    # change language of start node. 0 = stop
+    env.nodes[sys.maxsize].lang = languages.GetLang("None")
+
+    #for node in env.nodes.values():
+    #    print(node.Debug())
+
+    #print("loaded", url)
+    return env
+
+######################################################################################
 class Qnets():
     def __init__(self, params):
         self.q = []
@@ -747,34 +775,6 @@ def Train(params, sess, saver, qns, env, envsTest):
             SavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 
     return totRewards, totDiscountedRewards
-
-######################################################################################
-def GetEnvs(sqlconn, languages, urls):
-    ret = []
-    for url in urls:
-        env = GetEnv(sqlconn, languages, url)
-        ret.append(env)
-    return ret
-
-######################################################################################
-def GetEnv(sqlconn, languages, url):
-    domain = extract(url).domain
-    filePath = 'pickled_domains/'+domain
-    if not os.path.exists(filePath):
-        print("mysql load", url)
-        env = Env(sqlconn, url)
-    else:
-        print("unpickle", url)
-        with open(filePath, 'rb') as f:
-            env = pickle.load(f)
-    # change language of start node. 0 = stop
-    env.nodes[sys.maxsize].lang = languages.GetLang("None")
-
-    #for node in env.nodes.values():
-    #    print(node.Debug())
-
-    #print("loaded", url)
-    return env
 
 ######################################################################################
 def main():
