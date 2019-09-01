@@ -753,25 +753,26 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     fig.show()
 
 ######################################################################################
-def Train(params, sess, saver, qns, env, envsTest):
+def Train(params, sess, saver, qns, envs, envsTest):
     totRewards = []
     totDiscountedRewards = []
 
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
-        TIMER.Start("Trajectory")
-        _ = Trajectory(env, epoch, params, sess, qns)
+        for env in envs:
+            TIMER.Start("Trajectory")
+            _ = Trajectory(env, epoch, params, sess, qns)
 
-        TIMER.Pause("Trajectory")
+            TIMER.Pause("Trajectory")
 
-        TIMER.Start("Update")
-        qns.q[0].corpus.Train(sess, env, params)
-        qns.q[1].corpus.Train(sess, env, params)
-        TIMER.Pause("Update")
+            TIMER.Start("Update")
+            qns.q[0].corpus.Train(sess, env, params)
+            qns.q[1].corpus.Train(sess, env, params)
+            TIMER.Pause("Update")
 
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
-            SavePlot(sess, qns, params, env, params.saveDirPlots, epoch, "train")
+            SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
             SavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 
     return totRewards, totDiscountedRewards
@@ -805,14 +806,14 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
     #hostName = "http://vade-retro.fr/"
-    hostName = "http://www.buchmann.ch/"
+    hosts = ["http://www.buchmann.ch/"]
     #hostName = "http://www.visitbritain.com/"
 
     #hostNameTest = "http://vade-retro.fr/"
     #hostNameTest = "http://www.buchmann.ch/"
     hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
-    env = GetEnv(sqlconn, languages, hostName)
+    envs = GetEnvs(sqlconn, languages, hosts)
     envsTest = GetEnvs(sqlconn, languages, hostsTest)
 
     tf.reset_default_graph()
@@ -823,7 +824,7 @@ def main():
     with tf.Session() as sess:
         sess.run(init)
 
-        totRewards, totDiscountedRewards = Train(params, sess, saver, qns, env, envsTest)
+        totRewards, totDiscountedRewards = Train(params, sess, saver, qns, envs, envsTest)
 
 ######################################################################################
 main()
