@@ -468,16 +468,15 @@ class Qnetwork():
 
         # graph network
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.int32)
-        self.langRequestedFloat32 = tf.cast(self.langRequested, tf.float32)
         self.numInputs = tf.shape(self.langRequested)[0]
         
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
 
         self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.input = tf.concat([self.langRequestedFloat32, self.langIds, self.langsVisited], 1)
+        self.input = tf.concat([self.langIds, self.langsVisited], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 2, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
