@@ -469,7 +469,8 @@ class Qnetwork():
         # graph network
         self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.int32)
         self.langRequestedFloat32 = tf.cast(self.langRequested, tf.float32)
-
+        self.numInputs = tf.shape(self.langRequested)[0]
+        
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
 
         self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
@@ -499,7 +500,7 @@ class Qnetwork():
 
         # link-specific
         self.langRequestedEmbedding = tf.nn.embedding_lookup(self.embeddings, self.langRequested)
-        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [HIDDEN_DIM, 1])
+        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [HIDDEN_DIM, self.numInputs])
         print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
         self.hidden3 = tf.matmul(self.hidden3, self.langRequestedEmbedding)
 
