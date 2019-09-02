@@ -243,6 +243,45 @@ def GetEnvs(sqlconn, languages, urls):
     return ret
 
 ######################################################################################
+def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
+    for env in envs:
+        SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
+
+######################################################################################
+def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
+    print("Walking", env.rootURL)
+    arrDumb = dumb(env, len(env.nodes), params)
+    #arrRandom = randomCrawl(env, len(env.nodes), params)
+    arrBalanced = balanced(env, len(env.nodes), params)
+    arrRL = Walk(env, params, sess, qns)
+
+    url = env.rootURL
+    domain = extract(url).domain
+
+    avgBalanced = avgRL = 0.0
+    for i in range(len(arrDumb)):
+        if arrDumb[i] > 0:
+            avgBalanced += arrBalanced[i] / arrDumb[i]
+            avgRL += arrRL[i] / arrDumb[i]
+    avgBalanced = avgBalanced / len(arrDumb)
+    avgRL = avgRL / len(arrDumb)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(arrDumb, label="dumb ", color='maroon')
+    #ax.plot(arrRandom, label="random", color='firebrick')
+    ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
+    ax.plot(arrRL, label="RL {0:.1f}".format(avgRL), color='salmon')
+
+    ax.legend(loc='upper left')
+    plt.xlabel('#crawled')
+    plt.ylabel('#found')
+    plt.title("{sset} {domain}".format(sset=sset, domain=domain))
+
+    fig.savefig("{dir}/{sset}-{domain}-{epoch}.png".format(dir=saveDirPlots, sset=sset, domain=domain, epoch=epoch))
+    fig.show()
+
+######################################################################################
 def GetEnv(sqlconn, languages, url):
     domain = extract(url).domain
     filePath = 'pickled_domains/'+domain
@@ -715,45 +754,6 @@ def Walk(env, params, sess, qns):
     return ret
 
 ######################################################################################
-def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
-    for env in envs:
-        SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
-
-######################################################################################
-def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
-    print("Walking", env.rootURL)
-    arrDumb = dumb(env, len(env.nodes), params)
-    #arrRandom = randomCrawl(env, len(env.nodes), params)
-    arrBalanced = balanced(env, len(env.nodes), params)
-    arrRL = Walk(env, params, sess, qns)
-
-    url = env.rootURL
-    domain = extract(url).domain
-
-    avgBalanced = avgRL = 0.0
-    for i in range(len(arrDumb)):
-        if arrDumb[i] > 0:
-            avgBalanced += arrBalanced[i] / arrDumb[i]
-            avgRL += arrRL[i] / arrDumb[i]
-    avgBalanced = avgBalanced / len(arrDumb)
-    avgRL = avgRL / len(arrDumb)
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot(arrDumb, label="dumb ", color='maroon')
-    #ax.plot(arrRandom, label="random", color='firebrick')
-    ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
-    ax.plot(arrRL, label="RL {0:.1f}".format(avgRL), color='salmon')
-
-    ax.legend(loc='upper left')
-    plt.xlabel('#crawled')
-    plt.ylabel('#found')
-    plt.title("{sset} {domain}".format(sset=sset, domain=domain))
-
-    fig.savefig("{dir}/{sset}-{domain}-{epoch}.png".format(dir=saveDirPlots, sset=sset, domain=domain, epoch=epoch))
-    fig.show()
-
-######################################################################################
 def Train(params, sess, saver, qns, envs, envsTest):
     totRewards = []
     totDiscountedRewards = []
@@ -807,7 +807,7 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
     #hostName = "http://vade-retro.fr/"
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://www.buchmann.ch/"] #, "http://telasmos.org/", "http://tagar.es/"]
     #hostName = "http://www.visitbritain.com/"
 
     #hostNameTest = "http://vade-retro.fr/"
