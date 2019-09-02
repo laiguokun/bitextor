@@ -712,7 +712,7 @@ def Walk(env, params, sess, qns):
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
-        print("node.lang", node.lang, langsVisited.shape)
+        #print("node.lang", node.lang, langsVisited.shape)
         langsVisited[0, node.lang] += 1
         #print("   langsVisited", langsVisited)
 
