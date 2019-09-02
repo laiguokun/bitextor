@@ -546,15 +546,19 @@ class Qnetwork():
         qValues = {}
         maxQ = -9999999.0
 
+        allLangRequested = []
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
-                qValue = self.Predict(sess, langId, langIds, langsVisited)
-                qValue = qValue[0]
-                qValues[langId] = qValue
+                allLangRequested.append(langId)
 
-                if maxQ < qValue:
-                    maxQ = qValue
-                    argMax = langId
+        for langId in allLangRequested:
+            qValue = self.Predict(sess, langId, langIds, langsVisited)
+            qValue = qValue[0]
+            qValues[langId] = qValue
+
+            if maxQ < qValue:
+                maxQ = qValue
+                argMax = langId
         #print("qValues", env.maxLangId, qValues)
 
         if len(qValues) == 0:
