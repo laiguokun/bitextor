@@ -523,12 +523,12 @@ class Qnetwork():
         qValues = {}
         maxQ = -9999999.0
 
-        allLangRequested = []
+        langRequested = []
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
-                allLangRequested.append(langId)
+                langRequested.append(langId)
 
-        for langId in allLangRequested:
+        for langId in langRequested:
             qValue = self.Predict(sess, langId, langIds, langsVisited)
             qValue = qValue[0]
             qValues[langId] = qValue
@@ -544,7 +544,7 @@ class Qnetwork():
             maxQ = 0.0
             argMax = 0
 
-        return qValues, maxQ, argMax
+        return langRequested, qValues, maxQ, argMax
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
@@ -587,7 +587,7 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
+    langRequested, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
 
     if np.random.rand(1) < eps:
         actions = list(qValues.keys())
@@ -619,7 +619,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited = langsVisited.copy()
     nextLangsVisited[0, link.childNode.lang] += 1
 
-    _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+    langRequested, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
     nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
 
     newVal = reward + params.gamma * nextMaxQ
