@@ -534,13 +534,15 @@ class Qnetwork():
         action = -1
 
         langRequested = []
+        numLangs = 0
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
                 langRequested.append(langId)
+                numLangs += 1
         assert(len(langRequested) < self.MAX_NODES)
 
-        i = 0
-        for langId in langRequested:
+        for i in range(numLangs):
+            langId = langRequested[i]
             qValue = self.Predict(sess, langId, langIds, langsVisited)
             qValue = qValue[0]
             qValues[0, i] = qValue
@@ -549,10 +551,8 @@ class Qnetwork():
                 maxQ = qValue
                 action = i
 
-            i += 1
-
         #print("qValues", env.maxLangId, qValues)
-        return langRequested, qValues, maxQ, action
+        return numLangs, langRequested, qValues, maxQ, action
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
         langRequestedNP = np.zeros([1, self.MAX_NODES], dtype=np.int32)
@@ -599,12 +599,12 @@ def GetNextState(env, params, action, visited, candidates, langRequested):
     return link, reward
 
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
-    langRequested, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
+    numLangs, langRequested, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
     #print("action", action, langRequested, qValues)
     if action >= 0:
         if np.random.rand(1) < eps:
             #print("actions", type(actions), actions)
-            action = np.random.randint(0, len(langRequested))
+            action = np.random.randint(0, numLangs)
             maxQ = qValues[0, action]
             #print("random")
         #print("action", action, qValues)
@@ -631,7 +631,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[0, link.childNode.lang] += 1
 
     if nextCandidates.Count() > 0:
-        nextLangRequested, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        nextNumLangs, nextLangRequested, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
         nextLangId = nextLangRequested[nextAction]
         nextMaxQ = qnB.Predict(sess, nextLangId, params.langIds, nextLangsVisited)
