@@ -529,20 +529,20 @@ class Qnetwork():
         return qValue
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
+        langRequested = np.zeros([1, self.MAX_NODES], dtype=np.int32)
         qValues = np.zeros([1, self.MAX_NODES], dtype=np.float32)
         maxQ = 0.0
         action = -1
 
-        langRequested = []
         numLangs = 0
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
-                langRequested.append(langId)
+                langRequested[0, numLangs] = langId
                 numLangs += 1
         assert(len(langRequested) < self.MAX_NODES)
 
         for i in range(numLangs):
-            langId = langRequested[i]
+            langId = langRequested[0, i]
             qValue = self.Predict(sess, langId, langIds, langsVisited)
             qValue = qValue[0]
             qValues[0, i] = qValue
@@ -576,7 +576,7 @@ def GetNextState(env, params, action, visited, candidates, langRequested):
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        langId = langRequested[action]
+        langId = langRequested[0, action]
         assert(candidates.HasLinks(langId))
         link = candidates.Pop(langId)
  
@@ -633,7 +633,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     if nextCandidates.Count() > 0:
         nextNumLangs, nextLangRequested, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        nextLangId = nextLangRequested[nextAction]
+        nextLangId = nextLangRequested[0, nextAction]
         nextMaxQ = qnB.Predict(sess, nextLangId, params.langIds, nextLangsVisited)
     else:
         nextMaxQ = 0
