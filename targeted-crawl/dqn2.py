@@ -28,7 +28,7 @@ class LearningParams:
         self.overSampling = 1
         
         self.debug = False
-        self.walk = 2
+        self.walk = 10
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -526,8 +526,9 @@ class Qnetwork():
         return qValue
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
-        qValues = {}
-        maxQ = -9999999.0
+        qValues = []
+        maxQ = 0.0
+        action = -1
 
         langRequested = []
         for langId, nodes in candidates.dict.items():
@@ -538,7 +539,7 @@ class Qnetwork():
         for langId in langRequested:
             qValue = self.Predict(sess, langId, langIds, langsVisited)
             qValue = qValue[0]
-            qValues[langId] = qValue
+            qValues.append(qValue)
 
             if maxQ < qValue:
                 maxQ = qValue
@@ -547,13 +548,6 @@ class Qnetwork():
             i += 1
 
         #print("qValues", env.maxLangId, qValues)
-
-        if len(langRequested) == 0:
-            #print("empty qValues")
-            qValues[0] = 0.0
-            maxQ = 0.0
-            action = -1
-
         return langRequested, qValues, maxQ, action
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
@@ -604,8 +598,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
         if np.random.rand(1) < eps:
             #print("actions", type(actions), actions)
             action = np.random.randint(0, len(langRequested))
-            langId = langRequested[action]
-            maxQ = qValues[langId]
+            maxQ = qValues[action]
             #print("random")
         #print("action", action, qValues)
 
@@ -619,7 +612,6 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
-    #print("action", action, qValues, link, reward)
     
     # calc nextMaxQ
     nextVisited = visited.copy()
