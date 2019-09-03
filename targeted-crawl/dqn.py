@@ -24,9 +24,9 @@ class LearningParams:
         self.alpha = 1.0 # 0.7
         self.max_epochs = 100001
         self.eps = 0.1
-        self.maxBatchSize = 64
+        self.maxBatchSize = 32
         self.minCorpusSize = 200
-        self.trainNumIter = 10
+        self.overSampling = 1
         
         self.debug = False
         self.walk = 10
@@ -342,7 +342,11 @@ class Corpus:
             #for transition in self.transitions:
             #    print(DebugTransition(transition))
 
-            for i in range(params.trainNumIter):
+            numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
+            numIter = int(numIter) + 1
+            print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
+            for i in range(numIter):
+                #print("batch", i)
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
                 loss, sumWeight = self.UpdateQN(params, sess, batch)
                 self.losses.append(loss)
