@@ -476,10 +476,13 @@ class Qnetwork():
         #print("self.hidden3", self.hidden3.shape)
 
         # link-specific
+        self.hidden3 = tf.transpose(self.hidden3)
+
         self.langRequestedEmbedding = tf.nn.embedding_lookup(self.embeddings, self.langRequested)
-        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [HIDDEN_DIM, self.numInputs])
-        print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
-        self.hidden3 = tf.matmul(self.hidden3, self.langRequestedEmbedding)
+        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.numInputs, HIDDEN_DIM])
+        #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
+
+        self.hidden3 = tf.matmul(self.langRequestedEmbedding, self.hidden3)
 
         #self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
         self.qValue = self.hidden3
