@@ -28,7 +28,7 @@ class LearningParams:
         self.overSampling = 1
         
         self.debug = False
-        self.walk = 10
+        self.walk = 2
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -47,7 +47,9 @@ class LearningParams:
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
-        self.langIds = [languages.GetLang(langPairList[0]), languages.GetLang(langPairList[1])] 
+        self.langIds = np.empty([1,2], dtype=np.int32)
+        self.langIds[0,0] = languages.GetLang(langPairList[0])
+        self.langIds[0,1] = languages.GetLang(langPairList[1])
         #print("self.langs", self.langs)
 
 ######################################################################################
@@ -179,7 +181,9 @@ def PopLink(langsTodo, langsVisited, params):
     #print("langsVisited", sumAll, sumRequired, langsVisited)
 
     probs = {}
-    for lang in params.langIds:
+    for i in range(params.langIds.shape[1]):
+        lang = params.langIds[0, i]
+        #print("lang", lang)
         if lang in langsVisited:
             count = langsVisited[lang]
         else:
@@ -315,7 +319,7 @@ class Corpus:
 
             numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
             numIter = int(numIter) + 1
-            print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
+            #print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
             for i in range(numIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
                 loss, sumWeight = self.UpdateQN(params, sess, batch)
@@ -500,16 +504,12 @@ class Qnetwork():
         langRequestedNP = np.empty([1,1], dtype=np.int32)
         langRequestedNP[0,0] = langRequested
         
-        langIdsNP = np.empty([1, 2])
-        langIdsNP[0,0] = langIds[0]
-        langIdsNP[0,1] = langIds[1]
-
         #print("input", langRequestedNP.shape, type(langRequestedNP))
         #print("   ", langRequestedNP, langIdsNP, langsVisited)
         #print("numURLs", numURLs)
         qValue = sess.run([self.qValue], 
                                 feed_dict={self.langRequested: langRequestedNP,
-                                    self.langIds: langIdsNP,
+                                    self.langIds: langIds,
                                     self.langsVisited: langsVisited})
         qValue = qValue[0]
         #print("   qValue", qValue.shape, qValue)
