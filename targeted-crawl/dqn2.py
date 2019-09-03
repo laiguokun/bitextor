@@ -257,6 +257,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     for i in range(len(arrDumb)):
         if arrDumb[i] > 0:
             avgBalanced += arrBalanced[i] / arrDumb[i]
+            #print("arrRL", arrRL[i], arrDumb[i])
             avgRL += arrRL[i] / arrDumb[i]
     avgBalanced = avgBalanced / len(arrDumb)
     avgRL = avgRL / len(arrDumb)
@@ -440,7 +441,7 @@ class Candidates:
     
 ######################################################################################
 class Qnetwork():
-    MAX_NODES = 5
+    MAX_NODES = 50
 
     def __init__(self, params):
         self.params = params
@@ -528,7 +529,7 @@ class Qnetwork():
         return qValue
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
-        qValues = []
+        qValues = np.zeros([1, self.MAX_NODES], dtype=np.float32)
         maxQ = 0.0
         action = -1
 
@@ -536,12 +537,13 @@ class Qnetwork():
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
                 langRequested.append(langId)
+        assert(len(langRequested) < self.MAX_NODES)
 
         i = 0
         for langId in langRequested:
             qValue = self.Predict(sess, langId, langIds, langsVisited)
             qValue = qValue[0]
-            qValues.append(qValue)
+            qValues[0, i] = qValue
 
             if maxQ < qValue:
                 maxQ = qValue
@@ -598,12 +600,12 @@ def GetNextState(env, params, action, visited, candidates, langRequested):
 
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     langRequested, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
-
+    #print("action", action, langRequested, qValues)
     if action >= 0:
         if np.random.rand(1) < eps:
             #print("actions", type(actions), actions)
             action = np.random.randint(0, len(langRequested))
-            maxQ = qValues[action]
+            maxQ = qValues[0, action]
             #print("random")
         #print("action", action, qValues)
 
