@@ -367,8 +367,8 @@ class Corpus:
 
             langRequested[i, :] = transition.langRequested
             langIds[i, :] = transition.langIds
-            targetQ[i, :] = transition.targetQ
             langFeatures[i, :] = transition.langFeatures
+            targetQ[i, :] = transition.targetQ
 
             i += 1
 
@@ -459,8 +459,6 @@ class Candidates:
     
 ######################################################################################
 class Qnetwork():
-    MAX_NODES = 5
-
     def __init__(self, params):
         self.params = params
         self.corpus = Corpus(params, self)
@@ -472,7 +470,7 @@ class Qnetwork():
         self.embeddings = tf.Variable(tf.random_uniform([params.maxLangId + 1, HIDDEN_DIM], 0, 0.01))
 
         # graph network
-        self.langRequested = tf.placeholder(shape=[None, self.MAX_NODES], dtype=tf.int32)
+        self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.int32)
         self.numInputs = tf.shape(self.langRequested)[0]
         
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
@@ -503,11 +501,10 @@ class Qnetwork():
         #print("self.hidden3", self.hidden3.shape)
 
         # link-specific
-        self.hidden3 = tf.transpose(self.hidden3)
         self.langRequestedEmbedding = tf.nn.embedding_lookup(self.embeddings, self.langRequested)
-        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.numInputs * self.MAX_NODES, HIDDEN_DIM])
+        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [HIDDEN_DIM, self.numInputs])
         print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
-        self.hidden3 = tf.matmul(self.langRequestedEmbedding, self.hidden3)
+        self.hidden3 = tf.matmul(self.hidden3, self.langRequestedEmbedding)
 
         #self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
         self.qValue = self.hidden3
@@ -528,7 +525,10 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def Predict(self, sess, langRequested, langIds, langsVisited):        
+    def Predict(self, sess, langRequested, langIds, langsVisited):
+        langRequestedNP = np.empty([1,1], dtype=np.int32)
+        langRequestedNP[0,0] = langRequested
+        
         langIdsNP = np.empty([1, 2])
         langIdsNP[0,0] = langIds[0]
         langIdsNP[0,1] = langIds[1]
@@ -537,11 +537,11 @@ class Qnetwork():
         #print("   ", langRequestedNP, langIdsNP, langsVisited)
         #print("numURLs", numURLs)
         qValue = sess.run([self.qValue], 
-                                feed_dict={self.langRequested: langRequested,
+                                feed_dict={self.langRequested: langRequestedNP,
                                     self.langIds: langIdsNP,
                                     self.langsVisited: langsVisited})
         qValue = qValue[0]
-        #print("qValue", type(qValue), qValue)
+        #print("   qValue", qValue.shape, qValue)
         
         return qValue
 
@@ -554,21 +554,14 @@ class Qnetwork():
             if len(nodes) > 0:
                 allLangRequested.append(langId)
 
-        langRequestedNP = np.zeros([1,self.MAX_NODES], dtype=np.int32)
-        i = 0
         for langId in allLangRequested:
-            langRequestedNP[0,0] = langId
-            qValue = self.Predict(sess, langRequestedNP, langIds, langsVisited)
-            #print("qValue", qValue)
-            qValue = qValue[0, 0]
+            qValue = self.Predict(sess, langId, langIds, langsVisited)
+            qValue = qValue[0]
             qValues[langId] = qValue
 
             if maxQ < qValue:
                 maxQ = qValue
                 argMax = langId
-
-            i += 1
-
         #print("qValues", env.maxLangId, qValues)
 
         if len(qValues) == 0:
@@ -653,12 +646,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[0, link.childNode.lang] += 1
 
     _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
-    langRequestedNP = np.zeros([1, qnB.MAX_NODES], dtype=np.int32)
-
-    langRequestedNP[0,0] = nextAction
-    nextMaxQ = qnB.Predict(sess, langRequestedNP, params.langIds, nextLangsVisited)
-    #print("nextMaxQ", nextMaxQ.shape, nextMaxQ)
-    nextMaxQ = nextMaxQ[0,0]
+    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
