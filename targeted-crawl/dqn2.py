@@ -423,6 +423,12 @@ class Candidates:
         else:
             return False
 
+    def Count(self):
+        ret = 0
+        for lang, dict in self.dict.items():
+            ret += len(dict)
+        return ret
+
     def Debug(self):
         ret = ""
         for lang in self.dict:
@@ -528,6 +534,7 @@ class Qnetwork():
             if len(nodes) > 0:
                 langRequested.append(langId)
 
+        i = 0
         for langId in langRequested:
             qValue = self.Predict(sess, langId, langIds, langsVisited)
             qValue = qValue[0]
@@ -535,16 +542,19 @@ class Qnetwork():
 
             if maxQ < qValue:
                 maxQ = qValue
-                argMax = langId
+                action = i
+
+            i += 1
+
         #print("qValues", env.maxLangId, qValues)
 
-        if len(qValues) == 0:
+        if len(langRequested) == 0:
             #print("empty qValues")
             qValues[0] = 0.0
             maxQ = 0.0
-            argMax = 0
+            action = -1
 
-        return langRequested, qValues, maxQ, argMax
+        return langRequested, qValues, maxQ, action
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
@@ -558,15 +568,16 @@ class Qnetwork():
         return loss, sumWeight
 
 ######################################################################################
-def GetNextState(env, params, action, visited, candidates):
+def GetNextState(env, params, action, visited, candidates, langRequested):
     #print("candidates", action, candidates.Debug())
-    if action == 0:
+    if action == -1:
         # no explicit stop state but no candidates
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        assert(candidates.HasLinks(action))
-        link = candidates.Pop(action)
+        langId = langRequested[action]
+        assert(candidates.HasLinks(langId))
+        link = candidates.Pop(langId)
  
     assert(link is not None)
     nextNode = link.childNode
@@ -589,16 +600,17 @@ def GetNextState(env, params, action, visited, candidates):
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     langRequested, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
 
-    if np.random.rand(1) < eps:
-        actions = list(qValues.keys())
-        #print("actions", type(actions), actions)
-        action = np.random.choice(actions)
-        maxQ = qValues[action]
-        #print("random")
-    #print("action", action, qValues)
+    if action >= 0:
+        if np.random.rand(1) < eps:
+            #print("actions", type(actions), actions)
+            action = np.random.randint(0, len(langRequested))
+            langId = langRequested[action]
+            maxQ = qValues[langId]
+            #print("random")
+        #print("action", action, qValues)
 
     #print("action", action, maxQ, qValues)
-    link, reward = GetNextState(env, params, action, visited, candidates)
+    link, reward = GetNextState(env, params, action, visited, candidates, langRequested)
     assert(link is not None)
     #print("action", action, qValues, link.childNode.Debug(), reward)
 
@@ -619,8 +631,13 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited = langsVisited.copy()
     nextLangsVisited[0, link.childNode.lang] += 1
 
-    langRequested, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
-    nextMaxQ = qnB.Predict(sess, nextAction, params.langIds, nextLangsVisited)
+    if nextCandidates.Count() > 0:
+        nextLangRequested, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
+        nextLangId = nextLangRequested[nextAction]
+        nextMaxQ = qnB.Predict(sess, nextLangId, params.langIds, nextLangsVisited)
+    else:
+        nextMaxQ = 0
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
