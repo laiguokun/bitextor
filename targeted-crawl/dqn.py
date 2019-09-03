@@ -14,7 +14,7 @@ matplotlib.use('Agg')
 import pylab as plt
 
 from common import MySQL, Languages, Timer
-from helpers import Env, Link
+from helpers import GetEnvs, Env, Link
 
 ######################################################################################
 class LearningParams:
@@ -235,14 +235,6 @@ def AddTodo(langsTodo, visited, link):
 
 ######################################################################################
 ######################################################################################
-def GetEnvs(sqlconn, languages, urls):
-    ret = []
-    for url in urls:
-        env = GetEnv(sqlconn, languages, url)
-        ret.append(env)
-    return ret
-
-######################################################################################
 def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
     for env in envs:
         SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
@@ -280,26 +272,6 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
 
     fig.savefig("{dir}/{sset}-{domain}-{epoch}.png".format(dir=saveDirPlots, sset=sset, domain=domain, epoch=epoch))
     fig.show()
-
-######################################################################################
-def GetEnv(sqlconn, languages, url):
-    domain = extract(url).domain
-    filePath = 'pickled_domains/'+domain
-    if not os.path.exists(filePath):
-        print("mysql load", url)
-        env = Env(sqlconn, url)
-    else:
-        print("unpickle", url)
-        with open(filePath, 'rb') as f:
-            env = pickle.load(f)
-    # change language of start node. 0 = stop
-    env.nodes[sys.maxsize].lang = languages.GetLang("None")
-
-    #for node in env.nodes.values():
-    #    print(node.Debug())
-
-    #print("loaded", url)
-    return env
 
 ######################################################################################
 class Qnets():

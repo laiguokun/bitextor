@@ -1,19 +1,44 @@
+import os
 import numpy as np
 import hashlib
 import sys
+from tldextract import extract
+import pickle
 
 from common import Timer, StrNone
 
 global TIMER
 TIMER = Timer()
 
-class Link:
-    def __init__(self, text, textLang, parentNode, childNode):
-        self.text = text 
-        self.textLang = textLang 
-        self.parentNode = parentNode
-        self.childNode = childNode
+######################################################################################
+def GetEnvs(sqlconn, languages, urls):
+    ret = []
+    for url in urls:
+        env = GetEnv(sqlconn, languages, url)
+        ret.append(env)
+    return ret
 
+######################################################################################
+def GetEnv(sqlconn, languages, url):
+    domain = extract(url).domain
+    filePath = 'pickled_domains/'+domain
+    if not os.path.exists(filePath):
+        print("mysql load", url)
+        env = Env(sqlconn, url)
+    else:
+        print("unpickle", url)
+        with open(filePath, 'rb') as f:
+            env = pickle.load(f)
+    # change language of start node. 0 = stop
+    env.nodes[sys.maxsize].lang = languages.GetLang("None")
+
+    #for node in env.nodes.values():
+    #    print(node.Debug())
+
+    #print("loaded", url)
+    return env
+
+######################################################################################
 def NormalizeURL(url):
     url = url.lower()
     ind = url.find("#")
@@ -36,7 +61,15 @@ def NormalizeURL(url):
 
     return url
 
+######################################################################################
+class Link:
+    def __init__(self, text, textLang, parentNode, childNode):
+        self.text = text 
+        self.textLang = textLang 
+        self.parentNode = parentNode
+        self.childNode = childNode
 
+######################################################################################
 class Node:
     def __init__(self, urlId, url, docIds, langIds, redirectId):
         assert(len(docIds) == len(langIds))
@@ -104,7 +137,7 @@ class Node:
                         StrNone(self.redirect), str(len(self.links)),
                         StrNone(self.normURL) ] )
 
-
+######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
         self.rootURL = url
