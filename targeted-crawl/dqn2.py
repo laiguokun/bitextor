@@ -28,7 +28,7 @@ class LearningParams:
         self.overSampling = 1
         
         self.debug = False
-        self.walk = 10
+        self.walk = 2
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -425,7 +425,7 @@ class Candidates:
 
     def Count(self):
         ret = 0
-        for lang, dict in self.dict.items():
+        for _, dict in self.dict.items():
             ret += len(dict)
         return ret
 
@@ -440,6 +440,8 @@ class Candidates:
     
 ######################################################################################
 class Qnetwork():
+    MAX_NODES = 5
+
     def __init__(self, params):
         self.params = params
         self.corpus = Corpus(params, self)
@@ -451,7 +453,7 @@ class Qnetwork():
         self.embeddings = tf.Variable(tf.random_uniform([params.maxLangId + 1, HIDDEN_DIM], 0, 0.01))
 
         # graph network
-        self.langRequested = tf.placeholder(shape=[None, 1], dtype=tf.int32)
+        self.langRequested = tf.placeholder(shape=[None, self.MAX_NODES], dtype=tf.int32)
         self.numInputs = tf.shape(self.langRequested)[0]
         
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
@@ -485,7 +487,7 @@ class Qnetwork():
         self.hidden3 = tf.transpose(self.hidden3)
 
         self.langRequestedEmbedding = tf.nn.embedding_lookup(self.embeddings, self.langRequested)
-        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.numInputs, HIDDEN_DIM])
+        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.numInputs * self.MAX_NODES, HIDDEN_DIM])
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
         self.hidden3 = tf.matmul(self.langRequestedEmbedding, self.hidden3)
@@ -510,7 +512,7 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def Predict(self, sess, langRequested, langIds, langsVisited):
-        langRequestedNP = np.empty([1,1], dtype=np.int32)
+        langRequestedNP = np.zeros([1, self.MAX_NODES], dtype=np.int32)
         langRequestedNP[0,0] = langRequested
         
         #print("input", langRequestedNP.shape, type(langRequestedNP))
@@ -520,7 +522,7 @@ class Qnetwork():
                                 feed_dict={self.langRequested: langRequestedNP,
                                     self.langIds: langIds,
                                     self.langsVisited: langsVisited})
-        qValue = qValue[0]
+        qValue = qValue[0][0]
         #print("   qValue", qValue.shape, qValue)
         
         return qValue
@@ -551,10 +553,13 @@ class Qnetwork():
         return langRequested, qValues, maxQ, action
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
+        langRequestedNP = np.zeros([1, self.MAX_NODES], dtype=np.int32)
+        langRequestedNP[0,0] = langRequested
+
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
-                                    feed_dict={self.langRequested: langRequested, 
+                                    feed_dict={self.langRequested: langRequestedNP, 
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
