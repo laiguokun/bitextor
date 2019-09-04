@@ -606,11 +606,11 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     assert(link is not None)
     #print("action", action, qValues, link.childNode.Debug(), reward)
 
-    return qValues, maxQ, action, link, reward
+    return langRequested, qValues, maxQ, action, link, reward
 
 ######################################################################################
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
+    langRequested, _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     
     # calc nextMaxQ
@@ -726,7 +726,7 @@ def Walk(env, params, sess, qns):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        qValues, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
+        _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         #print("action", action, qValues)
         actionStr += str(action) + " "
