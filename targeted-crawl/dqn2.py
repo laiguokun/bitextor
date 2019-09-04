@@ -541,17 +541,32 @@ class Qnetwork():
                 langRequested[0, numLangs] = langId
                 numLangs += 1
 
+        newqValues = sess.run([self.qValue], 
+                                feed_dict={self.langRequested: langRequested,
+                                    self.langIds: langIds,
+                                    self.langsVisited: langsVisited})
+        newqValues = newqValues[0]
+        newqValues = np.transpose(newqValues)
+        newqValues[0, numLangs:] = 0.0
+        print("newqValues", newqValues.shape, newqValues[0, :numLangs], newqValues)
+
+        if numLangs > 0:        
+            newAction = np.argmax(newqValues[0, :numLangs])
+            newMaxQ = newqValues[0, newAction]
+            print("newAction", newAction, newMaxQ)
+
         for i in range(numLangs):
             langId = langRequested[0, i]
             qValue = self.Predict(sess, langId, langIds, langsVisited)
             qValue = qValue[0]
             qValues[0, i] = qValue
-
+            print("   qValue", qValue)
+            
             if maxQ < qValue:
                 maxQ = qValue
                 action = i
 
-        #print("qValues", env.maxLangId, qValues)
+        print("qValues", qValues.shape, qValues, action, maxQ)
         return numLangs, langRequested, qValues, maxQ, action
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
