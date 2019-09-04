@@ -294,7 +294,6 @@ class Corpus:
         self.qn = qn
         self.transitions = []
         self.losses = []
-        self.sumWeights = []
 
     def AddTransition(self, transition):
         if self.params.deleteDuplicateTransitions:
@@ -326,9 +325,8 @@ class Corpus:
             #print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
             for i in range(numIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss, sumWeight = self.UpdateQN(params, sess, batch)
+                loss = self.UpdateQN(params, sess, batch)
                 self.losses.append(loss)
-                self.sumWeights.append(sumWeight)
             self.transitions.clear()
         
     def UpdateQN(self, params, sess, batch):
@@ -336,6 +334,7 @@ class Corpus:
         #print("batchSize", batchSize)
         numLangs = np.empty([batchSize, 1], dtype=np.int)
         langRequested = np.empty([batchSize, self.params.MAX_NODES], dtype=np.int)
+        mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, params.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
@@ -346,6 +345,7 @@ class Corpus:
             #next = transition.next
             numLangs[i, 0] = transition.numLangs
             langRequested[i, :] = transition.langRequested
+            mask[i, :] = transition.mask
             langIds[i, :] = transition.langIds
             langsVisited[i, :] = transition.langsVisited
             targetQ[i, :] = transition.targetQ
@@ -354,19 +354,20 @@ class Corpus:
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, numLangs, langRequested, langIds, langsVisited, targetQ)
+        loss = self.qn.Update(sess, numLangs, langRequested, mask, langIds, langsVisited, targetQ)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
-        return loss, sumWeight
+        return loss
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, numLangs, langRequested, langIds, langsVisited, targetQ):
+    def __init__(self, currURLId, nextURLId, numLangs, langRequested, mask, langIds, langsVisited, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.numLangs = numLangs
         self.langRequested = np.array(langRequested, copy=True) 
+        self.mask = np.array(mask, copy=True) 
         self.langIds = langIds 
         self.langsVisited = np.array(langsVisited, copy=True)
         self.targetQ = targetQ 
@@ -470,6 +471,9 @@ class Qnetwork():
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([params.maxLangId + 1, HIDDEN_DIM], 0, 0.01))
 
+        # mask
+        self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
+
         # graph represention
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
         self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
@@ -517,22 +521,14 @@ class Qnetwork():
         self.hidden3 = tf.matmul(self.langRequestedEmbedding, self.hidden3)
         self.hidden3 = tf.transpose(self.hidden3)
 
+        self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
+
         #self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
-        self.qValues = self.hidden3
+        #self.qValues = self.hidden3
         #print("self.qValues", self.qValue.shapes)
        
-        self.sumWeight = tf.reduce_sum(self.W1) \
-                         + tf.reduce_sum(self.b1) \
-                         + tf.reduce_sum(self.W2) \
-                         + tf.reduce_sum(self.b2) \
-                         + tf.reduce_sum(self.W3) \
-                         + tf.reduce_sum(self.b3) 
-
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-
-        # create mask
-        self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
 
         self.loss = self.nextQ - self.qValues
         print("loss", self.loss.shape)
@@ -544,6 +540,13 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
+        self.sumWeight = tf.reduce_sum(self.W1) \
+                         + tf.reduce_sum(self.b1) \
+                         + tf.reduce_sum(self.W2) \
+                         + tf.reduce_sum(self.b2) \
+                         + tf.reduce_sum(self.W3) \
+                         + tf.reduce_sum(self.b3) 
+
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         numLangs, langRequested, mask = candidates.GetFeatures()
         
@@ -554,18 +557,18 @@ class Qnetwork():
             #print("langRequested", langRequested.shape, langRequested)
             #print("mask", mask.shape, mask)
             
-            qValues = sess.run([self.qValues], 
+            qValues, hidden3 = sess.run([self.qValues, self.hidden3], 
                                     feed_dict={self.langRequested: langRequested,
                                         self.numLangs: numLangsNP,
                                         self.mask: mask,
                                         self.langIds: langIds,
                                         self.langsVisited: langsVisited})
-            qValues = qValues[0]
-            #qValues = np.transpose(qValues)
+            #qValues = qValues[0]
+            #print("hidden3", hidden3)
+            #print("qValues", qValues)
+            qValues = np.reshape(qValues, [1, qValues.shape[0] ])
+            #print("   qValues", qValues)
 
-            # should be done in the network with masking
-            qValues[0, numLangs:] = 0.0
-            #print("qValues", qValues.shape, qValues[0, :numLangs], qValues)
             action = np.argmax(qValues[0, :numLangs])
             maxQ = qValues[0, action]
             #print("newAction", action, maxQ)
@@ -576,19 +579,20 @@ class Qnetwork():
 
 
         #print("qValues", qValues.shape, qValues, action, maxQ)
-        return numLangs, langRequested, qValues, maxQ, action
+        return numLangs, langRequested, mask, qValues, maxQ, action
 
-    def Update(self, sess, numLangs, langRequested, langIds, langsVisited, targetQ):
+    def Update(self, sess, numLangs, langRequested, mask, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
+        _, loss = sess.run([self.updateModel, self.loss], 
                                     feed_dict={self.langRequested: langRequested, 
                                             self.numLangs: numLangs,
+                                            self.mask: mask,
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
         #print("loss", loss)
-        return loss, sumWeight
+        return loss
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates, langRequested):
@@ -622,7 +626,7 @@ def GetNextState(env, params, action, visited, candidates, langRequested):
 
 ######################################################################################
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
-    numLangs, langRequested, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
+    numLangs, langRequested, mask, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
     #print("action", action, langRequested, qValues)
     if action >= 0:
         if np.random.rand(1) < eps:
@@ -637,11 +641,11 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     assert(link is not None)
     #print("action", action, qValues, link.childNode.Debug(), reward)
 
-    return numLangs, langRequested, qValues, maxQ, action, link, reward
+    return numLangs, langRequested, mask, qValues, maxQ, action, link, reward
 
 ######################################################################################
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    numLangs, langRequested, _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
+    numLangs, langRequested, mask, _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     
     # calc nextMaxQ
@@ -655,9 +659,9 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[0, link.childNode.lang] += 1
 
     if nextCandidates.Count() > 0:
-        _, _, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        _, _, _, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        _, _, nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        _, _, _, nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         nextMaxQ = nextQValuesB[0, nextAction]
         #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
     else:
@@ -670,6 +674,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
                             link.childNode.urlId,
                             numLangs,
                             langRequested,
+                            mask,
                             params.langIds,
                             langsVisited,
                             targetQ)
@@ -758,7 +763,7 @@ def Walk(env, params, sess, qns):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        _, _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
+        _, _, _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         #print("action", action, qValues)
         actionStr += str(action) + " "
