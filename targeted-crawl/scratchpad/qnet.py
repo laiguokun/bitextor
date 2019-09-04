@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+#https://medium.com/emergent-future/simple-reinforcement-learning-with-tensorflow-part-0-q-learning-with-tables-and-neural-networks-d195264329d0
 import os
 import gym
 import numpy as np
@@ -43,7 +45,9 @@ with tf.Session() as sess:
         while j < 99:
             j+=1
             #Choose an action by greedily (with e chance of random action) from the Q-network
-            a,allQ = sess.run([predict,Qout],feed_dict={inputs1:np.identity(16)[s:s+1]})
+            inputs = np.identity(16)[s:s+1]
+            print("inputs", inputs)
+            a,allQ = sess.run([predict,Qout],feed_dict={inputs1:inputs})
             if np.random.rand(1) < e:
                 a[0] = env.action_space.sample()
             #Get new state and reward from environment
@@ -53,7 +57,7 @@ with tf.Session() as sess:
             #Obtain maxQ' and set our target value for chosen action.
             maxQ1 = np.max(Q1)
             targetQ = allQ
-            print("targetQ", targetQ)
+            print("targetQ", targetQ, a)
             targetQ[0,a[0]] = r + y*maxQ1
             print("       ", targetQ)
             #Train our network using target and predicted Q values
