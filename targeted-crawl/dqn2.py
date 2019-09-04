@@ -246,7 +246,7 @@ def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
 def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     print("Walking", env.rootURL)
     arrDumb = dumb(env, len(env.nodes), params)
-    #arrRandom = randomCrawl(env, len(env.nodes), params)
+    arrRandom = randomCrawl(env, len(env.nodes), params)
     arrBalanced = balanced(env, len(env.nodes), params)
     arrRL = Walk(env, params, sess, qns)
 
@@ -256,6 +256,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     avgBalanced = avgRL = 0.0
     for i in range(len(arrDumb)):
         if arrDumb[i] > 0:
+            avgRandom += arrRandom[i] / arrDumb[i]
             avgBalanced += arrBalanced[i] / arrDumb[i]
             #print("arrRL", arrRL[i], arrDumb[i])
             avgRL += arrRL[i] / arrDumb[i]
@@ -265,7 +266,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(arrDumb, label="dumb ", color='maroon')
-    #ax.plot(arrRandom, label="random", color='firebrick')
+    ax.plot(arrRandom, label="random {0:.1f}".format(avgRandom), color='firebrick')
     ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
     ax.plot(arrRL, label="RL {0:.1f}".format(avgRL), color='salmon')
 
@@ -333,7 +334,7 @@ class Corpus:
         #print("batchSize", batchSize)
         langRequested = np.empty([batchSize, 1], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langFeatures = np.empty([batchSize, params.maxLangId + 1])
+        langsVisited = np.empty([batchSize, params.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
 
         i = 0
@@ -343,14 +344,14 @@ class Corpus:
 
             langRequested[i, :] = transition.langRequested
             langIds[i, :] = transition.langIds
-            langFeatures[i, :] = transition.langFeatures
+            langsVisited[i, :] = transition.langsVisited
             targetQ[i, :] = transition.targetQ
 
             i += 1
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langFeatures, targetQ)
+        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langsVisited, targetQ)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -358,12 +359,12 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, langRequested, langIds, langFeatures, targetQ):
+    def __init__(self, currURLId, nextURLId, langRequested, langIds, langsVisited, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.langRequested = langRequested 
         self.langIds = langIds 
-        self.langFeatures = langFeatures #np.array(langFeatures, copy=True)
+        self.langsVisited = langsVisited #np.array(langsVisited, copy=True)
         self.targetQ = targetQ 
 
     def DebugTransition(self):
@@ -512,22 +513,6 @@ class Qnetwork():
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-    def Predict(self, sess, langRequested, langIds, langsVisited):
-        langRequestedNP = np.zeros([1, self.MAX_NODES], dtype=np.int32)
-        langRequestedNP[0,0] = langRequested
-        
-        #print("input", langRequestedNP.shape, type(langRequestedNP))
-        #print("   ", langRequestedNP, langIdsNP, langsVisited)
-        #print("numURLs", numURLs)
-        qValue = sess.run([self.qValue], 
-                                feed_dict={self.langRequested: langRequestedNP,
-                                    self.langIds: langIds,
-                                    self.langsVisited: langsVisited})
-        qValue = qValue[0][0]
-        #print("   qValue", qValue.shape, qValue)
-        
-        return qValue
-
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         langRequested = np.zeros([1, self.MAX_NODES], dtype=np.int32)
 
@@ -551,7 +536,7 @@ class Qnetwork():
             maxQ = qValues[0, action]
             #print("newAction", action, maxQ)
         else:
-            maxQ = -99999.0
+            maxQ = 0.0 #-99999.0
             action = -1
             qValues = np.zeros([1, self.MAX_NODES], dtype=np.float32)
 
@@ -638,10 +623,11 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[0, link.childNode.lang] += 1
 
     if nextCandidates.Count() > 0:
-        nextNumLangs, nextLangRequested, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        nextNumLangs, nextLangRequested, nextQValuesA, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        nextLangId = nextLangRequested[0, nextAction]
-        nextMaxQ = qnB.Predict(sess, nextLangId, params.langIds, nextLangsVisited)
+        _, _, nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        nextMaxQ = nextQValuesB[0, nextAction]
+        #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
     else:
         nextMaxQ = 0
 
@@ -830,7 +816,7 @@ def main():
 
     #hostNameTest = "http://vade-retro.fr/"
     #hostNameTest = "http://www.buchmann.ch/"
-    hostsTest = ["http://www.visitbritain.com/"] #, "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
+    hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
     envs = GetEnvs(sqlconn, languages, hosts)
     envsTest = GetEnvs(sqlconn, languages, hostsTest)
