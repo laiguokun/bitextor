@@ -531,15 +531,15 @@ class Qnetwork():
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         langRequested = np.zeros([1, self.MAX_NODES], dtype=np.int32)
         qValues = np.zeros([1, self.MAX_NODES], dtype=np.float32)
-        maxQ = 0.0
+        maxQ = -99999.0
         action = -1
 
         numLangs = 0
         for langId, nodes in candidates.dict.items():
             if len(nodes) > 0:
+                assert(numLangs < langRequested.shape[1])
                 langRequested[0, numLangs] = langId
                 numLangs += 1
-        assert(len(langRequested) < self.MAX_NODES)
 
         for i in range(numLangs):
             langId = langRequested[0, i]
@@ -598,6 +598,7 @@ def GetNextState(env, params, action, visited, candidates, langRequested):
 
     return link, reward
 
+######################################################################################
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     numLangs, langRequested, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
     #print("action", action, langRequested, qValues)
@@ -616,6 +617,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
 
     return qValues, maxQ, action, link, reward
 
+######################################################################################
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
