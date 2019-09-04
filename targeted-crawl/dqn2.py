@@ -334,6 +334,7 @@ class Corpus:
     def UpdateQN(self, params, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
+        numLangs = np.empty([batchSize, 1], dtype=np.int)
         langRequested = np.empty([batchSize, self.params.MAX_NODES], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, params.maxLangId + 1])
@@ -343,7 +344,7 @@ class Corpus:
         for transition in batch:
             #curr = transition.curr
             #next = transition.next
-
+            numLangs[i, 0] = transition.numLangs
             langRequested[i, :] = transition.langRequested
             langIds[i, :] = transition.langIds
             langsVisited[i, :] = transition.langsVisited
@@ -353,7 +354,7 @@ class Corpus:
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss, sumWeight = self.qn.Update(sess, langRequested, langIds, langsVisited, targetQ)
+        loss, sumWeight = self.qn.Update(sess, numLangs, langRequested, langIds, langsVisited, targetQ)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -361,9 +362,10 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, langRequested, langIds, langsVisited, targetQ):
+    def __init__(self, currURLId, nextURLId, numLangs, langRequested, langIds, langsVisited, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
+        self.numLangs = numLangs
         self.langRequested = np.array(langRequested, copy=True) 
         self.langIds = langIds 
         self.langsVisited = np.array(langsVisited, copy=True)
@@ -466,17 +468,23 @@ class Qnetwork():
         # EMBEDDINGS
         self.embeddings = tf.Variable(tf.random_uniform([params.maxLangId + 1, HIDDEN_DIM], 0, 0.01))
 
-        # graph network
+        # graph represention
+        self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
+        self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
+        self.numLangs = tf.placeholder(shape=[None, 1], dtype=tf.int32)
+
+        # link representation
         self.langRequested = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.int32)
+
+        # batch size
         self.numInputs = tf.shape(self.langRequested)[0]
         
-        self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
-
-        self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.input = tf.concat([self.langIds, self.langsVisited], 1)
+        # network
+        self.numLangsFloat32 = tf.cast(self.numLangs, dtype=tf.float32)
+        self.input = tf.concat([self.langIds, self.langsVisited, self.numLangsFloat32], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 2, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -528,10 +536,14 @@ class Qnetwork():
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         numLangs, langRequested = candidates.GetFeatures()
+        
+        numLangsNP = np.empty([1,1], dtype=np.int32)
+        numLangsNP[0,0] = numLangs
 
         if numLangs > 0:        
             qValues = sess.run([self.qValues], 
                                     feed_dict={self.langRequested: langRequested,
+                                        self.numLangs: numLangsNP,
                                         self.langIds: langIds,
                                         self.langsVisited: langsVisited})
             qValues = qValues[0]
@@ -552,11 +564,12 @@ class Qnetwork():
         #print("qValues", qValues.shape, qValues, action, maxQ)
         return numLangs, langRequested, qValues, maxQ, action
 
-    def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
+    def Update(self, sess, numLangs, langRequested, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
-        #print("   ", langRequested, langIds, langFeatures, targetQ)
+        #print("targetQ", targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
                                     feed_dict={self.langRequested: langRequested, 
+                                            self.numLangs: numLangs,
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
@@ -610,11 +623,11 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     assert(link is not None)
     #print("action", action, qValues, link.childNode.Debug(), reward)
 
-    return langRequested, qValues, maxQ, action, link, reward
+    return numLangs, langRequested, qValues, maxQ, action, link, reward
 
 ######################################################################################
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    langRequested, _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
+    numLangs, langRequested, _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     
     # calc nextMaxQ
@@ -641,6 +654,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
+                            numLangs,
                             langRequested,
                             params.langIds,
                             langsVisited,
@@ -730,7 +744,7 @@ def Walk(env, params, sess, qns):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
+        _, _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         #print("action", action, qValues)
         actionStr += str(action) + " "
@@ -775,10 +789,10 @@ def Train(params, sess, saver, qns, envs, envsTest):
 
             TIMER.Pause("Trajectory")
 
-        TIMER.Start("Update")
+        TIMER.Start("Train")
         qns.q[0].corpus.Train(sess, params)
         qns.q[1].corpus.Train(sess, params)
-        TIMER.Pause("Update")
+        TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
