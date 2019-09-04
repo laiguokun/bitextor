@@ -253,7 +253,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     url = env.rootURL
     domain = extract(url).domain
 
-    avgBalanced = avgRL = 0.0
+    avgRandom = avgBalanced = avgRL = 0.0
     for i in range(len(arrDumb)):
         if arrDumb[i] > 0:
             avgRandom += arrRandom[i] / arrDumb[i]
