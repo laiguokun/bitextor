@@ -260,6 +260,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
             avgBalanced += arrBalanced[i] / arrDumb[i]
             #print("arrRL", arrRL[i], arrDumb[i])
             avgRL += arrRL[i] / arrDumb[i]
+    avgRandom = avgRandom / len(arrDumb)
     avgBalanced = avgBalanced / len(arrDumb)
     avgRL = avgRL / len(arrDumb)
 
