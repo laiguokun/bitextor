@@ -421,7 +421,7 @@ class Candidates:
         return link
 
     def HasLinks(self, lang):
-        if action in self.dict and len(self.dict[lang]) > 0:
+        if lang in self.dict and len(self.dict[lang]) > 0:
             return True
         else:
             return False
