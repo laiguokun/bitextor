@@ -404,8 +404,8 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link)
 
-    def Pop(self, action):
-        links = self.dict[action]
+    def Pop(self, lang):
+        links = self.dict[lang]
         assert(len(links) > 0)
 
         idx = np.random.randint(0, len(links))
@@ -420,8 +420,8 @@ class Candidates:
 
         return link
 
-    def HasLinks(self, action):
-        if action in self.dict and len(self.dict[action]) > 0:
+    def HasLinks(self, lang):
+        if action in self.dict and len(self.dict[lang]) > 0:
             return True
         else:
             return False
@@ -431,6 +431,9 @@ class Candidates:
         for _, dict in self.dict.items():
             ret += len(dict)
         return ret
+
+    #def SortByFeature(self):
+
 
     def Debug(self):
         ret = ""
