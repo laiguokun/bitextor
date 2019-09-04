@@ -477,7 +477,7 @@ class Qnetwork():
         self.langRequested = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.int32)
 
         # batch size
-        self.numInputs = tf.shape(self.langRequested)[0]
+        self.batchSize = tf.shape(self.langRequested)[0]
         
         # network
         self.numLangsFloat32 = tf.cast(self.numLangs, dtype=tf.float32)
@@ -509,7 +509,7 @@ class Qnetwork():
         self.hidden3 = tf.transpose(self.hidden3)
 
         self.langRequestedEmbedding = tf.nn.embedding_lookup(self.embeddings, self.langRequested)
-        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.numInputs * self.params.MAX_NODES, HIDDEN_DIM])
+        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.batchSize * self.params.MAX_NODES, HIDDEN_DIM])
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
         self.hidden3 = tf.matmul(self.langRequestedEmbedding, self.hidden3)
