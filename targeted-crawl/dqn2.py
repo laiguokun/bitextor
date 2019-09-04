@@ -44,6 +44,7 @@ class LearningParams:
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
+        self.MAX_NODES = 50
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -333,7 +334,7 @@ class Corpus:
     def UpdateQN(self, params, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
-        langRequested = np.empty([batchSize, self.qn.MAX_NODES], dtype=np.int)
+        langRequested = np.empty([batchSize, self.params.MAX_NODES], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, params.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
@@ -432,8 +433,17 @@ class Candidates:
             ret += len(dict)
         return ret
 
-    #def SortByFeature(self):
+    def GetFeatures(self):
+        langRequested = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
 
+        numLangs = 0
+        for langId, nodes in self.dict.items():
+            if len(nodes) > 0:
+                assert(numLangs < langRequested.shape[1])
+                langRequested[0, numLangs] = langId
+                numLangs += 1
+
+        return numLangs, langRequested
 
     def Debug(self):
         ret = ""
@@ -446,8 +456,6 @@ class Candidates:
     
 ######################################################################################
 class Qnetwork():
-    MAX_NODES = 50
-
     def __init__(self, params):
         self.params = params
         self.corpus = Corpus(params, self)
@@ -459,7 +467,7 @@ class Qnetwork():
         self.embeddings = tf.Variable(tf.random_uniform([params.maxLangId + 1, HIDDEN_DIM], 0, 0.01))
 
         # graph network
-        self.langRequested = tf.placeholder(shape=[None, self.MAX_NODES], dtype=tf.int32)
+        self.langRequested = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.int32)
         self.numInputs = tf.shape(self.langRequested)[0]
         
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
@@ -493,14 +501,15 @@ class Qnetwork():
         self.hidden3 = tf.transpose(self.hidden3)
 
         self.langRequestedEmbedding = tf.nn.embedding_lookup(self.embeddings, self.langRequested)
-        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.numInputs * self.MAX_NODES, HIDDEN_DIM])
+        self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.numInputs * self.params.MAX_NODES, HIDDEN_DIM])
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
         self.hidden3 = tf.matmul(self.langRequestedEmbedding, self.hidden3)
+        self.hidden3 = tf.transpose(self.hidden3)
 
         #self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
-        self.qValue = self.hidden3
-        #print("self.qValue", self.qValue.shape)
+        self.qValues = self.hidden3
+        #print("self.qValues", self.qValue.shapes)
        
         self.sumWeight = tf.reduce_sum(self.W1) \
                          + tf.reduce_sum(self.b1) \
@@ -511,29 +520,24 @@ class Qnetwork():
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.qValue))
+        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.qValues))
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
-        langRequested = np.zeros([1, self.MAX_NODES], dtype=np.int32)
-
-        numLangs = 0
-        for langId, nodes in candidates.dict.items():
-            if len(nodes) > 0:
-                assert(numLangs < langRequested.shape[1])
-                langRequested[0, numLangs] = langId
-                numLangs += 1
+        numLangs, langRequested = candidates.GetFeatures()
 
         if numLangs > 0:        
-            qValues = sess.run([self.qValue], 
+            qValues = sess.run([self.qValues], 
                                     feed_dict={self.langRequested: langRequested,
                                         self.langIds: langIds,
                                         self.langsVisited: langsVisited})
             qValues = qValues[0]
-            qValues = np.transpose(qValues)
+            #qValues = np.transpose(qValues)
+
+            # should be done in the network with masking
             qValues[0, numLangs:] = 0.0
             #print("qValues", qValues.shape, qValues[0, :numLangs], qValues)
             action = np.argmax(qValues[0, :numLangs])
@@ -542,7 +546,7 @@ class Qnetwork():
         else:
             maxQ = 0.0 #-99999.0
             action = -1
-            qValues = np.zeros([1, self.MAX_NODES], dtype=np.float32)
+            qValues = np.zeros([1, self.params.MAX_NODES], dtype=np.float32)
 
 
         #print("qValues", qValues.shape, qValues, action, maxQ)
