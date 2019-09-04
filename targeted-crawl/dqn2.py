@@ -436,16 +436,18 @@ class Candidates:
         return ret
 
     def GetFeatures(self):
-        langRequested = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
-
         numLangs = 0
+        langRequested = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
+        mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
+        
         for langId, nodes in self.dict.items():
             if len(nodes) > 0:
                 assert(numLangs < langRequested.shape[1])
                 langRequested[0, numLangs] = langId
+                mask[0, numLangs] = True
                 numLangs += 1
 
-        return numLangs, langRequested
+        return numLangs, langRequested, mask
 
     def Debug(self):
         ret = ""
@@ -528,22 +530,34 @@ class Qnetwork():
 
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-        self.loss = tf.reduce_sum(tf.square(self.nextQ - self.qValues))
+
+        # create mask
+        self.mask = tf.placeholder(shape=[None, 1], dtype=tf.bool)
+
+        self.loss = self.nextQ - self.qValues
+        print("loss", self.loss.shape)
+        self.loss = tf.reduce_sum(tf.square(self.loss))
+        print("   loss", self.loss.shape)
+
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
-        numLangs, langRequested = candidates.GetFeatures()
+        numLangs, langRequested, mask = candidates.GetFeatures()
         
         numLangsNP = np.empty([1,1], dtype=np.int32)
         numLangsNP[0,0] = numLangs
 
         if numLangs > 0:        
+            #print("langRequested", langRequested.shape, langRequested)
+            #print("mask", mask.shape, mask)
+            
             qValues = sess.run([self.qValues], 
                                     feed_dict={self.langRequested: langRequested,
                                         self.numLangs: numLangsNP,
+                                        self.mask: mask,
                                         self.langIds: langIds,
                                         self.langsVisited: langsVisited})
             qValues = qValues[0]
