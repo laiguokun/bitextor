@@ -532,7 +532,7 @@ class Qnetwork():
         self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # create mask
-        self.mask = tf.placeholder(shape=[None, 1], dtype=tf.bool)
+        self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
 
         self.loss = self.nextQ - self.qValues
         print("loss", self.loss.shape)
