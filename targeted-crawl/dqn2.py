@@ -530,9 +530,6 @@ class Qnetwork():
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         langRequested = np.zeros([1, self.MAX_NODES], dtype=np.int32)
-        qValues = np.zeros([1, self.MAX_NODES], dtype=np.float32)
-        maxQ = -99999.0
-        action = -1
 
         numLangs = 0
         for langId, nodes in candidates.dict.items():
@@ -541,32 +538,25 @@ class Qnetwork():
                 langRequested[0, numLangs] = langId
                 numLangs += 1
 
-        newqValues = sess.run([self.qValue], 
-                                feed_dict={self.langRequested: langRequested,
-                                    self.langIds: langIds,
-                                    self.langsVisited: langsVisited})
-        newqValues = newqValues[0]
-        newqValues = np.transpose(newqValues)
-        newqValues[0, numLangs:] = 0.0
-        print("newqValues", newqValues.shape, newqValues[0, :numLangs], newqValues)
-
         if numLangs > 0:        
-            newAction = np.argmax(newqValues[0, :numLangs])
-            newMaxQ = newqValues[0, newAction]
-            print("newAction", newAction, newMaxQ)
+            qValues = sess.run([self.qValue], 
+                                    feed_dict={self.langRequested: langRequested,
+                                        self.langIds: langIds,
+                                        self.langsVisited: langsVisited})
+            qValues = qValues[0]
+            qValues = np.transpose(qValues)
+            qValues[0, numLangs:] = 0.0
+            #print("qValues", qValues.shape, qValues[0, :numLangs], qValues)
+            action = np.argmax(qValues[0, :numLangs])
+            maxQ = qValues[0, action]
+            #print("newAction", action, maxQ)
+        else:
+            maxQ = -99999.0
+            action = -1
+            qValues = np.zeros([1, self.MAX_NODES], dtype=np.float32)
 
-        for i in range(numLangs):
-            langId = langRequested[0, i]
-            qValue = self.Predict(sess, langId, langIds, langsVisited)
-            qValue = qValue[0]
-            qValues[0, i] = qValue
-            print("   qValue", qValue)
-            
-            if maxQ < qValue:
-                maxQ = qValue
-                action = i
 
-        print("qValues", qValues.shape, qValues, action, maxQ)
+        #print("qValues", qValues.shape, qValues, action, maxQ)
         return numLangs, langRequested, qValues, maxQ, action
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
