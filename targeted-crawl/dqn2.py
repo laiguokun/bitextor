@@ -363,9 +363,9 @@ class Transition:
     def __init__(self, currURLId, nextURLId, langRequested, langIds, langsVisited, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
-        self.langRequested = langRequested 
+        self.langRequested = np.array(langRequested, copy=True) 
         self.langIds = langIds 
-        self.langsVisited = langsVisited #np.array(langsVisited, copy=True)
+        self.langsVisited = np.array(langsVisited, copy=True)
         self.targetQ = targetQ 
 
     def DebugTransition(self):
