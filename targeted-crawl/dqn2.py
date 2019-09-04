@@ -333,7 +333,7 @@ class Corpus:
     def UpdateQN(self, params, sess, batch):
         batchSize = len(batch)
         #print("batchSize", batchSize)
-        langRequested = np.empty([batchSize, 1], dtype=np.int)
+        langRequested = np.empty([batchSize, self.qn.MAX_NODES], dtype=np.int)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, params.maxLangId + 1])
         targetQ = np.empty([batchSize, 1])
@@ -546,13 +546,10 @@ class Qnetwork():
         return numLangs, langRequested, qValues, maxQ, action
 
     def Update(self, sess, langRequested, langIds, langsVisited, targetQ):
-        langRequestedNP = np.zeros([1, self.MAX_NODES], dtype=np.int32)
-        langRequestedNP[0,0] = langRequested
-
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("   ", langRequested, langIds, langFeatures, targetQ)
         _, loss, sumWeight = sess.run([self.updateModel, self.loss, self.sumWeight], 
-                                    feed_dict={self.langRequested: langRequestedNP, 
+                                    feed_dict={self.langRequested: langRequested, 
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
@@ -624,7 +621,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[0, link.childNode.lang] += 1
 
     if nextCandidates.Count() > 0:
-        nextNumLangs, nextLangRequested, nextQValuesA, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        _, _, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
         _, _, nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         nextMaxQ = nextQValuesB[0, nextAction]
@@ -637,7 +634,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
-                            action,
+                            langRequested,
                             params.langIds,
                             langsVisited,
                             targetQ)
