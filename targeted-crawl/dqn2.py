@@ -337,18 +337,19 @@ class Corpus:
         mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, params.maxLangId + 1])
-        targetQ = np.empty([batchSize, 1])
+        targetQ = np.empty([batchSize, self.params.MAX_NODES])
 
         i = 0
         for transition in batch:
             #curr = transition.curr
             #next = transition.next
+            assert(transition.numLangs == transition.targetQ.shape[1])
             numLangs[i, 0] = transition.numLangs
             langRequested[i, :] = transition.langRequested
             mask[i, :] = transition.mask
             langIds[i, :] = transition.langIds
             langsVisited[i, :] = transition.langsVisited
-            targetQ[i, :] = transition.targetQ
+            targetQ[i, 0:transition.numLangs] = transition.targetQ
 
             i += 1
 
@@ -528,13 +529,12 @@ class Qnetwork():
         #print("self.qValues", self.qValue.shapes)
        
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+        self.nextQ = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
+        self.nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
 
-        self.loss = self.nextQ - self.qValues
-        print("loss", self.loss.shape)
+        self.loss = self.nextQMasked - self.qValues
         self.loss = tf.reduce_sum(tf.square(self.loss))
-        print("   loss", self.loss.shape)
-
+        
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
         
@@ -564,8 +564,8 @@ class Qnetwork():
                                         self.langIds: langIds,
                                         self.langsVisited: langsVisited})
             #qValues = qValues[0]
-            #print("hidden3", hidden3)
-            #print("qValues", qValues)
+            #print("hidden3", hidden3.shape, hidden3)
+            #print("qValues", qValues.shape, qValues)
             qValues = np.reshape(qValues, [1, qValues.shape[0] ])
             #print("   qValues", qValues)
 
@@ -645,7 +645,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
 
 ######################################################################################
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    numLangs, langRequested, mask, _, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
+    numLangs, langRequested, mask, qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     
     # calc nextMaxQ
@@ -669,6 +669,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
 
     newVal = reward + params.gamma * nextMaxQ
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
+    qValues[0, action] = targetQ
 
     transition = Transition(link.parentNode.urlId, 
                             link.childNode.urlId,
@@ -677,7 +678,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
                             mask,
                             params.langIds,
                             langsVisited,
-                            targetQ)
+                            qValues)
 
     return transition
 
