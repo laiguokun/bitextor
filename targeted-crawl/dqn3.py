@@ -335,6 +335,8 @@ class Corpus:
         numLangs = np.empty([batchSize, 1], dtype=np.int)
         langRequested = np.empty([batchSize, self.params.MAX_NODES], dtype=np.int)
         mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
+        numSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
+        numMatchedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, params.maxLangId + 1])
         targetQ = np.empty([batchSize, self.params.MAX_NODES])
@@ -347,6 +349,8 @@ class Corpus:
             numLangs[i, 0] = transition.numLangs
             langRequested[i, :] = transition.langRequested
             mask[i, :] = transition.mask
+            numSiblings[i, :] = transition.numSiblings
+            numMatchedSiblings[i, :] = transition.numMatchedSiblings
             langIds[i, :] = transition.langIds
             langsVisited[i, :] = transition.langsVisited
             targetQ[i, 0:transition.numLangs] = transition.targetQ
@@ -355,7 +359,7 @@ class Corpus:
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss = self.qn.Update(sess, numLangs, langRequested, mask, langIds, langsVisited, targetQ)
+        loss = self.qn.Update(sess, numLangs, langRequested, mask, numSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -363,15 +367,17 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, numLangs, langRequested, mask, langIds, langsVisited, targetQ):
+    def __init__(self, currURLId, nextURLId, numLangs, langRequested, mask, numSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.numLangs = numLangs
         self.langRequested = np.array(langRequested, copy=True) 
         self.mask = np.array(mask, copy=True) 
+        self.numSiblings = np.array(numSiblings, copy=True) 
+        self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
         self.langIds = langIds 
         self.langsVisited = np.array(langsVisited, copy=True)
-        self.targetQ = targetQ 
+        self.targetQ = np.array(targetQ, copy=True)
 
     def DebugTransition(self):
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
@@ -492,6 +498,8 @@ class Qnetwork():
 
         # link representation
         self.langRequested = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.int32)
+        self.numSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
+        self.numMatchedSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
 
         # batch size
         self.batchSize = tf.shape(self.langRequested)[0]
@@ -571,6 +579,8 @@ class Qnetwork():
                                     feed_dict={self.langRequested: langRequested,
                                         self.numLangs: numLangsNP,
                                         self.mask: mask,
+                                        self.numSiblings: numSiblings,
+                                        self.numMatchedSiblings: numMatchedSiblings,
                                         self.langIds: langIds,
                                         self.langsVisited: langsVisited})
             #qValues = qValues[0]
@@ -591,13 +601,15 @@ class Qnetwork():
         #print("qValues", qValues.shape, qValues, action, maxQ)
         return numLangs, langRequested, mask, numSiblings, numMatchedSiblings, qValues, maxQ, action
 
-    def Update(self, sess, numLangs, langRequested, mask, langIds, langsVisited, targetQ):
+    def Update(self, sess, numLangs, langRequested, mask, numSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
         _, loss = sess.run([self.updateModel, self.loss], 
                                     feed_dict={self.langRequested: langRequested, 
                                             self.numLangs: numLangs,
                                             self.mask: mask,
+                                            self.numSiblings: numSiblings,
+                                            self.numMatchedSiblings: numMatchedSiblings,
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
@@ -688,6 +700,8 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
                             numLangs,
                             langRequested,
                             mask,
+                            numSiblings,
+                            numMatchedSiblings,
                             params.langIds,
                             langsVisited,
                             qValues)

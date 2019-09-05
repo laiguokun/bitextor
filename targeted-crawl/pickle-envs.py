@@ -55,7 +55,7 @@ allhostNames = ["http://www.buchmann.ch/",
                 "http://chopescollection.be/",
                 "http://www.lavery.ca/",
                 "http://www.thecanadianencyclopedia.ca/",
-                "http://www.vistastamps.com/",
+                #"http://www.vistastamps.com/",
                 "http://www.linker-kassel.com/",
                 "http://www.enterprise.fr/"]
 
