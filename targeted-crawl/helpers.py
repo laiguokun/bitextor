@@ -35,7 +35,7 @@ def GetEnv(sqlconn, languages, url):
     #for node in env.nodes.values():
     #    print(node.Debug())
 
-    #print("loaded", url)
+    print("env created", url)
     return env
 
 ######################################################################################
@@ -113,6 +113,9 @@ class Node:
         # print("   ", loserNode.Debug())
 
         self.docIds.update(loserNode.docIds)
+
+        for link in loserNode.links:
+            link.parentNode = self
         self.links.update(loserNode.links)
 
         if self.lang == 0:
@@ -217,6 +220,8 @@ class Env:
                 self.maxLangId = node.lang
 
             for link in node.links:
+                #print(node.Debug(), link.parentNode.Debug())
+                assert(node == link.parentNode)
                 if link.textLang > self.maxLangId:
                     self.maxLangId = link.textLang
 

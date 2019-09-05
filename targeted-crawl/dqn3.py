@@ -849,13 +849,13 @@ def main():
 
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
-    #hostName = "http://vade-retro.fr/"
+    #hosts = ["http://vade-retro.fr/"]
     hosts = ["http://www.buchmann.ch/"] #, "http://telasmos.org/", "http://tagar.es/"]
-    #hostName = "http://www.visitbritain.com/"
+    #hosts = "http://www.visitbritain.com/"
 
-    #hostNameTest = "http://vade-retro.fr/"
-    #hostNameTest = "http://www.buchmann.ch/"
-    hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
+    hostsTest = ["http://vade-retro.fr/"]
+    #hostsTest = ["http://www.buchmann.ch/"]
+    #hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
     envs = GetEnvs(sqlconn, languages, hosts)
     envsTest = GetEnvs(sqlconn, languages, hostsTest)

@@ -13,6 +13,21 @@ from helpers import Env, Link
 from tldextract import extract
 import pickle
 
+#############################################################
+def PickleDomain(url):
+    domain = extract(url).domain
+
+    if not os.path.exists('pickled_domains/'+domain):
+        sqlconn = MySQL('config.ini')
+        
+        env = Env(sqlconn, url)
+        
+        with open('pickled_domains/'+domain, 'wb') as f:
+            pickle.dump(env, f)
+
+    print("Done {}".format(domain))
+
+#############################################################
 allhostNames = ["http://www.buchmann.ch/",
                 "http://vade-retro.fr/",
                 "http://www.visitbritain.com/",
@@ -44,18 +59,9 @@ allhostNames = ["http://www.buchmann.ch/",
                 "http://www.enterprise.fr/"]
 
 sys.setrecursionlimit(9999999)
-url = allhostNames[int(sys.argv[1])]
+#url = allhostNames[int(sys.argv[1])]
+#PickleDomain(url)
 
-domain = extract(url).domain
-
-if not os.path.exists('pickled_domains/'+domain):
-    sqlconn = MySQL('config.ini')
-    
-    env = Env(sqlconn, url)
-    
-    with open('pickled_domains/'+domain, 'wb') as f:
-        pickle.dump(env, f)
+for url in allhostNames:
+    PickleDomain(url)
         
-        
-        
-print("Done {}".format(domain))
