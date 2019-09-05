@@ -15,6 +15,7 @@ import pickle
 
 #############################################################
 def PickleDomain(url):
+    print("Pickling", url)
     domain = extract(url).domain
 
     if not os.path.exists('pickled_domains/'+domain):
@@ -37,7 +38,7 @@ allhostNames = ["http://www.buchmann.ch/",
                 "http://lacor.es/",
                 "http://telasmos.org/",
                 "http://www.haitilibre.com/",
-                "http://legisquebec.gouv.qc.ca",
+                "http://legisquebec.gouv.qc.ca/",
                 "http://hobby-france.com/",
                 "http://www.al-fann.net/",
                 "http://www.antique-prints.de/",
@@ -59,9 +60,12 @@ allhostNames = ["http://www.buchmann.ch/",
                 "http://www.enterprise.fr/"]
 
 sys.setrecursionlimit(9999999)
-#url = allhostNames[int(sys.argv[1])]
-#PickleDomain(url)
 
-for url in allhostNames:
+if len(sys.argv) < 2:
+    for url in allhostNames:
+        PickleDomain(url)
+else:
+    url = sys.argv[1]
     PickleDomain(url)
+
         
