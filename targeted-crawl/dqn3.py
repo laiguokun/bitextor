@@ -537,7 +537,10 @@ class Qnetwork():
         self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.batchSize * self.params.MAX_NODES, HIDDEN_DIM])
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
-        self.hidden3 = tf.matmul(self.langRequestedEmbedding, self.hidden3)
+        self.linkSpecific = tf.concat([self.langRequestedEmbedding], 1)
+
+        # final q-values
+        self.hidden3 = tf.matmul(self.linkSpecific, self.hidden3)
         self.hidden3 = tf.transpose(self.hidden3)
 
         self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
