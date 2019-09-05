@@ -406,10 +406,11 @@ class Candidates:
         #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
         #for sibling in link.parentNode.links:
         #    print("   sibling", sibling.childNode.url)
-                
-        if langId not in self.dict:
-            self.dict[langId] = []
-        self.dict[langId].append(link)
+
+        key = (langId,) 
+        if key not in self.dict:
+            self.dict[key] = []
+        self.dict[key].append(link)
         
     def AddLinks(self, node, visited, params):
         #print("   currNode", curr, currNode.Debug())
@@ -418,8 +419,8 @@ class Candidates:
         for link in newLinks:
             self.AddLink(link, visited)
 
-    def Pop(self, lang):
-        links = self.dict[lang]
+    def Pop(self, key):
+        links = self.dict[key]
         assert(len(links) > 0)
 
         idx = np.random.randint(0, len(links))
@@ -434,12 +435,6 @@ class Candidates:
 
         return link
 
-    def HasLinks(self, lang):
-        if lang in self.dict and len(self.dict[lang]) > 0:
-            return True
-        else:
-            return False
-
     def Count(self):
         ret = 0
         for _, dict in self.dict.items():
@@ -451,10 +446,10 @@ class Candidates:
         langRequested = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
         
-        for langId, nodes in self.dict.items():
+        for key, nodes in self.dict.items():
             if len(nodes) > 0:
                 assert(numLangs < langRequested.shape[1])
-                langRequested[0, numLangs] = langId
+                langRequested[0, numLangs] = key[0]
                 mask[0, numLangs] = True
                 numLangs += 1
 
@@ -612,8 +607,8 @@ def GetNextState(env, params, action, visited, candidates, langRequested):
         link = Link("", 0, stopNode, stopNode)
     else:
         langId = langRequested[0, action]
-        assert(candidates.HasLinks(langId))
-        link = candidates.Pop(langId)
+        key = (langId,)
+        link = candidates.Pop(key)
  
     assert(link is not None)
     nextNode = link.childNode
@@ -860,10 +855,10 @@ def main():
 
     #hosts = ["http://vade-retro.fr/"]
     hosts = ["http://www.buchmann.ch/"] #, "http://telasmos.org/", "http://tagar.es/"]
-    #hosts = "http://www.visitbritain.com/"
+    #hosts = ["http://www.visitbritain.com/"]
 
-    hostsTest = ["http://vade-retro.fr/"]
-    #hostsTest = ["http://www.buchmann.ch/"]
+    #hostsTest = ["http://vade-retro.fr/"]
+    hostsTest = ["http://www.visitbritain.com/"]
     #hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
     envs = GetEnvs(sqlconn, languages, hosts)
