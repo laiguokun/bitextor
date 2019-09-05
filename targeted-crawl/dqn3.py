@@ -396,8 +396,17 @@ class Candidates:
 
         return ret
     
-    def AddLink(self, link):
+    def AddLink(self, link, visited):
         langId = link.parentNode.lang
+        numSiblings = len(link.parentNode.links)
+        
+        matchedSiblings = self.env.GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
+        numMatchedSiblings = len(matchedSiblings)
+        
+        #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
+        #for sibling in link.parentNode.links:
+        #    print("   sibling", sibling.childNode.url)
+                
         if langId not in self.dict:
             self.dict[langId] = []
         self.dict[langId].append(link)
@@ -407,7 +416,7 @@ class Candidates:
         newLinks = node.GetLinks(visited, params)
 
         for link in newLinks:
-            self.AddLink(link)
+            self.AddLink(link, visited)
 
     def Pop(self, lang):
         links = self.dict[lang]
