@@ -886,6 +886,10 @@ def main():
                      help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
+    oparser.add_argument("--num-train-hosts", dest="numTrainHosts",
+                         default=1, help="Number of domains to train on")
+    oparser.add_argument("--num-test-hosts", dest="numTestHosts",
+                         default=3, help="Number of domains to test on")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -899,15 +903,15 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
     #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/"] #, "http://tagar.es/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
     #hostsTest = ["http://www.visitbritain.com/"]
     hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
-    envs = GetEnvs(sqlconn, languages, hosts)
-    envsTest = GetEnvs(sqlconn, languages, hostsTest)
+    envs = GetEnvs(sqlconn, languages, hosts[0:options.numTrainHosts])
+    envsTest = GetEnvs(sqlconn, languages, hostsTest[0:options.numTestHosts])
 
     tf.reset_default_graph()
     qns = Qnets(params)
