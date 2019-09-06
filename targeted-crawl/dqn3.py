@@ -254,16 +254,17 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     url = env.rootURL
     domain = extract(url).domain
 
+    warmUp = 200
     avgRandom = avgBalanced = avgRL = 0.0
     for i in range(len(arrDumb)):
-        if i > 200 and arrDumb[i] > 0:
+        if i > warmUp and arrDumb[i] > 0:
             avgRandom += arrRandom[i] / arrDumb[i]
             avgBalanced += arrBalanced[i] / arrDumb[i]
-            #print("arrRL", arrRL[i], arrDumb[i])
             avgRL += arrRL[i] / arrDumb[i]
-    avgRandom = avgRandom / len(arrDumb)
-    avgBalanced = avgBalanced / len(arrDumb)
-    avgRL = avgRL / len(arrDumb)
+
+    avgRandom = avgRandom / (len(arrDumb) - warmUp)
+    avgBalanced = avgBalanced / (len(arrDumb) - warmUp)
+    avgRL = avgRL / (len(arrDumb) - warmUp)
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
