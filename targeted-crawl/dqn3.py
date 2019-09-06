@@ -768,7 +768,13 @@ def Trajectory(env, epoch, params, sess, qns):
         if transition.nextURLId == 0:
             break
         else:
-            qnA.corpus.AddTransition(transition)
+            tmp = np.random.rand(1)
+            if tmp > 0.5:
+                corpus = qnA.corpus
+            else:
+                corpus = qnB.corpus
+
+            corpus.AddTransition(transition)
             node = env.nodes[transition.nextURLId]
 
         if len(visited) > params.maxDocs:
@@ -886,9 +892,9 @@ def main():
                      help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
-    oparser.add_argument("--num-train-hosts", dest="numTrainHosts",
+    oparser.add_argument("--num-train-hosts", dest="numTrainHosts", type=int,
                          default=1, help="Number of domains to train on")
-    oparser.add_argument("--num-test-hosts", dest="numTestHosts",
+    oparser.add_argument("--num-test-hosts", dest="numTestHosts", type=int,
                          default=3, help="Number of domains to test on")
     options = oparser.parse_args()
 
@@ -902,6 +908,7 @@ def main():
 
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 
+    print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
     hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
@@ -910,8 +917,8 @@ def main():
     #hostsTest = ["http://www.visitbritain.com/"]
     hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
-    envs = GetEnvs(sqlconn, languages, hosts[0:options.numTrainHosts])
-    envsTest = GetEnvs(sqlconn, languages, hostsTest[0:options.numTestHosts])
+    envs = GetEnvs(sqlconn, languages, hosts[:options.numTrainHosts])
+    envsTest = GetEnvs(sqlconn, languages, hostsTest[:options.numTestHosts])
 
     tf.reset_default_graph()
     qns = Qnets(params)
