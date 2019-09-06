@@ -536,7 +536,7 @@ class Qnetwork():
         self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM + 3], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
-        #self.hidden3 = tf.nn.relu(self.hidden3)
+        self.hidden3 = tf.nn.relu(self.hidden3)
         #print("self.hidden3", self.hidden3.shape)
 
         # link-specific
@@ -857,7 +857,6 @@ def Train(params, sess, saver, qns, envs, envsTest):
         for env in envs:
             TIMER.Start("Trajectory")
             _ = Trajectory(env, epoch, params, sess, qns)
-
             TIMER.Pause("Trajectory")
 
         TIMER.Start("Train")
