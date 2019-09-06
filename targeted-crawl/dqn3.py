@@ -451,6 +451,7 @@ class Candidates:
         numLangs = 0
         langRequested = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         numSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
+        numVisitedSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         numMatchedSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
 
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
@@ -577,11 +578,11 @@ class Qnetwork():
         numLangsNP = np.empty([1,1], dtype=np.int32)
         numLangsNP[0,0] = numLangs
 
-        if numLangs > 0:        
-            #print("langRequested", langRequested.shape, langRequested)
+        if numLangs > 0:
+            #print("langRequested", numLangs, langRequested.shape, langRequested)
             #print("mask", mask.shape, mask)
             
-            qValues = sess.run([self.qValues], 
+            (qValues, ) = sess.run([self.qValues], 
                                     feed_dict={self.langRequested: langRequested,
                                         self.numLangs: numLangsNP,
                                         self.mask: mask,
