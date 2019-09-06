@@ -12,7 +12,7 @@ import matplotlib
 matplotlib.use('Agg')
 import pylab as plt
 
-from common import MySQL, Languages, Timer
+from common import GetLanguages, Languages, Timer
 from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, Env, Link
 
 ######################################################################################
@@ -895,7 +895,7 @@ def main():
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
-    languages = Languages(options.configFile)
+    languages = GetLanguages(options.configFile)
     params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)

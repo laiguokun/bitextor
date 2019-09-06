@@ -1,5 +1,7 @@
+import os
 import configparser
 import time
+import pickle
 
 def StrNone(arg):
     if arg is None:
@@ -47,21 +49,29 @@ class MySQL:
         self.mycursor = self.mydb.cursor(buffered=True)
 
 ######################################################################################
-#def GetLanguages(sqlconn, languages, url):
-#    domain = extract(url).domain
+def GetLanguages(configFile):
+    filePath = 'pickled_domains/Languages'
+    if not os.path.exists(filePath):
+        print("mysql load Languages")
+        sqlconn = MySQL(configFile)
+        languages = Languages(sqlconn)
+        with open(filePath, 'wb') as f:
+            pickle.dump(languages, f)
+    else:
+        print("unpickle Languages")
+        with open(filePath, 'rb') as f:
+            languages = pickle.load(f)
+
+    return languages
 
 ######################################################################################
 class Languages:
-    def __init__(self, configFile):
-        self.sqlconn = MySQL(configFile)
-        self.mycursor = self.sqlconn.mycursor
+    def __init__(self, sqlconn):
         self.coll = {}
 
         sql = "SELECT id, lang FROM language"
-
-
-        self.mycursor.execute(sql)
-        ress = self.mycursor.fetchall()
+        sqlconn.mycursor.execute(sql)
+        ress = sqlconn.mycursor.fetchall()
         assert (ress is not None)
 
         for res in ress:
@@ -70,19 +80,6 @@ class Languages:
         
     def GetLang(self, str):
         str = StrNone(str)
-        if str in self.coll:
-            return self.coll[str]
+        assert(str in self.coll)
+        return self.coll[str]
         # print("GetLang", str)
-
-        # new language
-        sql = "SELECT id FROM language WHERE lang = %s"
-        val = (str,)
-        self.mycursor.execute(sql, val)
-        res = self.mycursor.fetchone()
-        assert(res is not None)
-        langId = res[0]
-
-        # print("langId", langId)
-        self.coll[str] = langId
-
-        return langId
