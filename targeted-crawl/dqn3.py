@@ -336,6 +336,7 @@ class Corpus:
         langRequested = np.empty([batchSize, self.params.MAX_NODES], dtype=np.int)
         mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
         numSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
+        numVisitedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         numMatchedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, params.maxLangId + 1])
@@ -350,6 +351,7 @@ class Corpus:
             langRequested[i, :] = transition.langRequested
             mask[i, :] = transition.mask
             numSiblings[i, :] = transition.numSiblings
+            numVisitedSiblings[i, :] = transition.numVisitedSiblings
             numMatchedSiblings[i, :] = transition.numMatchedSiblings
             langIds[i, :] = transition.langIds
             langsVisited[i, :] = transition.langsVisited
@@ -359,7 +361,7 @@ class Corpus:
 
         #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
-        loss = self.qn.Update(sess, numLangs, langRequested, mask, numSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
+        loss = self.qn.Update(sess, numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
         TIMER.Pause("UpdateQN.1")
 
         #print("loss", loss)
@@ -367,13 +369,14 @@ class Corpus:
 
 ######################################################################################
 class Transition:
-    def __init__(self, currURLId, nextURLId, numLangs, langRequested, mask, numSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
+    def __init__(self, currURLId, nextURLId, numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.numLangs = numLangs
         self.langRequested = np.array(langRequested, copy=True) 
         self.mask = np.array(mask, copy=True) 
         self.numSiblings = np.array(numSiblings, copy=True) 
+        self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
         self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
         self.langIds = langIds 
         self.langsVisited = np.array(langsVisited, copy=True)
@@ -388,7 +391,7 @@ class Candidates:
     def __init__(self, params, env):
         self.params = params
         self.env = env
-        self.dict = {} # parent lang -> links[]
+        self.dict = {} # key -> links[]
 
         #for langId in params.langIds:
         #    self.dict[langId] = []
@@ -406,6 +409,9 @@ class Candidates:
         langId = link.parentNode.lang
         numSiblings = len(link.parentNode.links)
         
+        numVisitedSiblings = self.env.GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
+        numVisitedSiblings = len(numVisitedSiblings)
+
         matchedSiblings = self.env.GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
         numMatchedSiblings = len(matchedSiblings)
         
@@ -413,7 +419,7 @@ class Candidates:
         #for sibling in link.parentNode.links:
         #    print("   sibling", sibling.childNode.url)
 
-        key = (langId,numSiblings,numMatchedSiblings) 
+        key = (langId,numSiblings, numVisitedSiblings, numMatchedSiblings) 
         if key not in self.dict:
             self.dict[key] = []
         self.dict[key].append(link)
@@ -461,12 +467,13 @@ class Candidates:
                 assert(numLangs < langRequested.shape[1])
                 langRequested[0, numLangs] = key[0]
                 numSiblings[0, numLangs] = key[1]
-                numMatchedSiblings[0, numLangs] = key[2]
+                numVisitedSiblings[0, numLangs] = key[2]
+                numMatchedSiblings[0, numLangs] = key[3]
 
                 mask[0, numLangs] = True
                 numLangs += 1
 
-        return numLangs, langRequested, mask, numSiblings, numMatchedSiblings
+        return numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings
 
     def Debug(self):
         ret = ""
@@ -500,6 +507,7 @@ class Qnetwork():
         # link representation
         self.langRequested = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.int32)
         self.numSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
+        self.numVisitedSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         self.numMatchedSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
 
         # batch size
@@ -524,8 +532,8 @@ class Qnetwork():
         self.hidden2 = tf.nn.relu(self.hidden2)
         #print("self.hidden2", self.hidden2.shape)
 
-        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM + 2], 0, 0.01))
-        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM + 2], 0, 0.01))
+        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM + 3], 0, 0.01))
+        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM + 3], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
         #self.hidden3 = tf.nn.relu(self.hidden3)
@@ -539,9 +547,10 @@ class Qnetwork():
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
         numSiblingsTS = tf.transpose(self.numSiblings)
+        numVisitedSiblingsTS = tf.transpose(self.numVisitedSiblings)
         numMatchedSiblingsTS = tf.transpose(self.numMatchedSiblings)
 
-        self.linkSpecific = tf.concat([self.langRequestedEmbedding, numSiblingsTS, numMatchedSiblingsTS], 1)
+        self.linkSpecific = tf.concat([self.langRequestedEmbedding, numSiblingsTS, numVisitedSiblingsTS, numMatchedSiblingsTS], 1)
 
         # final q-values
         self.hidden3 = tf.matmul(self.linkSpecific, self.hidden3)
@@ -573,7 +582,7 @@ class Qnetwork():
                          + tf.reduce_sum(self.b3) 
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
-        numLangs, langRequested, mask, numSiblings, numMatchedSiblings = candidates.GetFeatures()
+        numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
         
         numLangsNP = np.empty([1,1], dtype=np.int32)
         numLangsNP[0,0] = numLangs
@@ -587,6 +596,7 @@ class Qnetwork():
                                         self.numLangs: numLangsNP,
                                         self.mask: mask,
                                         self.numSiblings: numSiblings,
+                                        self.numVisitedSiblings: numVisitedSiblings,
                                         self.numMatchedSiblings: numMatchedSiblings,
                                         self.langIds: langIds,
                                         self.langsVisited: langsVisited})
@@ -608,9 +618,9 @@ class Qnetwork():
 
 
         #print("qValues", qValues.shape, qValues, action, maxQ)
-        return numLangs, langRequested, mask, numSiblings, numMatchedSiblings, qValues, maxQ, action
+        return numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action
 
-    def Update(self, sess, numLangs, langRequested, mask, numSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
+    def Update(self, sess, numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
         #print("input", langRequested.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
         _, loss = sess.run([self.updateModel, self.loss], 
@@ -618,6 +628,7 @@ class Qnetwork():
                                             self.numLangs: numLangs,
                                             self.mask: mask,
                                             self.numSiblings: numSiblings,
+                                            self.numVisitedSiblings: numVisitedSiblings,
                                             self.numMatchedSiblings: numMatchedSiblings,
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
@@ -626,7 +637,7 @@ class Qnetwork():
         return loss
 
 ######################################################################################
-def GetNextState(env, params, action, visited, candidates, langRequested, numSiblings, numMatchedSiblings):
+def GetNextState(env, params, action, visited, candidates, langRequested, numSiblings, numVisitedSiblings, numMatchedSiblings):
     #print("candidates", action, candidates.Debug())
     if action == -1:
         # no explicit stop state but no candidates
@@ -635,8 +646,9 @@ def GetNextState(env, params, action, visited, candidates, langRequested, numSib
     else:
         langId = langRequested[0, action]
         numSiblings1 = numSiblings[0, action]
+        numVisitedSiblings1 = numVisitedSiblings[0, action]
         numMatchedSiblings1 = numMatchedSiblings[0, action]
-        key = (langId, numSiblings1, numMatchedSiblings1)
+        key = (langId, numSiblings1, numVisitedSiblings1, numMatchedSiblings1)
         link = candidates.Pop(key)
  
     assert(link is not None)
@@ -659,7 +671,7 @@ def GetNextState(env, params, action, visited, candidates, langRequested, numSib
 
 ######################################################################################
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
-    numLangs, langRequested, mask, numSiblings, numMatchedSiblings, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
+    numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
     #print("action", action, langRequested, qValues)
     if action >= 0:
         if np.random.rand(1) < eps:
@@ -670,15 +682,15 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
         #print("action", action, qValues)
 
     #print("action", action, maxQ, qValues)
-    link, reward = GetNextState(env, params, action, visited, candidates, langRequested, numSiblings, numMatchedSiblings)
+    link, reward = GetNextState(env, params, action, visited, candidates, langRequested, numSiblings, numVisitedSiblings, numMatchedSiblings)
     assert(link is not None)
     #print("action", action, qValues, link.childNode.Debug(), reward)
 
-    return numLangs, langRequested, mask, numSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward
+    return numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward
 
 ######################################################################################
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
-    numLangs, langRequested, mask, numSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
+    numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
     
     # calc nextMaxQ
@@ -692,9 +704,9 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextLangsVisited[0, link.childNode.lang] += 1
 
     if nextCandidates.Count() > 0:
-        _, _, _, _, _, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        _, _, _, _, _, _, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        _, _, _, _, _, nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        _, _, _, _, _, _, nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
         nextMaxQ = nextQValuesB[0, nextAction]
         #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
     else:
@@ -710,6 +722,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
                             langRequested,
                             mask,
                             numSiblings,
+                            numVisitedSiblings,
                             numMatchedSiblings,
                             params.langIds,
                             langsVisited,
@@ -799,7 +812,7 @@ def Walk(env, params, sess, qns):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        _, _, _, _, _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
+        _, _, _, _, _, _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
         node = link.childNode
         #print("action", action, qValues)
         actionStr += str(action) + " "

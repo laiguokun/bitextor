@@ -396,7 +396,21 @@ class Env:
             if nextNode.alignedDoc > 0:
                 ret += 1
         return ret
-        
+
+    def GetVistedSiblings(self, urlId, parentNode, visited):
+        ret = []
+
+        #print("parentNode", urlId)
+        for link in parentNode.links:
+            sibling = link.childNode
+            if sibling.urlId != urlId:
+                #print("   link", sibling.urlId, sibling.alignedDoc)
+                if sibling.urlId in visited:
+                    # sibling has been crawled
+                    ret.append(sibling.urlId)      
+
+        return ret
+
     def GetMatchedSiblings(self, urlId, parentNode, visited):
         ret = []
 
