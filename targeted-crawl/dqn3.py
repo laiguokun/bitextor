@@ -13,7 +13,7 @@ matplotlib.use('Agg')
 import pylab as plt
 
 from common import MySQL, Languages, Timer
-from helpers import GetEnvs, Env, Link
+from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, Env, Link
 
 ######################################################################################
 class LearningParams:
@@ -28,7 +28,7 @@ class LearningParams:
         self.overSampling = 1
         
         self.debug = False
-        self.walk = 2
+        self.walk = 10
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
@@ -44,7 +44,7 @@ class LearningParams:
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
-        self.MAX_NODES = 500
+        self.MAX_NODES = 1000
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -256,7 +256,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
 
     avgRandom = avgBalanced = avgRL = 0.0
     for i in range(len(arrDumb)):
-        if arrDumb[i] > 0:
+        if i > 200 and arrDumb[i] > 0:
             avgRandom += arrRandom[i] / arrDumb[i]
             avgBalanced += arrBalanced[i] / arrDumb[i]
             #print("arrRL", arrRL[i], arrDumb[i])
@@ -409,10 +409,10 @@ class Candidates:
         langId = link.parentNode.lang
         numSiblings = len(link.parentNode.links)
         
-        numVisitedSiblings = self.env.GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
+        numVisitedSiblings = GetVistedSiblings(link.childNode.urlId, link.parentNode, visited)
         numVisitedSiblings = len(numVisitedSiblings)
 
-        matchedSiblings = self.env.GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
+        matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
         numMatchedSiblings = len(matchedSiblings)
         
         #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
@@ -464,7 +464,7 @@ class Candidates:
         
         for key, nodes in self.dict.items():
             if len(nodes) > 0:
-                assert(numLangs < langRequested.shape[1])
+                assert(numLangs < self.params.MAX_NODES)
                 langRequested[0, numLangs] = key[0]
                 numSiblings[0, numLangs] = key[1]
                 numVisitedSiblings[0, numLangs] = key[2]
@@ -902,8 +902,8 @@ def main():
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
-    hostsTest = ["http://www.visitbritain.com/"]
-    #hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
+    #hostsTest = ["http://www.visitbritain.com/"]
+    hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
     envs = GetEnvs(sqlconn, languages, hosts)
     envsTest = GetEnvs(sqlconn, languages, hostsTest)
