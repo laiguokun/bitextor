@@ -360,7 +360,6 @@ class Corpus:
 
             i += 1
 
-        #_, loss, sumWeight = sess.run([qn.updateModel, qn.loss, qn.sumWeight], feed_dict={qn.input: childIds, qn.nextQ: targetQ})
         TIMER.Start("UpdateQN.1")
         loss = self.qn.Update(sess, numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
         TIMER.Pause("UpdateQN.1")
@@ -853,9 +852,6 @@ def Walk(env, params, sess, qns):
 
 ######################################################################################
 def Train(params, sess, saver, qns, envs, envsTest):
-    totRewards = []
-    totDiscountedRewards = []
-
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
@@ -873,8 +869,6 @@ def Train(params, sess, saver, qns, envs, envsTest):
             print("epoch", epoch)
             SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
             SavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
-
-    return totRewards, totDiscountedRewards
 
 ######################################################################################
 def main():
@@ -928,7 +922,7 @@ def main():
     with tf.Session() as sess:
         sess.run(init)
 
-        totRewards, totDiscountedRewards = Train(params, sess, saver, qns, envs, envsTest)
+        Train(params, sess, saver, qns, envs, envsTest)
 
 ######################################################################################
 main()
