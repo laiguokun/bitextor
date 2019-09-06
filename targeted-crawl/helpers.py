@@ -4,26 +4,27 @@ import hashlib
 import sys
 from tldextract import extract
 import pickle
-
 from common import Timer, StrNone
+from common import MySQL
 
 global TIMER
 TIMER = Timer()
 
 ######################################################################################
-def GetEnvs(sqlconn, languages, urls):
+def GetEnvs(configFile, languages, urls):
     ret = []
     for url in urls:
-        env = GetEnv(sqlconn, languages, url)
+        env = GetEnv(configFile, languages, url)
         ret.append(env)
     return ret
 
 ######################################################################################
-def GetEnv(sqlconn, languages, url):
+def GetEnv(configFile, languages, url):
     domain = extract(url).domain
     filePath = 'pickled_domains/'+domain
     if not os.path.exists(filePath):
         print("mysql load", url)
+        sqlconn = MySQL(configFile)
         env = Env(sqlconn, url)
     else:
         print("unpickle", url)

@@ -1,4 +1,3 @@
-import mysql.connector
 import configparser
 import time
 
@@ -8,6 +7,7 @@ def StrNone(arg):
     else:
         return str(arg)
 
+######################################################################################
 class Timer:
     def __init__(self):
         self.starts = {}
@@ -30,9 +30,10 @@ class Timer:
         else:
             self.cumm[str] = now - then
 
-
+######################################################################################
 class MySQL:
     def __init__(self, config_file):
+        import mysql.connector
         config = configparser.ConfigParser()
         config.read(config_file)
         self.mydb = mysql.connector.connect(
@@ -45,9 +46,15 @@ class MySQL:
         self.mydb.autocommit = False
         self.mycursor = self.mydb.cursor(buffered=True)
 
+######################################################################################
+#def GetLanguages(sqlconn, languages, url):
+#    domain = extract(url).domain
+
+######################################################################################
 class Languages:
-    def __init__(self, mycursor):
-        self.mycursor = mycursor
+    def __init__(self, configFile):
+        self.sqlconn = MySQL(configFile)
+        self.mycursor = self.sqlconn.mycursor
         self.coll = {}
 
         sql = "SELECT id, lang FROM language"

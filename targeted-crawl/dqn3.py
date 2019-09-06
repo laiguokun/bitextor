@@ -852,6 +852,7 @@ def Walk(env, params, sess, qns):
 
 ######################################################################################
 def Train(params, sess, saver, qns, envs, envsTest):
+    print("Start training")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
@@ -894,9 +895,7 @@ def main():
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
-    sqlconn = MySQL(options.configFile)
-
-    languages = Languages(sqlconn.mycursor)
+    languages = Languages(options.configFile)
     params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
@@ -910,8 +909,8 @@ def main():
     #hostsTest = ["http://www.visitbritain.com/"]
     hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
-    envs = GetEnvs(sqlconn, languages, hosts[:options.numTrainHosts])
-    envsTest = GetEnvs(sqlconn, languages, hostsTest[:options.numTestHosts])
+    envs = GetEnvs(options.configFile, languages, hosts[:options.numTrainHosts])
+    envsTest = GetEnvs(options.configFile, languages, hostsTest[:options.numTestHosts])
 
     tf.reset_default_graph()
     qns = Qnets(params)
