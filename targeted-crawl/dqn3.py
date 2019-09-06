@@ -564,9 +564,9 @@ class Qnetwork():
        
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
-        self.nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
+        nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
 
-        self.loss = self.nextQMasked - self.qValues
+        self.loss = nextQMasked - self.qValues
         self.loss = tf.reduce_sum(tf.square(self.loss))
         
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
