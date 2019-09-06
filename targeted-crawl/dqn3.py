@@ -523,8 +523,8 @@ class Qnetwork():
         self.hidden2 = tf.nn.relu(self.hidden2)
         #print("self.hidden2", self.hidden2.shape)
 
-        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
-        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
+        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM + 2], 0, 0.01))
+        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM + 2], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
         #self.hidden3 = tf.nn.relu(self.hidden3)
@@ -537,7 +537,10 @@ class Qnetwork():
         self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.batchSize * self.params.MAX_NODES, HIDDEN_DIM])
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
-        self.linkSpecific = tf.concat([self.langRequestedEmbedding], 1)
+        numSiblingsTS = tf.transpose(self.numSiblings)
+        numMatchedSiblingsTS = tf.transpose(self.numMatchedSiblings)
+
+        self.linkSpecific = tf.concat([self.langRequestedEmbedding, numSiblingsTS, numMatchedSiblingsTS], 1)
 
         # final q-values
         self.hidden3 = tf.matmul(self.linkSpecific, self.hidden3)
@@ -578,7 +581,7 @@ class Qnetwork():
             #print("langRequested", langRequested.shape, langRequested)
             #print("mask", mask.shape, mask)
             
-            qValues, hidden3 = sess.run([self.qValues, self.hidden3], 
+            qValues = sess.run([self.qValues], 
                                     feed_dict={self.langRequested: langRequested,
                                         self.numLangs: numLangsNP,
                                         self.mask: mask,
@@ -589,6 +592,8 @@ class Qnetwork():
             #qValues = qValues[0]
             #print("hidden3", hidden3.shape, hidden3)
             #print("qValues", qValues.shape, qValues)
+            #print("linkSpecific", linkSpecific.shape)
+            #print("numSiblings", numSiblings.shape)
             qValues = np.reshape(qValues, [1, qValues.shape[0] ])
             #print("   qValues", qValues)
 
