@@ -18,9 +18,9 @@ from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, Env, Link
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
-        self.gamma = 0.99
+        self.gamma = 0.999
         self.lrn_rate = 0.1
-        self.alpha = 1.0 # 0.7
+        self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
         self.maxBatchSize = 1
