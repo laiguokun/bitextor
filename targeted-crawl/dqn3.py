@@ -546,17 +546,12 @@ class Qnetwork():
         #self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.batchSize * self.params.MAX_NODES, HIDDEN_DIM])
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
-        langRequestedTS = tf.transpose(self.langRequested)
-        langRequestedTS = tf.cast(langRequestedTS, dtype=tf.float32)
-        numSiblingsTS = tf.transpose(self.numSiblings)
-        numVisitedSiblingsTS = tf.transpose(self.numVisitedSiblings)
-        numMatchedSiblingsTS = tf.transpose(self.numMatchedSiblings)
-
-        self.linkSpecific = tf.concat([langRequestedTS, numSiblingsTS, numVisitedSiblingsTS, numMatchedSiblingsTS], 1)
-
         self.WlinkSpecific = tf.Variable(tf.random_uniform([4, HIDDEN_DIM + 3], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM + 3], 0, 0.01))
 
+        langRequestedFloat32 = tf.cast(self.langRequested, dtype=tf.float32)
+        self.linkSpecific = tf.concat([langRequestedFloat32, self.numSiblings, self.numVisitedSiblings, self.numMatchedSiblings], 0)
+        self.linkSpecific = tf.transpose(self.linkSpecific)
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)
         self.linkSpecific = tf.nn.relu(self.linkSpecific)
@@ -602,7 +597,7 @@ class Qnetwork():
             #print("langRequested", numLangs, langRequested.shape)
             #print("mask", mask.shape, mask)
             
-            (qValues, linkSpecific) = sess.run([self.qValues, self.linkSpecific], 
+            (qValues, ) = sess.run([self.qValues, ], 
                                     feed_dict={self.langRequested: langRequested,
                                         self.numLangs: numLangsNP,
                                         self.mask: mask,
