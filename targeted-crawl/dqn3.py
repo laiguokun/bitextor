@@ -271,7 +271,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     ax.plot(arrDumb, label="dumb ", color='maroon')
     ax.plot(arrRandom, label="random {0:.1f}".format(avgRandom), color='firebrick')
     ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
-    ax.plot(arrRL, label="RL {0:.1f}".format(avgRL), color='salmon')
+    ax.plot(arrRL, label="RL {0:.1f} {1:.1f}".format(avgRL, totDiscountedReward), color='salmon')
 
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
