@@ -493,19 +493,16 @@ class Qnetwork():
         HIDDEN_DIM = 512
         NUM_FEATURES = params.maxLangId + 1
 
-        # EMBEDDINGS
-        #self.embeddings = tf.Variable(tf.random_uniform([params.maxLangId + 1, HIDDEN_DIM], 0, 0.01))
-
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
 
         # graph represention
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
         self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
-        self.numLangs = tf.placeholder(shape=[None, 1], dtype=tf.int32)
+        self.numLangs = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # link representation
-        self.langRequested = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.int32)
+        self.langRequested = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         self.numSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         self.numVisitedSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         self.numMatchedSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
@@ -514,8 +511,7 @@ class Qnetwork():
         self.batchSize = tf.shape(self.langRequested)[0]
         
         # network
-        self.numLangsFloat32 = tf.cast(self.numLangs, dtype=tf.float32)
-        self.input = tf.concat([self.langIds, self.langsVisited, self.numLangsFloat32], 1)
+        self.input = tf.concat([self.langIds, self.langsVisited, self.numLangs], 1)
         #print("self.input", self.input.shape)
 
         self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
@@ -532,8 +528,8 @@ class Qnetwork():
         self.hidden2 = tf.nn.relu(self.hidden2)
         #print("self.hidden2", self.hidden2.shape)
 
-        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM + 3], 0, 0.01))
-        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM + 3], 0, 0.01))
+        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
+        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
         self.hidden3 = tf.nn.relu(self.hidden3)
@@ -546,11 +542,10 @@ class Qnetwork():
         #self.langRequestedEmbedding = tf.reshape(self.langRequestedEmbedding, [self.batchSize * self.params.MAX_NODES, HIDDEN_DIM])
         #print("self.langRequested", self.langRequested.shape, self.langRequestedEmbedding)
 
-        self.WlinkSpecific = tf.Variable(tf.random_uniform([4, HIDDEN_DIM + 3], 0, 0.01))
-        self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM + 3], 0, 0.01))
+        self.WlinkSpecific = tf.Variable(tf.random_uniform([4, HIDDEN_DIM], 0, 0.01))
+        self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
 
-        langRequestedFloat32 = tf.cast(self.langRequested, dtype=tf.float32)
-        self.linkSpecific = tf.concat([langRequestedFloat32, self.numSiblings, self.numVisitedSiblings, self.numMatchedSiblings], 0)
+        self.linkSpecific = tf.concat([self.langRequested, self.numSiblings, self.numVisitedSiblings, self.numMatchedSiblings], 0)
         self.linkSpecific = tf.transpose(self.linkSpecific)
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)
