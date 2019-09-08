@@ -19,7 +19,7 @@ from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, Env, Link
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
         self.gamma = 0.999
-        self.lrn_rate = 0.1
+        self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
@@ -249,7 +249,7 @@ def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
     arrDumb = dumb(env, len(env.nodes), params)
     arrRandom = randomCrawl(env, len(env.nodes), params)
     arrBalanced = balanced(env, len(env.nodes), params)
-    arrRL = Walk(env, params, sess, qns)
+    arrRL, totReward, totDiscountedReward = Walk(env, params, sess, qns)
 
     url = env.rootURL
     domain = extract(url).domain
@@ -567,20 +567,21 @@ class Qnetwork():
         nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
 
         self.loss = nextQMasked - self.qValues
+        self.loss = tf.reduce_max(tf.square(self.loss))
+        #self.loss = tf.reduce_mean(tf.square(self.loss))
         #self.loss = tf.reduce_sum(tf.square(self.loss))
-        self.loss = tf.reduce_sum(tf.square(self.loss))
         
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
-        self.sumWeight = tf.reduce_sum(self.W1) \
-                         + tf.reduce_sum(self.b1) \
-                         + tf.reduce_sum(self.W2) \
-                         + tf.reduce_sum(self.b2) \
-                         + tf.reduce_sum(self.W3) \
-                         + tf.reduce_sum(self.b3) 
+        #self.sumWeight = tf.reduce_sum(self.W1) \
+        #                 + tf.reduce_sum(self.b1) \
+        #                 + tf.reduce_sum(self.W2) \
+        #                 + tf.reduce_sum(self.b2) \
+        #                 + tf.reduce_sum(self.W3) \
+        #                 + tf.reduce_sum(self.b3) 
 
     def PredictAll(self, env, sess, langIds, langsVisited, candidates):
         numLangs, langRequested, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
@@ -849,7 +850,7 @@ def Walk(env, params, sess, qns):
     print(actionStr)
     print(mainStr)
     print(rewardStr)
-    return ret
+    return ret, totReward, totDiscountedReward
 
 ######################################################################################
 def Train(params, sess, saver, qns, envs, envsTest):
