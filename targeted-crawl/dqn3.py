@@ -567,10 +567,11 @@ class Qnetwork():
         nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
 
         self.loss = nextQMasked - self.qValues
+        #self.loss = tf.reduce_sum(tf.square(self.loss))
         self.loss = tf.reduce_sum(tf.square(self.loss))
         
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
-        self.trainer = tf.train.AdamOptimizer() #learning_rate=lrn_rate)
+        self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)
         
         self.updateModel = self.trainer.minimize(self.loss)
 
@@ -633,7 +634,7 @@ class Qnetwork():
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.nextQ: targetQ})
-        #print("loss", loss)
+        print("loss", loss, numLangs)
         return loss
 
 ######################################################################################
