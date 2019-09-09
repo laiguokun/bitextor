@@ -16,9 +16,11 @@ except:
 ######################################################################################
 def discount_rewards(r, gamma):
     """ take 1D float array of rewards and compute discounted reward """
+    #print("r", r)
     discounted_r = np.zeros_like(r)
     running_add = 0
     for t in reversed(xrange(0, r.size)):
+        print("t", t)
         running_add = running_add * gamma + r[t]
         discounted_r[t] = running_add
     return discounted_r
@@ -89,6 +91,7 @@ def main():
                 a_dist = sess.run(myAgent.output,feed_dict={myAgent.state_in:[s]})
                 a = np.random.choice(a_dist[0],p=a_dist[0])
                 a = np.argmax(a_dist == a)
+                #print("a_dist", a, a_dist)
 
                 s1,r,d,_ = env.step(a) #Get our reward for taking an action given a bandit.
                 ep_history.append([s,a,r,s1])
@@ -96,10 +99,13 @@ def main():
                 running_reward += r
                 if d == True:
                     #Update the network.
+                    print("ep_history", ep_history)
                     ep_history = np.array(ep_history)
+                    print("   ep_history", ep_history.shape, ep_history)
                     ep_history[:,2] = discount_rewards(ep_history[:,2], gamma)
-                    feed_dict={myAgent.reward_holder:ep_history[:,2],
-                            myAgent.action_holder:ep_history[:,1],myAgent.state_in:np.vstack(ep_history[:,0])}
+                    feed_dict={myAgent.reward_holder:   ep_history[:,2],
+                               myAgent.action_holder:   ep_history[:,1],
+                               myAgent.state_in:        np.vstack(ep_history[:,0])}
                     grads = sess.run(myAgent.gradients, feed_dict=feed_dict)
                     for idx,grad in enumerate(grads):
                         gradBuffer[idx] += grad
