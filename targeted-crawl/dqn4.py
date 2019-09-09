@@ -565,8 +565,8 @@ class Qnetwork():
         nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
 
         self.loss = nextQMasked - self.qValues
-        self.loss = tf.reduce_max(tf.square(self.loss))
-        #self.loss = tf.reduce_mean(tf.square(self.loss))
+        #self.loss = tf.reduce_max(tf.square(self.loss))
+        self.loss = tf.reduce_mean(tf.square(self.loss))
         #self.loss = tf.reduce_sum(tf.square(self.loss))
         
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
