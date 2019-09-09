@@ -797,7 +797,7 @@ def Walk(env, params, sess, qns):
     #link = Link("", 0, stopNode, stopNode)
     #candidates.AddLink(link)
 
-    mainStr = "nodes:" + str(node.urlId)
+    mainStr = "lang:" + str(node.lang)
     rewardStr = "rewards:"
     actionStr = "actions:"
 
@@ -830,7 +830,7 @@ def Walk(env, params, sess, qns):
         totReward += reward
         totDiscountedReward += discount * reward
 
-        mainStr += "->" + str(node.urlId)
+        mainStr += "->" + str(node.lang)
         rewardStr += "->" + str(reward)
 
         if node.alignedNode is not None:
