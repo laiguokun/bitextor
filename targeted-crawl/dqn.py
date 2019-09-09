@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 import pylab as plt
 
-from common import MySQL, Languages, Timer
+from common import GetLanguages, Languages, Timer
 from helpers import GetEnvs, Env, Link
 
 ######################################################################################
@@ -771,14 +771,16 @@ def main():
                      help="Directory ")
     oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
                          default=False, help="If True then only unique transition are used in each batch")
+    oparser.add_argument("--num-train-hosts", dest="numTrainHosts", type=int,
+                         default=1, help="Number of domains to train on")
+    oparser.add_argument("--num-test-hosts", dest="numTestHosts", type=int,
+                         default=3, help="Number of domains to test on")
     options = oparser.parse_args()
 
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
-    sqlconn = MySQL(options.configFile)
-
-    languages = Languages(sqlconn.mycursor)
+    languages = GetLanguages(options.configFile)
     params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
@@ -791,8 +793,8 @@ def main():
     #hostNameTest = "http://www.buchmann.ch/"
     hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
-    envs = GetEnvs(sqlconn, languages, hosts)
-    envsTest = GetEnvs(sqlconn, languages, hostsTest)
+    envs = GetEnvs(options.configFile, languages, hosts[:options.numTrainHosts])
+    envsTest = GetEnvs(options.configFile, languages, hostsTest[:options.numTestHosts])
 
     tf.reset_default_graph()
     qns = Qnets(params)
