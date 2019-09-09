@@ -340,7 +340,7 @@ class Corpus:
         numVisitedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         numMatchedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langsVisited = np.empty([batchSize, params.maxLangId + 1])
+        langsVisited = np.empty([batchSize, 3])
         targetQ = np.empty([batchSize, self.params.MAX_NODES])
 
         i = 0
@@ -491,14 +491,13 @@ class Qnetwork():
         self.corpus = Corpus(params, self)
 
         HIDDEN_DIM = 512
-        NUM_FEATURES = params.maxLangId + 1
 
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
 
         # graph represention
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
-        self.langsVisited = tf.placeholder(shape=[None, NUM_FEATURES], dtype=tf.float32)
+        self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # link representation
@@ -514,7 +513,7 @@ class Qnetwork():
         self.input = tf.concat([self.langIds, self.langsVisited, self.numActions], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([NUM_FEATURES + 3, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([3 + 3, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -705,7 +704,7 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     nextCandidates.AddLinks(link.childNode, nextVisited, params)
 
     nextLangsVisited = langsVisited.copy()
-    nextLangsVisited[0, link.childNode.lang] += 1
+    UpdateLangsVisited(nextLangsVisited, link.childNode, params.langIds)
 
     if nextCandidates.Count() > 0:
         _, _, _, _, _, _, _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
@@ -735,10 +734,19 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     return transition
 
 ######################################################################################
+def UpdateLangsVisited(langsVisited, node, langIds):
+        if node.lang == langIds[0, 0]:
+            langsVisited[0, 0] += 1
+        elif node.lang == langIds[0, 1]:
+            langsVisited[0, 1] += 1
+        else:
+            langsVisited[0, 2] += 1
+
+######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, params.maxLangId + 1]) # langId -> count
+    langsVisited = np.zeros([1, 3]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -758,7 +766,8 @@ def Trajectory(env, epoch, params, sess, qns):
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
-        langsVisited[0, node.lang] += 1
+
+        UpdateLangsVisited(langsVisited, node, params.langIds)        
         #print("   langsVisited", langsVisited)
 
         candidates.AddLinks(node, visited, params)
@@ -789,7 +798,7 @@ def Trajectory(env, epoch, params, sess, qns):
 def Walk(env, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, params.maxLangId + 1]) # langId -> count
+    langsVisited = np.zeros([1, 3]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -813,7 +822,7 @@ def Walk(env, params, sess, qns):
         #print("node", node.Debug())
         visited.add(node.urlId)
         #print("node.lang", node.lang, langsVisited.shape)
-        langsVisited[0, node.lang] += 1
+        UpdateLangsVisited(langsVisited, node, params.langIds)        
         #print("   langsVisited", langsVisited)
 
         candidates.AddLinks(node, visited, params)
