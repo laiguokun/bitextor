@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 #https://github.com/awjuliani/DeepRL-Agents/blob/master/Vanilla-Policy.ipynb?source=post_page-----ded33892c724----------------------
+#https://medium.com/@awjuliani/super-simple-reinforcement-learning-tutorial-part-2-ded33892c724
 
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
