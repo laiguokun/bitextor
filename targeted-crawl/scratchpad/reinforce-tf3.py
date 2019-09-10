@@ -37,12 +37,19 @@ class agent():
         #The next six lines establish the training proceedure. We feed the reward and chosen action into the network
         #to compute the loss, and use it to update the network.
         self.reward_holder = tf.placeholder(shape=[None],dtype=tf.float32)
-        self.action_holder = tf.placeholder(shape=[None],dtype=tf.int32)
+        self.action_holder = tf.placeholder(shape=[None],dtype=tf.int32) #  0 or 1
         
-        self.indexes = tf.range(0, tf.shape(self.output)[0]) * tf.shape(self.output)[1] + self.action_holder
-        self.responsible_outputs = tf.gather(tf.reshape(self.output, [-1]), self.indexes)
+        self.r1 = tf.range(0, tf.shape(self.output)[0])  # 0 1 2 3 4 len=length of trajectory
+        self.r2 = tf.shape(self.output)[1]   # a_size = 2     
+        self.r3 = self.r1 * self.r2          # 0 2 4 6 8
+        self.indexes = self.r3 + self.action_holder # r3 + 0/1 offset depending on action
 
-        self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs)*self.reward_holder)
+        self.o1 = tf.reshape(self.output, [-1]) # all action probs in 1-d
+        self.responsible_outputs = tf.gather(self.o1, self.indexes) # the prob of the action. Should have just stored it!? len=length of trajectory
+
+        self.l1 = tf.log(self.responsible_outputs)
+        self.l2 = self.l1 * self.reward_holder  # log prob * reward. len=length of trajectory
+        self.loss = -tf.reduce_mean(self.l2)
         
         tvars = tf.trainable_variables()
         self.gradient_holders = []
@@ -99,6 +106,7 @@ def main():
                 running_reward += r
                 if d == True:
                     #Update the network.
+                    #print("ep_history", len(ep_history))
                     #print("ep_history", ep_history)
                     ep_history = np.array(ep_history)
                     #print("   ep_history", ep_history.shape, ep_history)
@@ -106,9 +114,28 @@ def main():
                     feed_dict={myAgent.reward_holder:   ep_history[:,2],
                                myAgent.action_holder:   ep_history[:,1],
                                myAgent.state_in:        np.vstack(ep_history[:,0])}
-                    [grads, indexes] = sess.run([myAgent.gradients, myAgent.indexes], feed_dict=feed_dict)
+                    [grads, indexes, responsible_outputs, r1, r2, r3, output, o1, l2, loss] = sess.run([myAgent.gradients, 
+                                                                                myAgent.indexes, 
+                                                                                myAgent.responsible_outputs, 
+                                                                                myAgent.r1, 
+                                                                                myAgent.r2, 
+                                                                                myAgent.r3,
+                                                                                myAgent.output,
+                                                                                myAgent.o1,
+                                                                                myAgent.l2,
+                                                                                myAgent.loss], feed_dict=feed_dict)
                     #print("grads", grads, indexes)
-                    print("indexes", indexes)
+                    #print("output", output.shape, output)
+                    #print("r1", r1)
+                    #print("r2", r2)
+                    #print("r3", r3)
+                    #print("action holder", ep_history[:,1].shape, ep_history[:,1])
+                    #print("reward_holder holder", ep_history[:,2].shape, ep_history[:,2])
+                    #print("indexes", indexes)
+                    #print("o1", o1.shape, o1)
+                    #print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
+                    #print("l2", l2.shape, l2)
+                    #print("loss", loss.shape, loss)
 
                     for idx,grad in enumerate(grads):
                         gradBuffer[idx] += grad
