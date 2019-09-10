@@ -53,11 +53,17 @@ class agent():
         
         tvars = tf.trainable_variables()
         self.gradient_holders = []
-        for idx,var in enumerate(tvars):
-            placeholder = tf.placeholder(tf.float32,name=str(idx)+'_holder')
-            self.gradient_holders.append(placeholder)
-        
-        self.gradients = tf.gradients(self.loss,tvars)
+        #for idx,var in enumerate(tvars): # idx = contiguous int, var = variable shape (4,8) (8,2)
+        #    print("idx", idx)
+        #    print("var", var)
+        #    placeholder = tf.placeholder(tf.float32,name=str(idx)+'_holder')
+        #    self.gradient_holders.append(placeholder)
+        self.gradient_holder0 = tf.placeholder(tf.float32)
+        self.gradient_holder1 = tf.placeholder(tf.float32)
+        self.gradient_holders.append(self.gradient_holder0)
+        self.gradient_holders.append(self.gradient_holder1)
+
+        self.grads = self.gradients = tf.gradients(self.loss,tvars) # grads same shape as gradient_holder0. (4,8) (8,2)
         
         optimizer = tf.train.AdamOptimizer(learning_rate=lr)
         self.update_batch = optimizer.apply_gradients(zip(self.gradient_holders,tvars))
@@ -114,7 +120,7 @@ def main():
                     feed_dict={myAgent.reward_holder:   ep_history[:,2],
                                myAgent.action_holder:   ep_history[:,1],
                                myAgent.state_in:        np.vstack(ep_history[:,0])}
-                    [grads, indexes, responsible_outputs, r1, r2, r3, output, o1, l2, loss] = sess.run([myAgent.gradients, 
+                    [grads, indexes, responsible_outputs, r1, r2, r3, output, o1, l2, loss, grads] = sess.run([myAgent.gradients, 
                                                                                 myAgent.indexes, 
                                                                                 myAgent.responsible_outputs, 
                                                                                 myAgent.r1, 
@@ -123,7 +129,8 @@ def main():
                                                                                 myAgent.output,
                                                                                 myAgent.o1,
                                                                                 myAgent.l2,
-                                                                                myAgent.loss], feed_dict=feed_dict)
+                                                                                myAgent.loss,
+                                                                                myAgent.grads], feed_dict=feed_dict)
                     #print("grads", grads, indexes)
                     #print("output", output.shape, output)
                     #print("r1", r1)
@@ -136,6 +143,9 @@ def main():
                     #print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
                     #print("l2", l2.shape, l2)
                     #print("loss", loss.shape, loss)
+                    for grad in grads:
+                        print("grad", grad.shape)
+                    print()
 
                     for idx,grad in enumerate(grads):
                         gradBuffer[idx] += grad
