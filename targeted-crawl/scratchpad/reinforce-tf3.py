@@ -51,6 +51,7 @@ class agent():
         self.l2 = self.l1 * self.reward_holder  # log prob * reward. len=length of trajectory
         self.loss = -tf.reduce_mean(self.l2)    # 1 number
         
+        # calc grads, but don't actually update weights
         tvars = tf.trainable_variables()
         self.gradient_holders = []
         #for idx,var in enumerate(tvars): # idx = contiguous int, var = variable shape (4,8) (8,2)
@@ -65,6 +66,7 @@ class agent():
 
         self.grads = self.gradients = tf.gradients(self.loss,tvars) # grads same shape as gradient_holder0. (4,8) (8,2)
         
+        # update weights
         optimizer = tf.train.AdamOptimizer(learning_rate=lr)
         self.update_batch = optimizer.apply_gradients(zip(self.gradient_holders,tvars))
 
@@ -149,13 +151,18 @@ def main():
 
                     for idx,grad in enumerate(grads):
                         gradBuffer[idx] += grad
+                    #print("gradBuffer", gradBuffer)
 
                     if i % update_frequency == 0 and i != 0:
-                        feed_dict= dictionary = dict(zip(myAgent.gradient_holders, gradBuffer))
+                        # update every 5 episode
+                        feed_dict= dict(zip(myAgent.gradient_holders, gradBuffer))
                         _ = sess.run(myAgent.update_batch, feed_dict=feed_dict)
                         for ix,grad in enumerate(gradBuffer):
                             gradBuffer[ix] = grad * 0
-                    
+                        #print("   gradBuffer", gradBuffer)
+                    #else:
+                    #    print("nah")
+
                     total_reward.append(running_reward)
                     total_length.append(j)
                     break

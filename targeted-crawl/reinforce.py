@@ -568,11 +568,22 @@ class Qnetwork():
         #self.loss = tf.reduce_max(tf.square(self.loss))
         self.loss = tf.reduce_mean(tf.square(self.loss))
         #self.loss = tf.reduce_sum(tf.square(self.loss))
+
+        tvars = tf.trainable_variables()
+        self.gradient_holders = []
+        for idx,var in enumerate(tvars): # idx = contiguous int, var = variable shape (4,8) (8,2)
+            print("idx", idx)
+            print("var", var)
+            placeholder = tf.placeholder(tf.float32,name=str(idx)+'_holder')
+            self.gradient_holders.append(placeholder)
+
+        self.grads = self.gradients = tf.gradients(self.loss,tvars) # grads same shape as gradient_holder0. (4,8) (8,2)
         
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)
         
-        self.updateModel = self.trainer.minimize(self.loss)
+        self.updateModel = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
+        #self.updateModel = self.trainer.minimize(self.loss)
 
         #self.sumWeight = tf.reduce_sum(self.W1) \
         #                 + tf.reduce_sum(self.b1) \
