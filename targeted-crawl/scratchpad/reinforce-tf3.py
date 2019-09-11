@@ -150,11 +150,11 @@ def main():
                     #print()
 
                     for idx,grad in enumerate(grads):
-                        gradBuffer[idx] += grad
-                    #print("gradBuffer", gradBuffer)
+                        gradBuffer[idx] += grad         # accumulate gradients
 
                     if i % update_frequency == 0 and i != 0:
                         # update every 5 episode
+                        #print("gradBuffer", gradBuffer)
                         feed_dict= dict(zip(myAgent.gradient_holders, gradBuffer))
                         _ = sess.run(myAgent.update_batch, feed_dict=feed_dict)
                         for ix,grad in enumerate(gradBuffer):
