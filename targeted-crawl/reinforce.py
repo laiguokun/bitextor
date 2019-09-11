@@ -603,7 +603,9 @@ class Qnetwork():
             #qValues = qValues[0]
             #print("hidden3", hidden3.shape, hidden3)
             #print("qValues", qValues.shape, qValues)
-            #print("linkSpecific", linkSpecific.shape)
+            #print("numActionsNP", numActionsNP.shape)
+            #print("mask", mask.shape)
+            #print("linkLang", linkLang.shape)
             #print("numSiblings", numSiblings.shape)
             #print("numVisitedSiblings", numVisitedSiblings.shape)
             #print("numMatchedSiblings", numMatchedSiblings.shape)
@@ -638,6 +640,19 @@ class Qnetwork():
                                             self.nextQ: targetQ})
         #print("loss", loss, numActions)
         return loss
+
+######################################################################################
+class State:
+    def __init__(self, numActions, mask, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited):
+        self.numActions = numActions
+        self.mask = mask
+        self.linkLang = linkLang
+        self.numSiblings = numSiblings
+        self.numVisitedSiblings = numVisitedSiblings
+        self.numMatchedSiblings = numMatchedSiblings
+        self.langIds = langIds
+        self.langsVisited = langsVisited
+
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings):
