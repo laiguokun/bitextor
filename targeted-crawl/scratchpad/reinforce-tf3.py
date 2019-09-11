@@ -118,7 +118,10 @@ def main():
                     #print("ep_history", ep_history)
                     ep_history = np.array(ep_history)
                     #print("   ep_history", ep_history.shape, ep_history)
+                    #print("ep_history", ep_history[:,2])
                     ep_history[:,2] = discount_rewards(ep_history[:,2], gamma)
+                    #print("   ep_history", ep_history[:,2])
+
                     feed_dict={myAgent.reward_holder:   ep_history[:,2],
                                myAgent.action_holder:   ep_history[:,1],
                                myAgent.state_in:        np.vstack(ep_history[:,0])}
@@ -150,11 +153,11 @@ def main():
                     #print()
 
                     for idx,grad in enumerate(grads):
-                        gradBuffer[idx] += grad
-                    #print("gradBuffer", gradBuffer)
+                        gradBuffer[idx] += grad         # accumulate gradients
 
                     if i % update_frequency == 0 and i != 0:
                         # update every 5 episode
+                        #print("gradBuffer", gradBuffer)
                         feed_dict= dict(zip(myAgent.gradient_holders, gradBuffer))
                         _ = sess.run(myAgent.update_batch, feed_dict=feed_dict)
                         for ix,grad in enumerate(gradBuffer):
