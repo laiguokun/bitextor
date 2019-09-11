@@ -49,7 +49,7 @@ class agent():
 
         self.l1 = tf.log(self.responsible_outputs)
         self.l2 = self.l1 * self.reward_holder  # log prob * reward. len=length of trajectory
-        self.loss = -tf.reduce_mean(self.l2)
+        self.loss = -tf.reduce_mean(self.l2)    # 1 number
         
         tvars = tf.trainable_variables()
         self.gradient_holders = []
@@ -142,10 +142,10 @@ def main():
                     #print("o1", o1.shape, o1)
                     #print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
                     #print("l2", l2.shape, l2)
-                    #print("loss", loss.shape, loss)
-                    for grad in grads:
-                        print("grad", grad.shape)
-                    print()
+                    print("loss", loss)
+                    #for grad in grads:
+                    #    print("grad", grad.shape)
+                    #print()
 
                     for idx,grad in enumerate(grads):
                         gradBuffer[idx] += grad
