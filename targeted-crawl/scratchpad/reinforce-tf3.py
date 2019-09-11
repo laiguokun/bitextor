@@ -142,7 +142,7 @@ def main():
                     #print("o1", o1.shape, o1)
                     #print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
                     #print("l2", l2.shape, l2)
-                    print("loss", loss)
+                    #print("loss", loss)
                     #for grad in grads:
                     #    print("grad", grad.shape)
                     #print()
