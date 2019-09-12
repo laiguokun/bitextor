@@ -11,7 +11,9 @@ sys.path.append(relDir)
 from helpers import Link
 
 ######################################################################################
-def GetNextState(env, params, action, visited, candidates, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings):
+def GetNextState(env, params, action, visited, candidates):
+    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+
     #print("candidates", action, candidates.Debug())
     if action == -1:
         # no explicit stop state but no candidates
@@ -58,7 +60,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
         #print("action", action, qValues)
 
     #print("action", action, maxQ, qValues)
-    link, reward = GetNextState(env, params, action, visited, candidates, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings)
+    link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
     #print("action", action, qValues, link.childNode.Debug(), reward)
 
