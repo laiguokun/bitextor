@@ -5,6 +5,63 @@ import tensorflow as tf
 
 from corpus import Corpus
 
+relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+#print("relDir", relDir)
+sys.path.append(relDir)
+from helpers import Link
+
+######################################################################################
+def GetNextState(env, params, action, visited, candidates, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings):
+    #print("candidates", action, candidates.Debug())
+    if action == -1:
+        # no explicit stop state but no candidates
+        stopNode = env.nodes[0]
+        link = Link("", 0, stopNode, stopNode)
+    else:
+        langId = linkLang[0, action]
+        numSiblings1 = numSiblings[0, action]
+        numVisitedSiblings1 = numVisitedSiblings[0, action]
+        numMatchedSiblings1 = numMatchedSiblings[0, action]
+        key = (langId, numSiblings1, numVisitedSiblings1, numMatchedSiblings1)
+        link = candidates.Pop(key)
+ 
+    assert(link is not None)
+    nextNode = link.childNode
+    #print("   nextNode", nextNode.Debug())
+
+    if nextNode.urlId == 0:
+        #print("   stop")
+        reward = 0.0
+    elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
+        reward = params.reward
+        #print("   visited", visited)
+        #print("   reward", reward)
+        #print()
+    else:
+        #print("   non-rewarding")
+        reward = params.cost
+
+    return link, reward
+
+######################################################################################
+def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
+    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
+    #print("action", action, linkLang, qValues)
+    if action >= 0:
+        if np.random.rand(1) < eps:
+            #print("actions", type(actions), actions)
+            action = np.random.randint(0, numActions)
+            maxQ = qValues[0, action]
+            #print("random")
+        #print("action", action, qValues)
+
+    #print("action", action, maxQ, qValues)
+    link, reward = GetNextState(env, params, action, visited, candidates, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings)
+    assert(link is not None)
+    #print("action", action, qValues, link.childNode.Debug(), reward)
+
+    return numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward
+
 ######################################################################################
 class Qnets():
     def __init__(self, params):

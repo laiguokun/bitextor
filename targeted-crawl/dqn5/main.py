@@ -5,12 +5,6 @@ import numpy as np
 import argparse
 import hashlib
 import tensorflow as tf
-from tldextract import extract
-
-import matplotlib
-# Force matplotlib to not use any Xwindows backend.
-matplotlib.use('Agg')
-import pylab as plt
 
 relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 #print("relDir", relDir)
@@ -18,9 +12,9 @@ sys.path.append(relDir)
 from common import GetLanguages, Languages, Timer
 from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelDocs, Env, Link
 from corpus import Corpus
-from neural_net import Qnets, Qnetwork
-from save_plot import SavePlots
-from candidate import Candidates
+from neural_net import Qnets, Qnetwork, NeuralWalk, GetNextState
+from save_plot import SavePlots, Walk
+from candidate import Candidates, UpdateLangsVisited
 
 ######################################################################################
 class LearningParams:
@@ -81,58 +75,6 @@ class Transition:
         return ret
     
 ######################################################################################
-def GetNextState(env, params, action, visited, candidates, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings):
-    #print("candidates", action, candidates.Debug())
-    if action == -1:
-        # no explicit stop state but no candidates
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
-    else:
-        langId = linkLang[0, action]
-        numSiblings1 = numSiblings[0, action]
-        numVisitedSiblings1 = numVisitedSiblings[0, action]
-        numMatchedSiblings1 = numMatchedSiblings[0, action]
-        key = (langId, numSiblings1, numVisitedSiblings1, numMatchedSiblings1)
-        link = candidates.Pop(key)
- 
-    assert(link is not None)
-    nextNode = link.childNode
-    #print("   nextNode", nextNode.Debug())
-
-    if nextNode.urlId == 0:
-        #print("   stop")
-        reward = 0.0
-    elif nextNode.alignedNode is not None and nextNode.alignedNode.urlId in visited:
-        reward = params.reward
-        #print("   visited", visited)
-        #print("   reward", reward)
-        #print()
-    else:
-        #print("   non-rewarding")
-        reward = params.cost
-
-    return link, reward
-
-######################################################################################
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
-    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
-    #print("action", action, linkLang, qValues)
-    if action >= 0:
-        if np.random.rand(1) < eps:
-            #print("actions", type(actions), actions)
-            action = np.random.randint(0, numActions)
-            maxQ = qValues[0, action]
-            #print("random")
-        #print("action", action, qValues)
-
-    #print("action", action, maxQ, qValues)
-    link, reward = GetNextState(env, params, action, visited, candidates, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings)
-    assert(link is not None)
-    #print("action", action, qValues, link.childNode.Debug(), reward)
-
-    return numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward
-
-######################################################################################
 def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
     assert(link is not None)
@@ -173,15 +115,6 @@ def Neural(env, params, candidates, visited, langsVisited, sess, qnA, qnB):
                             qValues)
 
     return transition
-
-######################################################################################
-def UpdateLangsVisited(langsVisited, node, langIds):
-        if node.lang == langIds[0, 0]:
-            langsVisited[0, 0] += 1
-        elif node.lang == langIds[0, 1]:
-            langsVisited[0, 1] += 1
-        else:
-            langsVisited[0, 2] += 1
 
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
@@ -234,75 +167,6 @@ def Trajectory(env, epoch, params, sess, qns):
             break
 
     return ret
-
-######################################################################################
-def Walk(env, params, sess, qns):
-    ret = []
-    visited = set()
-    langsVisited = np.zeros([1, 3]) # langId -> count
-    candidates = Candidates(params, env)
-    node = env.nodes[sys.maxsize]
-
-    #stopNode = env.nodes[0]
-    #link = Link("", 0, stopNode, stopNode)
-    #candidates.AddLink(link)
-
-    mainStr = "lang:" + str(node.lang)
-    rewardStr = "rewards:"
-    actionStr = "actions:"
-
-    i = 0
-    numAligned = 0
-    totReward = 0.0
-    totDiscountedReward = 0.0
-    discount = 1.0
-
-    while True:
-        qnA = qns.q[0]
-        assert(node.urlId not in visited)
-        #print("node", node.Debug())
-        visited.add(node.urlId)
-        #print("node.lang", node.lang, langsVisited.shape)
-        UpdateLangsVisited(langsVisited, node, params.langIds)        
-        #print("   langsVisited", langsVisited)
-
-        candidates.AddLinks(node, visited, params)
-
-        numParallelDocs = NumParallelDocs(env, visited)
-        ret.append(numParallelDocs)
-
-        #print("candidates", candidates.Debug())
-        _, _, _, _, _, _, _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
-        node = link.childNode
-        #print("action", action, qValues)
-        actionStr += str(action) + " "
-
-        totReward += reward
-        totDiscountedReward += discount * reward
-
-        mainStr += "->" + str(node.lang)
-        rewardStr += "->" + str(reward)
-
-        if node.alignedNode is not None:
-            mainStr += "*"
-            numAligned += 1
-
-        discount *= params.gamma
-        i += 1
-
-        if node.urlId == 0:
-            break
-
-        if len(visited) > params.maxDocs:
-            break
-
-    mainStr += " " + str(i) 
-    rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
-
-    print(actionStr)
-    print(mainStr)
-    print(rewardStr)
-    return ret, totReward, totDiscountedReward
 
 ######################################################################################
 def Train(params, sess, saver, qns, envs, envsTest):
