@@ -72,6 +72,18 @@ def GetMatchedSiblings(urlId, parentNode, visited):
     return ret
 
 ######################################################################################
+def NumParallelDocs(env, visited):
+    ret = 0
+    for urlId in visited:
+        node = env.nodes[urlId]
+        #print("node", node.Debug())
+
+        if node.alignedNode is not None and node.alignedNode.urlId in visited:
+            ret += 1
+
+    return ret
+
+######################################################################################
 def NormalizeURL(url):
     url = url.lower()
     ind = url.find("#")
