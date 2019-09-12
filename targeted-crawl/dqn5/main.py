@@ -56,6 +56,11 @@ class LearningParams:
 
 ######################################################################################
 ######################################################################################
+def GetStartTransition(params, env, visited, candidates):
+    node = env.nodes[sys.maxsize]
+    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+    ret = Transition(sys.maxsize, sys.maxsize, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
+
 class Transition:
     def __init__(self, currURLId, nextURLId, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
         self.currURLId = currURLId
@@ -124,6 +129,16 @@ def Trajectory(env, epoch, params, sess, qns):
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
+    assert(node.urlId not in visited)
+    #print("node", node.Debug())
+    visited.add(node.urlId)
+
+    UpdateLangsVisited(langsVisited, node, params.langIds)        
+    #print("   langsVisited", langsVisited)
+
+    candidates.AddLinks(node, visited, params)
+
+
     #stopNode = env.nodes[0]
     #link = Link("", 0, stopNode, stopNode)
     #candidates.AddLink(link)
@@ -136,15 +151,6 @@ def Trajectory(env, epoch, params, sess, qns):
         else:
             qnA = qns.q[1]
             qnB = qns.q[0]
-
-        assert(node.urlId not in visited)
-        #print("node", node.Debug())
-        visited.add(node.urlId)
-
-        UpdateLangsVisited(langsVisited, node, params.langIds)        
-        #print("   langsVisited", langsVisited)
-
-        candidates.AddLinks(node, visited, params)
 
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)
@@ -162,6 +168,16 @@ def Trajectory(env, epoch, params, sess, qns):
 
             corpus.AddTransition(transition)
             node = env.nodes[transition.nextURLId]
+
+        assert(node.urlId not in visited)
+        #print("node", node.Debug())
+        visited.add(node.urlId)
+
+        UpdateLangsVisited(langsVisited, node, params.langIds)        
+        #print("   langsVisited", langsVisited)
+
+        candidates.AddLinks(node, visited, params)
+
 
         if len(visited) > params.maxDocs:
             break
