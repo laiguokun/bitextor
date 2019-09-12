@@ -56,10 +56,21 @@ class LearningParams:
 
 ######################################################################################
 ######################################################################################
-def GetStartTransition(params, env, visited, candidates):
+def GetStartTransition(env, params, visited, candidates, langsVisited):
     node = env.nodes[sys.maxsize]
+
+    assert(node.urlId not in visited)
+    #print("node", node.Debug())
+    visited.add(node.urlId)
+
+    UpdateLangsVisited(langsVisited, node, params.langIds)        
+    #print("   langsVisited", langsVisited)
+
+    candidates.AddLinks(node, visited, params)
+
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-    ret = Transition(sys.maxsize, sys.maxsize, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
+    transition = Transition(sys.maxsize, sys.maxsize, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, langsVisited, 0)
+    return transition
 
 class Transition:
     def __init__(self, currURLId, nextURLId, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
@@ -127,21 +138,7 @@ def Trajectory(env, epoch, params, sess, qns):
     visited = set()
     langsVisited = np.zeros([1, 3]) # langId -> count
     candidates = Candidates(params, env)
-    node = env.nodes[sys.maxsize]
-
-    assert(node.urlId not in visited)
-    #print("node", node.Debug())
-    visited.add(node.urlId)
-
-    UpdateLangsVisited(langsVisited, node, params.langIds)        
-    #print("   langsVisited", langsVisited)
-
-    candidates.AddLinks(node, visited, params)
-
-
-    #stopNode = env.nodes[0]
-    #link = Link("", 0, stopNode, stopNode)
-    #candidates.AddLink(link)
+    transition = GetStartTransition(env, params, visited, candidates, langsVisited)
 
     while True:
         tmp = np.random.rand(1)
