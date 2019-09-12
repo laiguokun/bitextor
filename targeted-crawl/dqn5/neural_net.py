@@ -12,7 +12,6 @@ from helpers import Link
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
-    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
 
     #print("candidates", action, candidates.Debug())
     if action == -1:
@@ -20,6 +19,7 @@ def GetNextState(env, params, action, visited, candidates):
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
+        _, linkLang, _, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
         langId = linkLang[0, action]
         numSiblings1 = numSiblings[0, action]
         numVisitedSiblings1 = numVisitedSiblings[0, action]
@@ -48,12 +48,12 @@ def GetNextState(env, params, action, visited, candidates):
 ######################################################################################
 def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
-    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
 
     #print("action", action, linkLang, qValues)
     if action >= 0:
         if np.random.rand(1) < eps:
             #print("actions", type(actions), actions)
+            numActions, _, _, _, _, _ = candidates.GetFeatures()
             action = np.random.randint(0, numActions)
             maxQ = qValues[0, action]
             #print("random")
@@ -64,7 +64,7 @@ def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
     assert(link is not None)
     #print("action", action, qValues, link.childNode.Debug(), reward)
 
-    return numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, qValues, maxQ, action, link, reward
+    return qValues, maxQ, action, link, reward
 
 ######################################################################################
 class Qnets():
