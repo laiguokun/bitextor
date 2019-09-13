@@ -179,9 +179,9 @@ def Trajectory(env, epoch, params, sess, qns):
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
-
         UpdateLangsVisited(langsVisited, node, params.langIds)        
-        #print("   langsVisited", langsVisited)
+        print("visited", visited)
+        print("   langsVisited", langsVisited)
 
         candidates.AddLinks(node, visited, params)
 
