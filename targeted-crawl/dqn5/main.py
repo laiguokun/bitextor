@@ -57,22 +57,21 @@ class LearningParams:
 ######################################################################################
 def GetStartTransition(env, params, visited, candidates):
     node = env.nodes[sys.maxsize]
-
+    
     assert(node.urlId not in visited)
     #print("node", node.Debug())
     visited.add(node.urlId)
-
     candidates.AddLinks(node, visited, params)
+    link = Link("", 0, node, node)
 
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-    transition = Transition(env, sys.maxsize, sys.maxsize, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
+    transition = Transition(env, link, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
     return transition
 
 ######################################################################################
 class Transition:
-    def __init__(self, env, currURLId, nextURLId, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, targetQ, visited, candidates):
-        self.currURLId = currURLId
-        self.nextURLId = nextURLId 
+    def __init__(self, env, link, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, targetQ, visited, candidates):
+        self.link = link
         self.numActions = numActions
         self.linkLang = np.array(linkLang, copy=True) 
         self.mask = np.array(mask, copy=True) 
@@ -88,7 +87,7 @@ class Transition:
         self.langsVisited = np.array(langsVisited, copy=True)
 
     def DebugTransition(self):
-        ret = str(self.currURLId) + "->" + str(self.nextURLId)
+        ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId)
         return ret
     
 ######################################################################################
@@ -121,8 +120,7 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     qValues[0, action] = targetQ
 
     transition = Transition(env, 
-                            link.parentNode.urlId, 
-                            link.childNode.urlId,
+                            link,
                             numActions,
                             linkLang,
                             mask,
@@ -157,7 +155,7 @@ def Trajectory(env, epoch, params, sess, qns):
 
         transition = Neural(env, params, transition, sess, qnA, qnB)
 
-        if transition.nextURLId == 0:
+        if transition.link.childNode.urlId == 0:
             break
         else:
             tmp = np.random.rand(1)
@@ -167,7 +165,7 @@ def Trajectory(env, epoch, params, sess, qns):
                 corpus = qnB.corpus
 
             corpus.AddTransition(transition)
-            node = env.nodes[transition.nextURLId]
+            node = transition.link.childNode
 
         assert(node.urlId not in visited)
         #print("node", node.Debug())
