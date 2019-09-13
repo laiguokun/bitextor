@@ -14,7 +14,7 @@ from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelD
 from corpus import Corpus
 from neural_net import Qnets, Qnetwork, NeuralWalk, GetNextState
 from save_plot import SavePlots, Walk
-from candidate import Candidates, UpdateLangsVisited
+from candidate import Candidates, UpdateLangsVisited, GetLangsVisited
 
 ######################################################################################
 class LearningParams:
@@ -56,24 +56,21 @@ class LearningParams:
 
 ######################################################################################
 ######################################################################################
-def GetStartTransition(env, params, visited, langsVisited, candidates):
+def GetStartTransition(env, params, visited, candidates):
     node = env.nodes[sys.maxsize]
 
     assert(node.urlId not in visited)
     #print("node", node.Debug())
     visited.add(node.urlId)
 
-    UpdateLangsVisited(langsVisited, node, params.langIds)        
-    #print("   langsVisited", langsVisited)
-
     candidates.AddLinks(node, visited, params)
 
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-    transition = Transition(sys.maxsize, sys.maxsize, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, langsVisited, 0, visited, candidates)
+    transition = Transition(env, sys.maxsize, sys.maxsize, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
     return transition
 
 class Transition:
-    def __init__(self, currURLId, nextURLId, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ, visited, candidates):
+    def __init__(self, env, currURLId, nextURLId, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, targetQ, visited, candidates):
         self.currURLId = currURLId
         self.nextURLId = nextURLId 
         self.numActions = numActions
@@ -83,6 +80,8 @@ class Transition:
         self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
         self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
         self.langIds = langIds 
+
+        langsVisited = GetLangsVisited(visited, langIds, env)
         self.langsVisited = np.array(langsVisited, copy=True)
         self.targetQ = np.array(targetQ, copy=True)
 
@@ -126,7 +125,8 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
     qValues[0, action] = targetQ
 
-    transition = Transition(link.parentNode.urlId, 
+    transition = Transition(env, 
+                            link.parentNode.urlId, 
                             link.childNode.urlId,
                             numActions,
                             linkLang,
@@ -135,7 +135,6 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
                             numVisitedSiblings,
                             numMatchedSiblings,
                             params.langIds,
-                            langsVisited,
                             qValues,
                             visited,
                             candidates)
@@ -146,9 +145,8 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, 3]) # langId -> count
     candidates = Candidates(params, env)
-    transition = GetStartTransition(env, params, visited, langsVisited, candidates)
+    transition = GetStartTransition(env, params, visited, candidates)
 
     while True:
         tmp = np.random.rand(1)
@@ -179,12 +177,9 @@ def Trajectory(env, epoch, params, sess, qns):
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
-        UpdateLangsVisited(langsVisited, node, params.langIds)        
-        print("visited", visited)
-        print("   langsVisited", langsVisited)
+        #print("visited", visited)
 
         candidates.AddLinks(node, visited, params)
-
 
         if len(visited) > params.maxDocs:
             break

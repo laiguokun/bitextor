@@ -17,7 +17,7 @@ def UpdateLangsVisited(langsVisited, node, langIds):
     else:
         langsVisited[0, 2] += 1
 
-def GetLangsVisited(visited, node, langIds, env):
+def GetLangsVisited(visited, langIds, env):
     langsVisited = np.zeros([1, 3]) # langId -> count
 
     for urlId in visited:
