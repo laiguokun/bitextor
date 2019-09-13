@@ -96,10 +96,9 @@ class Transition:
 def Neural(env, params, prevTransition, sess, qnA, qnB):
     candidates = prevTransition.candidates
     visited = prevTransition.visited
-    langsVisited = prevTransition.langsVisited
 
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, langsVisited, sess, qnA)
+    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, sess, qnA)
     assert(link is not None)
     
     # calc nextMaxQ
@@ -109,13 +108,10 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     nextCandidates = candidates.copy()
     nextCandidates.AddLinks(link.childNode, nextVisited, params)
 
-    nextLangsVisited = langsVisited.copy()
-    UpdateLangsVisited(nextLangsVisited, link.childNode, params.langIds)
-
     if nextCandidates.Count() > 0:
-        _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextLangsVisited, nextCandidates)
+        nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
         nextMaxQ = nextQValuesB[0, nextAction]
         #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
     else:

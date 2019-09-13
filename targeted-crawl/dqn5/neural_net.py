@@ -9,6 +9,7 @@ relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 #print("relDir", relDir)
 sys.path.append(relDir)
 from helpers import Link
+from candidate import GetLangsVisited
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
@@ -46,8 +47,8 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 ######################################################################################
-def NeuralWalk(env, params, eps, candidates, visited, langsVisited, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, langsVisited, candidates)
+def NeuralWalk(env, params, eps, candidates, visited, sess, qnA):
+    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, visited, candidates)
 
     #print("action", action, linkLang, qValues)
     if action >= 0:
@@ -170,7 +171,7 @@ class Qnetwork():
         #                 + tf.reduce_sum(self.W3) \
         #                 + tf.reduce_sum(self.b3) 
 
-    def PredictAll(self, env, sess, langIds, langsVisited, candidates):
+    def PredictAll(self, env, sess, langIds, visited, candidates):
         numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
         
         numActionsNP = np.empty([1,1], dtype=np.int32)
@@ -179,6 +180,8 @@ class Qnetwork():
         if numActions > 0:
             #print("linkLang", numActions, linkLang.shape)
             #print("mask", mask.shape, mask)
+            langsVisited = GetLangsVisited(visited, langIds, env)
+            #print("langsVisited", langsVisited)
             
             (qValues, ) = sess.run([self.qValues, ], 
                                     feed_dict={self.linkLang: linkLang,

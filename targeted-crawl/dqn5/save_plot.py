@@ -16,7 +16,6 @@ from neural_net import NeuralWalk, GetNextState
 def Walk(env, params, sess, qns):
     ret = []
     visited = set()
-    langsVisited = np.zeros([1, 3]) # langId -> count
     candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
 
@@ -40,8 +39,6 @@ def Walk(env, params, sess, qns):
         #print("node", node.Debug())
         visited.add(node.urlId)
         #print("node.lang", node.lang, langsVisited.shape)
-        UpdateLangsVisited(langsVisited, node, params.langIds)        
-        #print("   langsVisited", langsVisited)
 
         candidates.AddLinks(node, visited, params)
 
@@ -49,7 +46,7 @@ def Walk(env, params, sess, qns):
         ret.append(numParallelDocs)
 
         #print("candidates", candidates.Debug())
-        _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, langsVisited, sess, qnA)
+        _, _, action, link, reward = NeuralWalk(env, params, 0.0, candidates, visited, sess, qnA)
         node = link.childNode
         #print("action", action, qValues)
         actionStr += str(action) + " "
