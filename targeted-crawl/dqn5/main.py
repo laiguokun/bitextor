@@ -55,7 +55,6 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-######################################################################################
 def GetStartTransition(env, params, visited, candidates):
     node = env.nodes[sys.maxsize]
 
@@ -69,6 +68,7 @@ def GetStartTransition(env, params, visited, candidates):
     transition = Transition(env, sys.maxsize, sys.maxsize, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
     return transition
 
+######################################################################################
 class Transition:
     def __init__(self, env, currURLId, nextURLId, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, targetQ, visited, candidates):
         self.currURLId = currURLId
@@ -80,13 +80,12 @@ class Transition:
         self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
         self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
         self.langIds = langIds 
+        self.targetQ = np.array(targetQ, copy=True)
+        self.candidates = candidates
 
+        self.visited = visited.copy()
         langsVisited = GetLangsVisited(visited, langIds, env)
         self.langsVisited = np.array(langsVisited, copy=True)
-        self.targetQ = np.array(targetQ, copy=True)
-
-        self.visited = visited
-        self.candidates = candidates
 
     def DebugTransition(self):
         ret = str(self.currURLId) + "->" + str(self.nextURLId)
