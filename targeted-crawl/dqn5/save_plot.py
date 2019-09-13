@@ -8,7 +8,7 @@ matplotlib.use('Agg')
 import pylab as plt
 
 from other_strategies import dumb, randomCrawl, balanced
-from candidate import Candidates, UpdateLangsVisited
+from candidate import Candidates
 from helpers import NumParallelDocs
 from neural_net import NeuralWalk, GetNextState
 
@@ -38,7 +38,6 @@ def Walk(env, params, sess, qns):
         assert(node.urlId not in visited)
         #print("node", node.Debug())
         visited.add(node.urlId)
-        #print("node.lang", node.lang, langsVisited.shape)
 
         candidates.AddLinks(node, visited, params)
 

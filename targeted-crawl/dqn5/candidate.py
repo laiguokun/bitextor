@@ -9,20 +9,17 @@ from common import GetLanguages, Languages, Timer
 from helpers import GetVistedSiblings, GetMatchedSiblings
 
 ######################################################################################
-def UpdateLangsVisited(langsVisited, node, langIds):
-    if node.lang == langIds[0, 0]:
-        langsVisited[0, 0] += 1
-    elif node.lang == langIds[0, 1]:
-        langsVisited[0, 1] += 1
-    else:
-        langsVisited[0, 2] += 1
-
 def GetLangsVisited(visited, langIds, env):
     langsVisited = np.zeros([1, 3]) # langId -> count
 
     for urlId in visited:
         node = env.nodes[urlId]
-        UpdateLangsVisited(langsVisited, node, langIds)
+        if node.lang == langIds[0, 0]:
+            langsVisited[0, 0] += 1
+        elif node.lang == langIds[0, 1]:
+            langsVisited[0, 1] += 1
+        else:
+            langsVisited[0, 2] += 1
 
     return langsVisited
 ######################################################################################

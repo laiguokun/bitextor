@@ -14,7 +14,7 @@ from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelD
 from corpus import Corpus
 from neural_net import Qnets, Qnetwork, NeuralWalk, GetNextState
 from save_plot import SavePlots, Walk
-from candidate import Candidates, UpdateLangsVisited, GetLangsVisited
+from candidate import Candidates, GetLangsVisited
 
 ######################################################################################
 class LearningParams:
