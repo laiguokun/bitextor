@@ -145,6 +145,9 @@ def Trajectory(env, epoch, params, sess, qns):
         #print("transition", transition.Debug())
         #print()
 
+        numParallelDocs = NumParallelDocs(env, transition.visited)
+        ret.append(numParallelDocs)
+
         if node.urlId == 0:
             break
         else:
@@ -155,9 +158,6 @@ def Trajectory(env, epoch, params, sess, qns):
                 corpus = qnB.corpus
 
             corpus.AddTransition(transition)
-
-        numParallelDocs = NumParallelDocs(env, transition.visited)
-        ret.append(numParallelDocs)
 
         if len(transition.visited) > params.maxDocs:
             break
