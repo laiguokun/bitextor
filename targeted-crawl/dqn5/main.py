@@ -55,19 +55,6 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-def GetStartTransition(env, params, visited, candidates):
-    node = env.nodes[sys.maxsize]
-    
-    assert(node.urlId not in visited)
-    #print("node", node.Debug())
-    visited.add(node.urlId)
-    candidates.AddLinks(node, visited, params)
-
-    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-    transition = Transition(env, None, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
-    return transition
-
-######################################################################################
 class Transition:
     def __init__(self, env, link, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, targetQ, visited, candidates):
         self.link = link
@@ -134,6 +121,19 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     return transition
 
 ######################################################################################
+def GetStartTransition(env, params, visited, candidates):
+    node = env.nodes[sys.maxsize]
+    
+    assert(node.urlId not in visited)
+    #print("node", node.Debug())
+    visited.add(node.urlId)
+    candidates.AddLinks(node, visited, params)
+
+    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+    transition = Transition(env, None, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
+    return transition
+
+######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     visited = set()
@@ -155,6 +155,7 @@ def Trajectory(env, epoch, params, sess, qns):
         transition = Neural(env, params, transition, sess, qnA, qnB)
         print("visited", visited)
         print("transition", transition.Debug())
+        print()
 
         if transition.link.childNode.urlId == 0:
             break
