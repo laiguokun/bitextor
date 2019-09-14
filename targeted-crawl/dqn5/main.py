@@ -62,10 +62,9 @@ def GetStartTransition(env, params, visited, candidates):
     #print("node", node.Debug())
     visited.add(node.urlId)
     candidates.AddLinks(node, visited, params)
-    link = Link("", 0, node, node)
 
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-    transition = Transition(env, link, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
+    transition = Transition(env, None, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
     return transition
 
 ######################################################################################
@@ -86,8 +85,8 @@ class Transition:
         langsVisited = GetLangsVisited(visited, langIds, env)
         self.langsVisited = np.array(langsVisited, copy=True)
 
-    def DebugTransition(self):
-        ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId)
+    def Debug(self):
+        ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " + str(self.visited)
         return ret
     
 ######################################################################################
@@ -154,6 +153,8 @@ def Trajectory(env, epoch, params, sess, qns):
         ret.append(numParallelDocs)
 
         transition = Neural(env, params, transition, sess, qnA, qnB)
+        print("visited", visited)
+        print("transition", transition.Debug())
 
         if transition.link.childNode.urlId == 0:
             break
