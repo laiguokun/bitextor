@@ -120,12 +120,15 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
                             nextVisited,
                             nextCandidates)
 
-    return transition
+    return transition, reward
 
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
-
+    totReward = 0.0
+    totDiscountedReward = 0.0
+    discount = 1.0
+    
     node = env.nodes[sys.maxsize]
 
     nextVisited = set()
@@ -145,11 +148,15 @@ def Trajectory(env, epoch, params, sess, qns):
             qnA = qns.q[1]
             qnB = qns.q[0]
 
-        transition = Neural(env, params, transition, sess, qnA, qnB)
+        transition, reward = Neural(env, params, transition, sess, qnA, qnB)
         #print("visited", transition.visited)
         #print("candidates", transition.candidates.Debug())
         #print("transition", transition.Debug())
         #print()
+
+        totReward += reward
+        totDiscountedReward += discount * reward
+        discount *= params.gamma
 
         numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
@@ -167,7 +174,7 @@ def Trajectory(env, epoch, params, sess, qns):
         if len(transition.visited) > params.maxDocs:
             break
 
-    return ret
+    return ret, totReward, totDiscountedReward
 
 ######################################################################################
 def Train(params, sess, saver, qns, envs, envsTest):
