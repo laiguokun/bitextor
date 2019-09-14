@@ -123,12 +123,12 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     return transition, reward
 
 ######################################################################################
-def Trajectory(env, epoch, params, sess, qns):
+def Trajectory(env, params, sess, qns):
     ret = []
     totReward = 0.0
     totDiscountedReward = 0.0
     discount = 1.0
-    
+
     node = env.nodes[sys.maxsize]
 
     nextVisited = set()
@@ -183,7 +183,7 @@ def Train(params, sess, saver, qns, envs, envsTest):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            _ = Trajectory(env, epoch, params, sess, qns)
+            _ = Trajectory(env, params, sess, qns)
             TIMER.Pause("Trajectory")
 
         TIMER.Start("Train")
