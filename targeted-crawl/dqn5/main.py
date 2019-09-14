@@ -146,6 +146,7 @@ def Trajectory(env, epoch, params, sess, qns):
 
         transition = Neural(env, params, transition, visited, sess, qnA, qnB)
         print("visited", visited)
+        print("candidates", candidates.Debug())
         print("transition", transition.Debug())
         print()
 
