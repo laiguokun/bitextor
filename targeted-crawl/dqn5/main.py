@@ -91,7 +91,6 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
     assert(link is not None)
 
     # calc nextMaxQ
-    nextVisited.add(link.childNode.urlId)
     nextCandidates.AddLinks(link.childNode, nextVisited, params)
 
     if nextCandidates.Count() > 0:

@@ -35,9 +35,6 @@ def Walk(env, params, sess, qns):
 
     while True:
         qnA = qns.q[0]
-        assert(node.urlId not in visited)
-        #print("node", node.Debug())
-        visited.add(node.urlId)
 
         candidates.AddLinks(node, visited, params)
 

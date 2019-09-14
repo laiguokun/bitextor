@@ -27,6 +27,9 @@ def GetNextState(env, params, action, visited, candidates):
         numMatchedSiblings1 = numMatchedSiblings[0, action]
         key = (langId, numSiblings1, numVisitedSiblings1, numMatchedSiblings1)
         link = candidates.Pop(key)
+
+    assert(link.childNode.urlId not in visited)
+    visited.add(link.childNode.urlId)
  
     assert(link is not None)
     nextNode = link.childNode
