@@ -56,17 +56,22 @@ class LearningParams:
 
 ######################################################################################
 class Transition:
-    def __init__(self, env, link, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, targetQ, visited, candidates):
+    def __init__(self, env, link, langIds, targetQ, visited, candidates, candidatesNext):
         self.link = link
-        self.numActions = numActions
-        self.linkLang = np.array(linkLang, copy=True) 
-        self.mask = np.array(mask, copy=True) 
-        self.numSiblings = np.array(numSiblings, copy=True) 
-        self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
-        self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
-        self.langIds = langIds 
-        self.targetQ = np.array(targetQ, copy=True)
-        self.candidates = candidates
+
+        self.candidatesNext = candidatesNext.copy()
+
+        if candidates is not None:
+            self.candidates = candidates.copy()
+            numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+            self.numActions = numActions
+            self.linkLang = np.array(linkLang, copy=True) 
+            self.mask = np.array(mask, copy=True) 
+            self.numSiblings = np.array(numSiblings, copy=True) 
+            self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
+            self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
+            self.langIds = langIds 
+            self.targetQ = np.array(targetQ, copy=True)
 
         self.visited = visited.copy()
         langsVisited = GetLangsVisited(visited, langIds, env)
@@ -78,17 +83,17 @@ class Transition:
     
 ######################################################################################
 def Neural(env, params, prevTransition, node, sess, qnA, qnB):
-    candidates = prevTransition.candidates.copy()
+    candidates = prevTransition.candidatesNext.copy()
     visited = prevTransition.visited.copy()
 
     visited.add(node.urlId)
     candidates.AddLinks(node, visited, params)
 
-    candidatesKeep = candidates.copy()
+    candidatesThis = candidates.copy()
 
     qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, sess, qnA)
     assert(link is not None)
-    
+
     # calc nextMaxQ
     nextVisited = visited.copy()
     nextVisited.add(link.childNode.urlId)
@@ -109,18 +114,12 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
     qValues[0, action] = targetQ
 
-    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidatesKeep.GetFeatures()
     transition = Transition(env, 
                             link,
-                            numActions,
-                            linkLang,
-                            mask,
-                            numSiblings,
-                            numVisitedSiblings,
-                            numMatchedSiblings,
                             params.langIds,
                             qValues,
                             visited,
+                            candidatesThis,
                             candidates)
 
     return transition, link.childNode
@@ -128,8 +127,7 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
-    candidates = Candidates(params, env)
-    transition = Transition(env, None, 0, None, None, None, None, None, None, 0, set(), candidates)
+    transition = Transition(env, None, params.langIds, 0, set(), None, Candidates(params, env))
     node = env.nodes[sys.maxsize]
 
     while True:
@@ -142,10 +140,10 @@ def Trajectory(env, epoch, params, sess, qns):
             qnB = qns.q[0]
 
         transition, node = Neural(env, params, transition, node, sess, qnA, qnB)
-        #print("visited", transition.visited)
-        #print("candidates", candidates.Debug())
-        #print("transition", transition.Debug())
-        #print()
+        print("visited", transition.visited)
+        print("candidates", transition.candidates.Debug())
+        print("transition", transition.Debug())
+        print()
 
         numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)

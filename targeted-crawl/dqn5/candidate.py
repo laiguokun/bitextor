@@ -113,9 +113,9 @@ class Candidates:
 
     def Debug(self):
         ret = ""
-        for lang in self.dict:
-            ret += "lang=" + str(lang) + ":" + str(len(self.dict[lang])) + " "
-            #links = self.dict[lang]
-            #for link in links:
-            #    ret += " " + str(link.parentNode.urlId) + "->" + str(link.childNode.urlId)
+        for key in self.dict:
+            ret += str(key) + ":" + str(len(self.dict[key])) + " "
+            links = self.dict[key]
+            for link in links:
+                ret += str(link.parentNode.urlId) + "->" + str(link.childNode.urlId) + " "
         return ret
