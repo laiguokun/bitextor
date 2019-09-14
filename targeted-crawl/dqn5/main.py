@@ -83,7 +83,7 @@ class Transition:
         return ret
     
 ######################################################################################
-def Neural(env, params, prevTransition, node, sess, qnA, qnB):
+def Neural(env, params, prevTransition, sess, qnA, qnB):
     nextCandidates = prevTransition.nextCandidates.copy()
     nextVisited = prevTransition.nextVisited.copy()
 
@@ -113,7 +113,7 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
                             nextVisited,
                             nextCandidates)
 
-    return transition, link.childNode
+    return transition
 
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
@@ -138,7 +138,7 @@ def Trajectory(env, epoch, params, sess, qns):
             qnA = qns.q[1]
             qnB = qns.q[0]
 
-        transition, node = Neural(env, params, transition, node, sess, qnA, qnB)
+        transition = Neural(env, params, transition, sess, qnA, qnB)
         #print("visited", transition.visited)
         #print("candidates", transition.candidates.Debug())
         #print("transition", transition.Debug())
@@ -147,7 +147,7 @@ def Trajectory(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
 
-        if node.urlId == 0:
+        if transition.link.childNode.urlId == 0:
             break
         else:
             tmp = np.random.rand(1)
