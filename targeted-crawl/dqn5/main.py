@@ -56,9 +56,10 @@ class LearningParams:
 
 ######################################################################################
 class Transition:
-    def __init__(self, env, link, langIds, targetQ, visited, candidates, candidatesNext):
+    def __init__(self, env, link, langIds, targetQ, visited, candidates, visitedNext, candidatesNext):
         self.link = link
 
+        self.visitedNext = visitedNext.copy()
         self.candidatesNext = candidatesNext.copy()
 
         if candidates is not None:
@@ -84,9 +85,8 @@ class Transition:
 ######################################################################################
 def Neural(env, params, prevTransition, node, sess, qnA, qnB):
     candidates = prevTransition.candidatesNext.copy()
-    visited = prevTransition.visited.copy()
+    visited = prevTransition.visitedNext.copy()
 
-    visited.add(node.urlId)
     candidates.AddLinks(node, visited, params)
 
     candidatesThis = candidates.copy()
@@ -120,6 +120,7 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
                             qValues,
                             visited,
                             candidatesThis,
+                            nextVisited,
                             candidates)
 
     return transition, link.childNode
@@ -127,8 +128,13 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
-    transition = Transition(env, None, params.langIds, 0, set(), None, Candidates(params, env))
+
     node = env.nodes[sys.maxsize]
+
+    visitedNext = set()
+    visitedNext.add(node.urlId)
+
+    transition = Transition(env, None, params.langIds, 0, set(), None, visitedNext, Candidates(params, env))
 
     while True:
         tmp = np.random.rand(1)
@@ -140,10 +146,10 @@ def Trajectory(env, epoch, params, sess, qns):
             qnB = qns.q[0]
 
         transition, node = Neural(env, params, transition, node, sess, qnA, qnB)
-        #print("visited", transition.visited)
-        #print("candidates", transition.candidates.Debug())
-        #print("transition", transition.Debug())
-        #print()
+        print("visited", transition.visited)
+        print("candidates", transition.candidates.Debug())
+        print("transition", transition.Debug())
+        print()
 
         numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
