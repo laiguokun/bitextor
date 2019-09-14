@@ -77,9 +77,8 @@ class Transition:
         return ret
     
 ######################################################################################
-def Neural(env, params, prevTransition, sess, qnA, qnB):
+def Neural(env, params, prevTransition, visited, sess, qnA, qnB):
     candidates = prevTransition.candidates
-    visited = prevTransition.visited
 
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
     qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, sess, qnA)
@@ -149,10 +148,7 @@ def Trajectory(env, epoch, params, sess, qns):
             qnA = qns.q[1]
             qnB = qns.q[0]
 
-        numParallelDocs = NumParallelDocs(env, visited)
-        ret.append(numParallelDocs)
-
-        transition = Neural(env, params, transition, sess, qnA, qnB)
+        transition = Neural(env, params, transition, visited, sess, qnA, qnB)
         print("visited", visited)
         print("transition", transition.Debug())
         print()
@@ -175,6 +171,9 @@ def Trajectory(env, epoch, params, sess, qns):
         #print("visited", visited)
 
         candidates.AddLinks(node, visited, params)
+
+        numParallelDocs = NumParallelDocs(env, visited)
+        ret.append(numParallelDocs)
 
         if len(visited) > params.maxDocs:
             break
