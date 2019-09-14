@@ -137,27 +137,23 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
 
     qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qnA)
     assert(link is not None)
+    assert(qValues.shape[1] > 0)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
 
     # calc nextMaxQ
-    if prevTransition.nextCandidates.Count() > 0:
-        # links to follow
-        if nextCandidates.Count() > 0:
-            #  links to follow NEXT
-            _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-            #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-            nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-            nextMaxQ = nextQValuesB[0, nextAction]
-            #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
-        else:
-            nextMaxQ = 0
-
-        newVal = reward + params.gamma * nextMaxQ
-        targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
-        qValues[0, action] = targetQ
+    if nextCandidates.Count() > 0:
+        #  links to follow NEXT
+        _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
+        #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
+        nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
+        nextMaxQ = nextQValuesB[0, nextAction]
+        #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
     else:
-        # empty candidates
-        pass
+        nextMaxQ = 0
+
+    newVal = reward + params.gamma * nextMaxQ
+    targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
+    qValues[0, action] = targetQ
 
     transition = Transition(env,
                             action, 
@@ -230,7 +226,7 @@ def Trajectory(env, params, sess, qns, test):
                 corpus = qnB.corpus
             corpus.AddTransition(transition)
 
-        if transition.link.childNode.urlId == 0:
+        if transition.nextCandidates.Count() == 0:
             break
 
         if len(transition.visited) > params.maxDocs:
