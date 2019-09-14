@@ -127,10 +127,8 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
     candidates = Candidates(params, env)
-    #transition = GetStartTransition(env, params, visited, candidates)
-    node = env.nodes[sys.maxsize]
-    
     transition = Transition(env, None, 0, None, None, None, None, None, None, 0, set(), candidates)
+    node = env.nodes[sys.maxsize]
 
     while True:
         tmp = np.random.rand(1)
