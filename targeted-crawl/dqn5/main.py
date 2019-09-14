@@ -77,8 +77,12 @@ class Transition:
         return ret
     
 ######################################################################################
-def Neural(env, params, prevTransition, visited, sess, qnA, qnB):
+def Neural(env, params, prevTransition, node, sess, qnA, qnB):
     candidates = prevTransition.candidates
+    visited = prevTransition.visited.copy()
+
+    visited.add(node.urlId)
+    candidates.AddLinks(node, visited, params)
 
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
     qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, sess, qnA)
@@ -122,18 +126,11 @@ def Neural(env, params, prevTransition, visited, sess, qnA, qnB):
 ######################################################################################
 def Trajectory(env, epoch, params, sess, qns):
     ret = []
-    visited = set()
     candidates = Candidates(params, env)
     #transition = GetStartTransition(env, params, visited, candidates)
     node = env.nodes[sys.maxsize]
     
-    assert(node.urlId not in visited)
-    #print("node", node.Debug())
-    visited.add(node.urlId)
-    candidates.AddLinks(node, visited, params)
-
-    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-    transition = Transition(env, None, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
+    transition = Transition(env, None, 0, None, None, None, None, None, None, 0, set(), candidates)
 
     while True:
         tmp = np.random.rand(1)
@@ -144,11 +141,11 @@ def Trajectory(env, epoch, params, sess, qns):
             qnA = qns.q[1]
             qnB = qns.q[0]
 
-        transition = Neural(env, params, transition, visited, sess, qnA, qnB)
-        print("visited", visited)
-        print("candidates", candidates.Debug())
-        print("transition", transition.Debug())
-        print()
+        transition = Neural(env, params, transition, node, sess, qnA, qnB)
+        #print("visited", transition.visited)
+        #print("candidates", candidates.Debug())
+        #print("transition", transition.Debug())
+        #print()
 
         if transition.link.childNode.urlId == 0:
             break
@@ -162,17 +159,10 @@ def Trajectory(env, epoch, params, sess, qns):
             corpus.AddTransition(transition)
             node = transition.link.childNode
 
-        assert(node.urlId not in visited)
-        #print("node", node.Debug())
-        visited.add(node.urlId)
-        #print("visited", visited)
-
-        candidates.AddLinks(node, visited, params)
-
-        numParallelDocs = NumParallelDocs(env, visited)
+        numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
 
-        if len(visited) > params.maxDocs:
+        if len(transition.visited) > params.maxDocs:
             break
 
     return ret
