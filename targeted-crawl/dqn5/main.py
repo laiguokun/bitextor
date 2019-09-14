@@ -84,7 +84,8 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
     visited.add(node.urlId)
     candidates.AddLinks(node, visited, params)
 
-    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+    candidatesKeep = candidates.copy()
+
     qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, candidates, visited, sess, qnA)
     assert(link is not None)
     
@@ -108,6 +109,7 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
     targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
     qValues[0, action] = targetQ
 
+    numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidatesKeep.GetFeatures()
     transition = Transition(env, 
                             link,
                             numActions,
