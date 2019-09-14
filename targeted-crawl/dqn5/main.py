@@ -78,7 +78,7 @@ class Transition:
     
 ######################################################################################
 def Neural(env, params, prevTransition, node, sess, qnA, qnB):
-    candidates = prevTransition.candidates
+    candidates = prevTransition.candidates.copy()
     visited = prevTransition.visited.copy()
 
     visited.add(node.urlId)
