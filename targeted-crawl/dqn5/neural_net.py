@@ -213,10 +213,9 @@ class Qnetwork():
         else:
             maxQ = 0.0 #-99999.0
             action = -1
-            qValues = np.zeros([1, self.params.MAX_NODES], dtype=np.float32)
+            qValues = np.zeros([1, 0], dtype=np.float32)
+            #print("qValues", qValues.shape)
 
-
-        #print("qValues", qValues.shape, qValues, action, maxQ)
         return qValues, maxQ, action
 
     def Update(self, sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):

@@ -89,20 +89,27 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
 
     qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qnA)
     assert(link is not None)
+    #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
 
     # calc nextMaxQ
-    if nextCandidates.Count() > 0:
-        _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-        #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-        nextMaxQ = nextQValuesB[0, nextAction]
-        #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
-    else:
-        nextMaxQ = 0
+    if prevTransition.nextCandidates.Count() > 0:
+        # links to follow
+        if nextCandidates.Count() > 0:
+            #  links to follow NEXT
+            _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
+            #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
+            nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
+            nextMaxQ = nextQValuesB[0, nextAction]
+            #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
+        else:
+            nextMaxQ = 0
 
-    newVal = reward + params.gamma * nextMaxQ
-    targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
-    qValues[0, action] = targetQ
+        newVal = reward + params.gamma * nextMaxQ
+        targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
+        qValues[0, action] = targetQ
+    else:
+        # empty candidates
+        pass
 
     transition = Transition(env, 
                             link,
@@ -147,16 +154,15 @@ def Trajectory(env, epoch, params, sess, qns):
         numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
 
+        tmp = np.random.rand(1)
+        if tmp > 0.5:
+            corpus = qnA.corpus
+        else:
+            corpus = qnB.corpus
+        corpus.AddTransition(transition)
+
         if transition.link.childNode.urlId == 0:
             break
-        else:
-            tmp = np.random.rand(1)
-            if tmp > 0.5:
-                corpus = qnA.corpus
-            else:
-                corpus = qnB.corpus
-
-            corpus.AddTransition(transition)
 
         if len(transition.visited) > params.maxDocs:
             break

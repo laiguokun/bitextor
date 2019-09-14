@@ -115,7 +115,7 @@ class Candidates:
         ret = ""
         for key in self.dict:
             ret += str(key) + ":" + str(len(self.dict[key])) + " "
-            links = self.dict[key]
-            for link in links:
-                ret += str(link.parentNode.urlId) + "->" + str(link.childNode.urlId) + " "
+            #links = self.dict[key]
+            #for link in links:
+            #    ret += str(link.parentNode.urlId) + "->" + str(link.childNode.urlId) + " "
         return ret
