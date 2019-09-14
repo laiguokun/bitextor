@@ -140,10 +140,10 @@ def Trajectory(env, epoch, params, sess, qns):
             qnB = qns.q[0]
 
         transition, node = Neural(env, params, transition, node, sess, qnA, qnB)
-        print("visited", transition.visited)
-        print("candidates", transition.candidates.Debug())
-        print("transition", transition.Debug())
-        print()
+        #print("visited", transition.visited)
+        #print("candidates", transition.candidates.Debug())
+        #print("transition", transition.Debug())
+        #print()
 
         numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
