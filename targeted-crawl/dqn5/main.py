@@ -208,6 +208,9 @@ def Trajectory(env, params, sess, qns, test):
         #print("transition", transition.Debug())
         #print()
 
+        numParallelDocs = NumParallelDocs(env, transition.visited)
+        ret.append(numParallelDocs)
+
         totReward += reward
         totDiscountedReward += discount * reward
         discount *= params.gamma
@@ -219,17 +222,13 @@ def Trajectory(env, params, sess, qns, test):
 
             if transition.link.childNode.alignedNode is not None:
                 mainStr += "*"
-
-
-        numParallelDocs = NumParallelDocs(env, transition.visited)
-        ret.append(numParallelDocs)
-
-        tmp = np.random.rand(1)
-        if tmp > 0.5:
-            corpus = qnA.corpus
         else:
-            corpus = qnB.corpus
-        corpus.AddTransition(transition)
+            tmp = np.random.rand(1)
+            if tmp > 0.5:
+                corpus = qnA.corpus
+            else:
+                corpus = qnB.corpus
+            corpus.AddTransition(transition)
 
         if transition.link.childNode.urlId == 0:
             break
