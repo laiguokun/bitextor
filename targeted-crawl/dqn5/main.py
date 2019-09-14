@@ -56,11 +56,11 @@ class LearningParams:
 
 ######################################################################################
 class Transition:
-    def __init__(self, env, link, langIds, targetQ, visited, candidates, visitedNext, candidatesNext):
+    def __init__(self, env, link, langIds, targetQ, visited, candidates, nextVisited, nextCandidates):
         self.link = link
 
-        self.visitedNext = visitedNext.copy()
-        self.candidatesNext = candidatesNext.copy()
+        self.nextVisited = nextVisited.copy()
+        self.nextCandidates = nextCandidates.copy()
 
         if candidates is not None:
             self.candidates = candidates.copy()
@@ -84,16 +84,14 @@ class Transition:
     
 ######################################################################################
 def Neural(env, params, prevTransition, node, sess, qnA, qnB):
-    nextCandidates = prevTransition.candidatesNext.copy()
-    visited = prevTransition.visitedNext.copy()
+    nextCandidates = prevTransition.nextCandidates.copy()
+    nextVisited = prevTransition.nextVisited.copy()
 
-    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, visited, sess, qnA)
+    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qnA)
     assert(link is not None)
 
     # calc nextMaxQ
-    nextVisited = visited.copy()
     nextVisited.add(link.childNode.urlId)
-
     nextCandidates.AddLinks(link.childNode, nextVisited, params)
 
     if nextCandidates.Count() > 0:
@@ -113,8 +111,8 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
                             link,
                             params.langIds,
                             qValues,
-                            prevTransition.visitedNext,
-                            prevTransition.candidatesNext,
+                            prevTransition.nextVisited,
+                            prevTransition.nextCandidates,
                             nextVisited,
                             nextCandidates)
 
@@ -126,13 +124,13 @@ def Trajectory(env, epoch, params, sess, qns):
 
     node = env.nodes[sys.maxsize]
 
-    visitedNext = set()
-    visitedNext.add(node.urlId)
+    nextVisited = set()
+    nextVisited.add(node.urlId)
 
-    candidatesNext = Candidates(params, env)
-    candidatesNext.AddLinks(node, visitedNext, params)
+    nextCandidates = Candidates(params, env)
+    nextCandidates.AddLinks(node, nextVisited, params)
 
-    transition = Transition(env, None, params.langIds, 0, None, None, visitedNext, candidatesNext)
+    transition = Transition(env, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
 
     while True:
         tmp = np.random.rand(1)
