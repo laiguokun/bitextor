@@ -120,7 +120,11 @@ def Neural(env, params, prevTransition, visited, sess, qnA, qnB):
     return transition
 
 ######################################################################################
-def GetStartTransition(env, params, visited, candidates):
+def Trajectory(env, epoch, params, sess, qns):
+    ret = []
+    visited = set()
+    candidates = Candidates(params, env)
+    #transition = GetStartTransition(env, params, visited, candidates)
     node = env.nodes[sys.maxsize]
     
     assert(node.urlId not in visited)
@@ -130,14 +134,6 @@ def GetStartTransition(env, params, visited, candidates):
 
     numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
     transition = Transition(env, None, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, params.langIds, 0, visited, candidates)
-    return transition
-
-######################################################################################
-def Trajectory(env, epoch, params, sess, qns):
-    ret = []
-    visited = set()
-    candidates = Candidates(params, env)
-    transition = GetStartTransition(env, params, visited, candidates)
 
     while True:
         tmp = np.random.rand(1)
