@@ -5,6 +5,10 @@ import numpy as np
 import argparse
 import hashlib
 import tensorflow as tf
+from tldextract import extract
+import matplotlib
+matplotlib.use('Agg')
+import pylab as plt
 
 relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 #print("relDir", relDir)
@@ -13,8 +17,8 @@ from common import GetLanguages, Languages, Timer
 from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelDocs, Env, Link
 from corpus import Corpus
 from neural_net import Qnets, Qnetwork, NeuralWalk, GetNextState
-from save_plot import SavePlots, Walk
 from candidate import Candidates, GetLangsVisited
+from other_strategies import dumb, randomCrawl, balanced
 
 ######################################################################################
 class LearningParams:
@@ -55,8 +59,52 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
+def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
+    for env in envs:
+        SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
+
+######################################################################################
+def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
+    print("Walking", env.rootURL)
+    arrDumb = dumb(env, len(env.nodes), params)
+    arrRandom = randomCrawl(env, len(env.nodes), params)
+    arrBalanced = balanced(env, len(env.nodes), params)
+    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, True)
+
+    url = env.rootURL
+    domain = extract(url).domain
+
+    warmUp = 200
+    avgRandom = avgBalanced = avgRL = 0.0
+    for i in range(len(arrDumb)):
+        if i > warmUp and arrDumb[i] > 0:
+            avgRandom += arrRandom[i] / arrDumb[i]
+            avgBalanced += arrBalanced[i] / arrDumb[i]
+            avgRL += arrRL[i] / arrDumb[i]
+
+    avgRandom = avgRandom / (len(arrDumb) - warmUp)
+    avgBalanced = avgBalanced / (len(arrDumb) - warmUp)
+    avgRL = avgRL / (len(arrDumb) - warmUp)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.plot(arrDumb, label="dumb ", color='maroon')
+    ax.plot(arrRandom, label="random {0:.1f}".format(avgRandom), color='firebrick')
+    ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
+    ax.plot(arrRL, label="RL {0:.1f} {1:.1f}".format(avgRL, totDiscountedReward), color='salmon')
+
+    ax.legend(loc='upper left')
+    plt.xlabel('#crawled')
+    plt.ylabel('#found')
+    plt.title("{sset} {domain}".format(sset=sset, domain=domain))
+
+    fig.savefig("{dir}/{sset}-{domain}-{epoch}.png".format(dir=saveDirPlots, sset=sset, domain=domain, epoch=epoch))
+    fig.show()
+
+######################################################################################
 class Transition:
-    def __init__(self, env, link, langIds, targetQ, visited, candidates, nextVisited, nextCandidates):
+    def __init__(self, env, action, link, langIds, targetQ, visited, candidates, nextVisited, nextCandidates):
+        self.action = action
         self.link = link
 
         self.nextVisited = nextVisited.copy()
@@ -111,7 +159,8 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
         # empty candidates
         pass
 
-    transition = Transition(env, 
+    transition = Transition(env,
+                            action, 
                             link,
                             params.langIds,
                             qValues,
@@ -123,21 +172,26 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     return transition, reward
 
 ######################################################################################
-def Trajectory(env, params, sess, qns):
+def Trajectory(env, params, sess, qns, test):
     ret = []
     totReward = 0.0
     totDiscountedReward = 0.0
     discount = 1.0
 
-    node = env.nodes[sys.maxsize]
+    startNode = env.nodes[sys.maxsize]
 
     nextVisited = set()
-    nextVisited.add(node.urlId)
+    nextVisited.add(startNode.urlId)
 
     nextCandidates = Candidates(params, env)
-    nextCandidates.AddLinks(node, nextVisited, params)
+    nextCandidates.AddLinks(startNode, nextVisited, params)
 
-    transition = Transition(env, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
+    transition = Transition(env, -1, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
+
+    if test:
+        mainStr = "lang:" + str(startNode.lang)
+        rewardStr = "rewards:"
+        actionStr = "actions:"
 
     while True:
         tmp = np.random.rand(1)
@@ -158,6 +212,15 @@ def Trajectory(env, params, sess, qns):
         totDiscountedReward += discount * reward
         discount *= params.gamma
 
+        if test:
+            mainStr += "->" + str(transition.link.childNode.lang)
+            rewardStr += "->" + str(reward)
+            actionStr += str(transition.action) + " "
+
+            if transition.link.childNode.alignedNode is not None:
+                mainStr += "*"
+
+
         numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
 
@@ -174,6 +237,13 @@ def Trajectory(env, params, sess, qns):
         if len(transition.visited) > params.maxDocs:
             break
 
+    if test:
+        mainStr += " " + str(len(ret)) 
+        rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
+        print(actionStr)
+        print(mainStr)
+        print(rewardStr)
+
     return ret, totReward, totDiscountedReward
 
 ######################################################################################
@@ -183,7 +253,7 @@ def Train(params, sess, saver, qns, envs, envsTest):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            _ = Trajectory(env, params, sess, qns)
+            _ = Trajectory(env, params, sess, qns, False)
             TIMER.Pause("Trajectory")
 
         TIMER.Start("Train")
