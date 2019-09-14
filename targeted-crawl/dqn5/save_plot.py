@@ -15,13 +15,11 @@ from neural_net import NeuralWalk, GetNextState
 ######################################################################################
 def Walk(env, params, sess, qns):
     ret = []
-    visited = set()
-    candidates = Candidates(params, env)
     node = env.nodes[sys.maxsize]
-
-    #stopNode = env.nodes[0]
-    #link = Link("", 0, stopNode, stopNode)
-    #candidates.AddLink(link)
+    visited = set()
+    visited.add(node.urlId)
+    candidates = Candidates(params, env)
+    candidates.AddLinks(node, visited, params)
 
     mainStr = "lang:" + str(node.lang)
     rewardStr = "rewards:"
@@ -35,8 +33,6 @@ def Walk(env, params, sess, qns):
 
     while True:
         qnA = qns.q[0]
-
-        candidates.AddLinks(node, visited, params)
 
         numParallelDocs = NumParallelDocs(env, visited)
         ret.append(numParallelDocs)

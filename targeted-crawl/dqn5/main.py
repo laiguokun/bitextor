@@ -91,8 +91,6 @@ def Neural(env, params, prevTransition, node, sess, qnA, qnB):
     assert(link is not None)
 
     # calc nextMaxQ
-    nextCandidates.AddLinks(link.childNode, nextVisited, params)
-
     if nextCandidates.Count() > 0:
         _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
