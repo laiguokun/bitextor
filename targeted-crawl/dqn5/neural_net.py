@@ -111,21 +111,24 @@ class Qnetwork():
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
-        self.hidden1 = tf.nn.relu(self.hidden1)
+        #self.hidden1 = tf.nn.relu(self.hidden1)
+        self.hidden1 = tf.math.sigmoid(self.hidden1)
         #print("self.hidden1", self.hidden1.shape)
 
         self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden2 = tf.matmul(self.hidden1, self.W2)
         self.hidden2 = tf.add(self.hidden2, self.b2)
-        self.hidden2 = tf.nn.relu(self.hidden2)
+        #self.hidden2 = tf.nn.relu(self.hidden2)
+        self.hidden2 = tf.math.sigmoid(self.hidden2)
         #print("self.hidden2", self.hidden2.shape)
 
         self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
-        self.hidden3 = tf.nn.relu(self.hidden3)
+        #self.hidden3 = tf.nn.relu(self.hidden3)
+        self.hidden3 = tf.math.sigmoid(self.hidden3)
         #print("self.hidden3", self.hidden3.shape)
 
         # link-specific
@@ -142,7 +145,8 @@ class Qnetwork():
         self.linkSpecific = tf.transpose(self.linkSpecific)
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)
-        self.linkSpecific = tf.nn.relu(self.linkSpecific)
+        #self.linkSpecific = tf.nn.relu(self.linkSpecific)
+        self.linkSpecific = tf.math.sigmoid(self.linkSpecific)
 
         # final q-values
         self.hidden3 = tf.matmul(self.linkSpecific, self.hidden3)
