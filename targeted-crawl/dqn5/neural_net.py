@@ -129,11 +129,8 @@ class Qnetwork():
         self.hidden3 = tf.add(self.hidden3, self.b3)
         self.hidden3 = tf.nn.relu(self.hidden3)
         #self.hidden3 = tf.math.sigmoid(self.hidden3)
-        print("self.hidden3", self.hidden3.shape)
 
         # link-specific
-        print("self.linkLang", self.linkLang.shape)
-
         self.WlinkSpecific = tf.Variable(tf.random_uniform([4, HIDDEN_DIM], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
 
