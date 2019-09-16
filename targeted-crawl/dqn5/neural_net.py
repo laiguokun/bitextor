@@ -112,7 +112,7 @@ class Qnetwork():
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
         #self.hidden1 = tf.nn.relu(self.hidden1)
-        self.hidden1 = tf.math.sigmoid(self.hidden1)
+        self.hidden1 = tf.nn.sigmoid(self.hidden1)
         #print("self.hidden1", self.hidden1.shape)
 
         self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
@@ -120,7 +120,7 @@ class Qnetwork():
         self.hidden2 = tf.matmul(self.hidden1, self.W2)
         self.hidden2 = tf.add(self.hidden2, self.b2)
         #self.hidden2 = tf.nn.relu(self.hidden2)
-        self.hidden2 = tf.math.sigmoid(self.hidden2)
+        self.hidden2 = tf.nn.sigmoid(self.hidden2)
         #print("self.hidden2", self.hidden2.shape)
 
         self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
@@ -128,7 +128,7 @@ class Qnetwork():
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
         self.hidden3 = tf.add(self.hidden3, self.b3)
         self.hidden3 = tf.nn.relu(self.hidden3)
-        #self.hidden3 = tf.math.sigmoid(self.hidden3)
+        #self.hidden3 = tf.nn.sigmoid(self.hidden3)
 
         # link-specific
         self.WlinkSpecific = tf.Variable(tf.random_uniform([4, HIDDEN_DIM], 0, 0.01))
@@ -144,13 +144,13 @@ class Qnetwork():
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
         self.linkSpecific = tf.nn.relu(self.linkSpecific)
-        #self.linkSpecific = tf.math.sigmoid(self.linkSpecific)
+        #self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
         self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, 512])
         
         # final q-values
         self.hidden3 = tf.reshape(self.hidden3, [self.batchSize, 1, HIDDEN_DIM])
         self.hidden3 = tf.multiply(self.linkSpecific, self.hidden3)
-        self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=2)
+        self.hidden3 = tf.reduce_sum(self.hidden3, axis=2)
 
         self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
 
