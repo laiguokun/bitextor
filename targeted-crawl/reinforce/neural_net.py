@@ -154,6 +154,9 @@ class Qnetwork():
 
         self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
 
+        # softmax
+        self.probs = tf.nn.softmax(self.qValues, axis=0)
+
         #self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
         #self.qValues = self.hidden3
         #print("self.qValues", self.qValue.shapes)
@@ -191,7 +194,7 @@ class Qnetwork():
             langsVisited = GetLangsVisited(visited, langIds, env)
             #print("langsVisited", langsVisited)
             
-            (qValues, ) = sess.run([self.qValues, ], 
+            (qValues, probs) = sess.run([self.qValues, self.probs], 
                                     feed_dict={self.linkLang: linkLang,
                                         self.numActions: numActionsNP,
                                         self.mask: mask,
@@ -202,7 +205,8 @@ class Qnetwork():
                                         self.langsVisited: langsVisited})
             #qValues = qValues[0]
             #print("hidden3", hidden3.shape, hidden3)
-            #print("qValues", qValues.shape, qValues)
+            print("qValues", qValues.shape, qValues)
+            print("   probs", probs.shape, probs)
             #print("linkSpecific", linkSpecific.shape)
             #print("numSiblings", numSiblings.shape)
             #print("numVisitedSiblings", numVisitedSiblings.shape)

@@ -31,6 +31,8 @@ class agent():
         #These lines established the feed-forward part of the network. The agent takes a state and produces an action.
         self.state_in= tf.placeholder(shape=[None,s_size],dtype=tf.float32)
         hidden = slim.fully_connected(self.state_in,h_size,biases_initializer=None,activation_fn=tf.nn.relu)
+
+        # softmax
         self.output = slim.fully_connected(hidden,a_size,activation_fn=tf.nn.softmax,biases_initializer=None)
         self.chosen_action = tf.argmax(self.output,1)
 
@@ -137,7 +139,7 @@ def main():
                                                                                 myAgent.loss,
                                                                                 myAgent.grads], feed_dict=feed_dict)
                     #print("grads", grads, indexes)
-                    #print("output", output.shape, output)
+                    print("output", output.shape, output)
                     #print("r1", r1)
                     #print("r2", r2)
                     #print("r3", r3)
