@@ -156,6 +156,7 @@ class Qnetwork():
 
         # softmax
         self.probs = tf.nn.softmax(self.qValues, axis=0)
+        self.chosenAction = tf.argmax(self.probs,0)
 
         #self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
         #self.qValues = self.hidden3
@@ -194,7 +195,7 @@ class Qnetwork():
             langsVisited = GetLangsVisited(visited, langIds, env)
             #print("langsVisited", langsVisited)
             
-            (qValues, probs) = sess.run([self.qValues, self.probs], 
+            (qValues, probs, chosenAction) = sess.run([self.qValues, self.probs, self.chosenAction], 
                                     feed_dict={self.linkLang: linkLang,
                                         self.numActions: numActionsNP,
                                         self.mask: mask,
@@ -206,7 +207,8 @@ class Qnetwork():
             #qValues = qValues[0]
             #print("hidden3", hidden3.shape, hidden3)
             print("qValues", qValues.shape, qValues)
-            print("   probs", probs.shape, probs)
+            print("  probs", probs.shape, probs)
+            print("  chosenAction", chosenAction.shape, chosenAction)
             #print("linkSpecific", linkSpecific.shape)
             #print("numSiblings", numSiblings.shape)
             #print("numVisitedSiblings", numVisitedSiblings.shape)
@@ -214,6 +216,11 @@ class Qnetwork():
             qValues = np.reshape(qValues, [1, qValues.shape[0] ])
             #print("   qValues", qValues)
             #print()
+
+            a = np.random.choice(probs,p=probs)
+            print("  a", a)
+            a = np.argmax(probs == a)
+            print("  a", a)
 
             action = np.argmax(qValues[0, :numActions])
             maxQ = qValues[0, action]

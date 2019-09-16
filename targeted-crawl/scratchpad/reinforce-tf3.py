@@ -34,7 +34,7 @@ class agent():
 
         # softmax
         self.output = slim.fully_connected(hidden,a_size,activation_fn=tf.nn.softmax,biases_initializer=None)
-        self.chosen_action = tf.argmax(self.output,1)
+        self.chosen_action = tf.argmax(self.output,1) # NOT used, instead randomly pick action in CPU according to output probs
 
         #The next six lines establish the training proceedure. We feed the reward and chosen action into the network
         #to compute the loss, and use it to update the network.
@@ -107,8 +107,9 @@ def main():
                 #Probabilistically pick an action given our network outputs.
                 a_dist = sess.run(myAgent.output,feed_dict={myAgent.state_in:[s]})
                 a = np.random.choice(a_dist[0],p=a_dist[0])
+                print("a", a)
                 a = np.argmax(a_dist == a)
-                #print("a_dist", a, a_dist)
+                print("a_dist", a, a_dist)
 
                 s1,r,d,_ = env.step(a) #Get our reward for taking an action given a bandit.
                 ep_history.append([s,a,r,s1])
@@ -139,7 +140,7 @@ def main():
                                                                                 myAgent.loss,
                                                                                 myAgent.grads], feed_dict=feed_dict)
                     #print("grads", grads, indexes)
-                    print("output", output.shape, output)
+                    #print("output", output.shape, output)
                     #print("r1", r1)
                     #print("r2", r2)
                     #print("r3", r3)
