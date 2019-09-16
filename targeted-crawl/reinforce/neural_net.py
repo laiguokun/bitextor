@@ -72,13 +72,6 @@ def NeuralWalk(env, params, eps, candidates, visited, sess, qnA):
     return qValues, maxQ, action, link, reward
 
 ######################################################################################
-class Qnets():
-    def __init__(self, params):
-        self.q = []
-        self.q.append(Qnetwork(params))
-        self.q.append(Qnetwork(params))
-
-######################################################################################
 class Qnetwork():
     def __init__(self, params):
         self.params = params

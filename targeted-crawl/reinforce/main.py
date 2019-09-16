@@ -16,7 +16,7 @@ sys.path.append(relDir)
 from common import GetLanguages, Languages, Timer
 from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelDocs, Env, Link
 from corpus import Corpus
-from neural_net import Qnets, Qnetwork, NeuralWalk, GetNextState
+from neural_net import Qnetwork, NeuralWalk, GetNextState
 from candidate import Candidates, GetLangsVisited
 from other_strategies import dumb, randomCrawl, balanced
 
@@ -59,17 +59,17 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
+def SavePlots(sess, qn, params, envs, saveDirPlots, epoch, sset):
     for env in envs:
-        SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
+        SavePlot(sess, qn, params, env, saveDirPlots, epoch, sset)
 
 ######################################################################################
-def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
+def SavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
     print("Walking", env.rootURL)
     arrDumb = dumb(env, len(env.nodes), params)
     arrRandom = randomCrawl(env, len(env.nodes), params)
     arrBalanced = balanced(env, len(env.nodes), params)
-    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, True)
+    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True)
 
     url = env.rootURL
     domain = extract(url).domain
@@ -131,11 +131,11 @@ class Transition:
         return ret
     
 ######################################################################################
-def Neural(env, params, prevTransition, sess, qnA, qnB):
+def Neural(env, params, prevTransition, sess, qn):
     nextCandidates = prevTransition.nextCandidates.copy()
     nextVisited = prevTransition.nextVisited.copy()
 
-    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qnA)
+    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qn)
     assert(link is not None)
     assert(qValues.shape[1] > 0)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
@@ -143,9 +143,9 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     # calc nextMaxQ
     if nextCandidates.Count() > 0:
         #  links to follow NEXT
-        _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
+        _, _, nextAction = qn.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
         #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
+        nextQValuesB, _, _ = qn.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
         nextMaxQ = nextQValuesB[0, nextAction]
         #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
     else:
@@ -168,7 +168,7 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     return transition, reward
 
 ######################################################################################
-def Trajectory(env, params, sess, qns, test):
+def Trajectory(env, params, sess, qn, test):
     ret = []
     totReward = 0.0
     totDiscountedReward = 0.0
@@ -190,15 +190,7 @@ def Trajectory(env, params, sess, qns, test):
         actionStr = "actions:"
 
     while True:
-        tmp = np.random.rand(1)
-        if tmp > 0.5:
-            qnA = qns.q[0]
-            qnB = qns.q[1]
-        else:
-            qnA = qns.q[1]
-            qnB = qns.q[0]
-
-        transition, reward = Neural(env, params, transition, sess, qnA, qnB)
+        transition, reward = Neural(env, params, transition, sess, qn)
         #print("visited", transition.visited)
         #print("candidates", transition.candidates.Debug())
         #print("transition", transition.Debug())
@@ -219,12 +211,7 @@ def Trajectory(env, params, sess, qns, test):
             if transition.link.childNode.alignedNode is not None:
                 mainStr += "*"
         else:
-            tmp = np.random.rand(1)
-            if tmp > 0.5:
-                corpus = qnA.corpus
-            else:
-                corpus = qnB.corpus
-            corpus.AddTransition(transition)
+            qn.corpus.AddTransition(transition)
 
         if transition.nextCandidates.Count() == 0:
             break
@@ -242,24 +229,23 @@ def Trajectory(env, params, sess, qns, test):
     return ret, totReward, totDiscountedReward
 
 ######################################################################################
-def Train(params, sess, saver, qns, envs, envsTest):
+def Train(params, sess, saver, qn, envs, envsTest):
     print("Start training")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            _ = Trajectory(env, params, sess, qns, False)
+            _ = Trajectory(env, params, sess, qn, False)
             TIMER.Pause("Trajectory")
 
         TIMER.Start("Train")
-        qns.q[0].corpus.Train(sess, params)
-        qns.q[1].corpus.Train(sess, params)
+        qn.corpus.Train(sess, params)
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
-            SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
-            SavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
+            SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
+            SavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
 
 ######################################################################################
 def main():
@@ -304,14 +290,14 @@ def main():
     envsTest = GetEnvs(options.configFile, languages, hostsTest[:options.numTestHosts])
 
     tf.reset_default_graph()
-    qns = Qnets(params)
+    qn = Qnetwork(params)
     init = tf.global_variables_initializer()
 
     saver = None #tf.train.Saver()
     with tf.Session() as sess:
         sess.run(init)
 
-        Train(params, sess, saver, qns, envs, envsTest)
+        Train(params, sess, saver, qn, envs, envsTest)
 
 ######################################################################################
 main()
