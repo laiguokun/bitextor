@@ -28,7 +28,7 @@ class LearningParams:
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
-        self.maxBatchSize = 1
+        self.maxBatchSize = 22
         self.minCorpusSize = 200
         self.overSampling = 1
         

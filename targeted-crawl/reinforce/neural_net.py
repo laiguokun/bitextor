@@ -122,28 +122,28 @@ class Qnetwork():
         self.hidden3 = tf.add(self.hidden3, self.b3)
         #self.hidden3 = tf.nn.relu(self.hidden3)
         self.hidden3 = tf.math.sigmoid(self.hidden3)
-        #print("self.hidden3", self.hidden3.shape)
 
         # link-specific
-        self.hidden3 = tf.transpose(self.hidden3)
-
-        #self.linkLangEmbedding = tf.nn.embedding_lookup(self.embeddings, self.linkLang)
-        #self.linkLangEmbedding = tf.reshape(self.linkLangEmbedding, [self.batchSize * self.params.MAX_NODES, HIDDEN_DIM])
-        #print("self.linkLang", self.linkLang.shape, self.linkLangEmbedding)
-
         self.WlinkSpecific = tf.Variable(tf.random_uniform([4, HIDDEN_DIM], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
 
-        self.linkSpecific = tf.concat([self.linkLang, self.numSiblings, self.numVisitedSiblings, self.numMatchedSiblings], 0)
+        self.linkSpecific = tf.stack([tf.transpose(self.linkLang), 
+                                    tf.transpose(self.numSiblings), 
+                                    tf.transpose(self.numVisitedSiblings),
+                                    tf.transpose(self.numMatchedSiblings)], 0)
         self.linkSpecific = tf.transpose(self.linkSpecific)
+        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize * self.params.MAX_NODES, 4])
+
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
-        self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)
-        #self.linkSpecific = tf.nn.relu(self.linkSpecific)
-        self.linkSpecific = tf.math.sigmoid(self.linkSpecific)
+        self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
+        self.linkSpecific = tf.nn.relu(self.linkSpecific)
+        #self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
+        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, 512])
 
         # final q-values
-        self.hidden3 = tf.matmul(self.linkSpecific, self.hidden3)
-        self.hidden3 = tf.transpose(self.hidden3)
+        self.hidden3 = tf.reshape(self.hidden3, [self.batchSize, 1, HIDDEN_DIM])
+        self.hidden3 = tf.multiply(self.linkSpecific, self.hidden3)
+        self.hidden3 = tf.reduce_sum(self.hidden3, axis=2)
 
         self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
 
