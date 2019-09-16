@@ -10,13 +10,7 @@ class Corpus:
         self.transitions = []
         self.losses = []
 
-    def AddTransition(self, transition):
-        if self.params.deleteDuplicateTransitions:
-            for currTrans in self.transitions:
-                if currTrans.currURLId == transition.currURLId and currTrans.nextURLId == transition.nextURLId:
-                    return
-            # completely new trans
-    
+    def AddTransition(self, transition):    
         self.transitions.append(transition)
 
     def GetBatchWithoutDelete(self, maxBatchSize):

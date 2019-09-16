@@ -22,7 +22,7 @@ from other_strategies import dumb, randomCrawl, balanced
 
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
+    def __init__(self, languages, saveDir, saveDirPlots, langPair, maxLangId, defaultLang):
         self.gamma = 0.999
         self.lrn_rate = 0.001
         self.alpha = 0.7
@@ -39,8 +39,6 @@ class LearningParams:
 
         self.saveDir = saveDir
         self.saveDirPlots = saveDirPlots
-
-        self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
         self.reward = 100.0 #17.0
         self.cost = -1.0
@@ -261,8 +259,6 @@ def main():
                          help="Directory that model WIP are saved to. If existing model exists then load it")
     oparser.add_argument("--save-plots", dest="saveDirPlots", default="plot",
                      help="Directory ")
-    oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
-                         default=False, help="If True then only unique transition are used in each batch")
     oparser.add_argument("--num-train-hosts", dest="numTrainHosts", type=int,
                          default=1, help="Number of domains to train on")
     oparser.add_argument("--num-test-hosts", dest="numTestHosts", type=int,
@@ -273,7 +269,7 @@ def main():
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
     languages = GetLanguages(options.configFile)
-    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
     if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
 

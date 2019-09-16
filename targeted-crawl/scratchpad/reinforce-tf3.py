@@ -107,9 +107,9 @@ def main():
                 #Probabilistically pick an action given our network outputs.
                 a_dist = sess.run(myAgent.output,feed_dict={myAgent.state_in:[s]})
                 a = np.random.choice(a_dist[0],p=a_dist[0])
-                print("a", a)
+                #print("a", a)
                 a = np.argmax(a_dist == a)
-                print("a_dist", a, a_dist)
+                #print("a_dist", a, a_dist)
 
                 s1,r,d,_ = env.step(a) #Get our reward for taking an action given a bandit.
                 ep_history.append([s,a,r,s1])
@@ -121,9 +121,9 @@ def main():
                     #print("ep_history", ep_history)
                     ep_history = np.array(ep_history)
                     #print("   ep_history", ep_history.shape, ep_history)
-                    #print("ep_history", ep_history[:,2])
+                    print("ep_history", ep_history[:,2])
                     ep_history[:,2] = discount_rewards(ep_history[:,2], gamma)
-                    #print("   ep_history", ep_history[:,2])
+                    print("   ep_history", ep_history[:,2])
 
                     feed_dict={myAgent.reward_holder:   ep_history[:,2],
                                myAgent.action_holder:   ep_history[:,1],
