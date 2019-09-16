@@ -181,44 +181,39 @@ class Qnetwork():
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
         numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+        assert(numActions > 0)
         
         numActionsNP = np.empty([1,1], dtype=np.int32)
         numActionsNP[0,0] = numActions
 
-        if numActions > 0:
-            #print("linkLang", numActions, linkLang.shape)
-            #print("mask", mask.shape, mask)
-            langsVisited = GetLangsVisited(visited, langIds, env)
-            #print("langsVisited", langsVisited)
-            
-            (qValues, ) = sess.run([self.qValues, ], 
-                                    feed_dict={self.linkLang: linkLang,
-                                        self.numActions: numActionsNP,
-                                        self.mask: mask,
-                                        self.numSiblings: numSiblings,
-                                        self.numVisitedSiblings: numVisitedSiblings,
-                                        self.numMatchedSiblings: numMatchedSiblings,
-                                        self.langIds: langIds,
-                                        self.langsVisited: langsVisited})
-            #qValues = qValues[0]
-            #print("hidden3", hidden3.shape, hidden3)
-            #print("qValues", qValues.shape, qValues)
-            #print("linkSpecific", linkSpecific.shape)
-            #print("numSiblings", numSiblings.shape)
-            #print("numVisitedSiblings", numVisitedSiblings.shape)
-            #print("numMatchedSiblings", numMatchedSiblings.shape)
-            qValues = np.reshape(qValues, [1, qValues.shape[0] ])
-            #print("   qValues", qValues)
-            #print()
+        #print("linkLang", numActions, linkLang.shape)
+        #print("mask", mask.shape, mask)
+        langsVisited = GetLangsVisited(visited, langIds, env)
+        #print("langsVisited", langsVisited)
+        
+        (qValues, ) = sess.run([self.qValues, ], 
+                                feed_dict={self.linkLang: linkLang,
+                                    self.numActions: numActionsNP,
+                                    self.mask: mask,
+                                    self.numSiblings: numSiblings,
+                                    self.numVisitedSiblings: numVisitedSiblings,
+                                    self.numMatchedSiblings: numMatchedSiblings,
+                                    self.langIds: langIds,
+                                    self.langsVisited: langsVisited})
+        #qValues = qValues[0]
+        #print("hidden3", hidden3.shape, hidden3)
+        #print("qValues", qValues.shape, qValues)
+        #print("linkSpecific", linkSpecific.shape)
+        #print("numSiblings", numSiblings.shape)
+        #print("numVisitedSiblings", numVisitedSiblings.shape)
+        #print("numMatchedSiblings", numMatchedSiblings.shape)
+        qValues = np.reshape(qValues, [1, qValues.shape[0] ])
+        #print("   qValues", qValues)
+        #print()
 
-            action = np.argmax(qValues[0, :numActions])
-            maxQ = qValues[0, action]
-            #print("newAction", action, maxQ)
-        else:
-            maxQ = 0.0 #-99999.0
-            action = -1
-            qValues = np.zeros([1, 0], dtype=np.float32)
-            #print("qValues", qValues.shape)
+        action = np.argmax(qValues[0, :numActions])
+        maxQ = qValues[0, action]
+        #print("newAction", action, maxQ)
 
         return qValues, maxQ, action
 
