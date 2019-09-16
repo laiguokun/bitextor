@@ -24,8 +24,17 @@ class Corpus:
 
         return batch
 
+    def CalcDiscountedReward(self):
+        runningReward = 0.0
+        for t in reversed(range(0, len(self.transitions))):
+            transition = self.transitions[t]
+            runningReward = runningReward * self.params.gamma + transition.reward
+            transition.discountedReward = runningReward
+            #print("t", t, transition.Debug())
+
     def Train(self, sess, params):
         if len(self.transitions) >= params.minCorpusSize:
+            self.CalcDiscountedReward()
             #for transition in self.transitions:
             #    print(DebugTransition(transition))
 

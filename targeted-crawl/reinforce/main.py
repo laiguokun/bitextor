@@ -101,12 +101,15 @@ def SavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
 
 ######################################################################################
 class Transition:
-    def __init__(self, env, action, link, langIds, targetQ, visited, candidates, nextVisited, nextCandidates):
+    def __init__(self, env, action, reward, link, langIds, targetQ, visited, candidates, nextVisited, nextCandidates):
         self.action = action
         self.link = link
 
         self.nextVisited = nextVisited.copy()
         self.nextCandidates = nextCandidates.copy()
+
+        self.reward = reward
+        self.discountedReward = None
 
         if candidates is not None:
             self.candidates = candidates.copy()
@@ -125,7 +128,10 @@ class Transition:
             self.langsVisited = GetLangsVisited(visited, langIds, env)
 
     def Debug(self):
-        ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " + str(self.visited)
+        ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " \
+            + str(len(self.visited)) + " " + str(self.candidates.Count()) + " " \
+            + str(self.reward) + " " + str(self.discountedReward)
+
         return ret
     
 ######################################################################################
@@ -155,6 +161,7 @@ def Neural(env, params, prevTransition, sess, qn):
 
     transition = Transition(env,
                             action, 
+                            reward,
                             link,
                             params.langIds,
                             qValues,
@@ -180,7 +187,7 @@ def Trajectory(env, params, sess, qn, test):
     nextCandidates = Candidates(params, env)
     nextCandidates.AddLinks(startNode, nextVisited, params)
 
-    transition = Transition(env, -1, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
+    transition = Transition(env, -1, 0, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
