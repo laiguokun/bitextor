@@ -255,15 +255,15 @@ class Qnetwork():
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
-        print("hidden3", hidden3.shape, hidden3)
+        #print("hidden3", hidden3.shape, hidden3)
         #print("   qValues", qValues.shape, qValues)
-        print("   maskNum", maskNum.shape, maskNum)
+        #print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
-        print("   maxQ", maxQ.shape, maxQ)
-        print("   smUpper", smUpper.shape, smUpper)
-        print("   smUpperSum", smUpperSum.shape, smUpperSum)
-        print("   probs", probs.shape, probs)
-        print()
+        #print("   maxQ", maxQ.shape, maxQ)
+        #print("   smUpper", smUpper.shape, smUpper)
+        #print("   smUpperSum", smUpperSum.shape, smUpperSum)
+        #print("   probs", probs.shape, probs)
+        #print()
 
         return loss
 
