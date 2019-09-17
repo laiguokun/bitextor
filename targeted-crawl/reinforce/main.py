@@ -260,7 +260,7 @@ def main():
     languages = GetLanguages(options.configFile)
     params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
-    if not os.path.exists(options.saveDirPlots): os.mkdir(options.saveDirPlots)
+    if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
