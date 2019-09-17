@@ -58,7 +58,6 @@ class Corpus:
         numMatchedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, 3])
-        targetQ = np.empty([batchSize, self.params.MAX_NODES])
 
         actions = np.empty([batchSize], dtype=np.int)
         discountedRewards = np.empty([batchSize], dtype=np.float32)
@@ -68,7 +67,6 @@ class Corpus:
             #curr = transition.curr
             #next = transition.next
             #print("transition.numActions", transition.numActions, transition.targetQ.shape, transition.candidates.Count())
-            assert(transition.numActions == transition.targetQ.shape[1])
             numActions[i, 0] = transition.numActions
             linkLang[i, :] = transition.linkLang
             mask[i, :] = transition.mask
@@ -77,14 +75,13 @@ class Corpus:
             numMatchedSiblings[i, :] = transition.numMatchedSiblings
             langIds[i, :] = transition.langIds
             langsVisited[i, :] = transition.langsVisited
-            targetQ[i, 0:transition.numActions] = transition.targetQ
 
             actions[i] = transition.action
             discountedRewards[i] = transition.discountedReward
 
             i += 1
 
-        loss = self.qn.Update(sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ, actions, discountedRewards)
+        loss = self.qn.Update(sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, actions, discountedRewards)
 
         #print("loss", loss)
         return loss

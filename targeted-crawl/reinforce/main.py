@@ -101,7 +101,7 @@ def SavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
 
 ######################################################################################
 class Transition:
-    def __init__(self, env, action, reward, link, langIds, targetQ, visited, candidates, nextVisited, nextCandidates):
+    def __init__(self, env, action, reward, link, langIds, visited, candidates, nextVisited, nextCandidates):
         self.action = action
         self.link = link
 
@@ -121,7 +121,6 @@ class Transition:
             self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
             self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
             self.langIds = langIds 
-            self.targetQ = np.array(targetQ, copy=True)
 
         if visited is not None:
             self.visited = visited.copy()
@@ -139,32 +138,15 @@ def Neural(env, params, prevTransition, sess, qn):
     nextCandidates = prevTransition.nextCandidates.copy()
     nextVisited = prevTransition.nextVisited.copy()
 
-    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qn)
+    action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qn)
     assert(link is not None)
-    assert(qValues.shape[1] > 0)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
-
-    # calc nextMaxQ
-    if nextCandidates.Count() > 0:
-        #  links to follow NEXT
-        _, _, nextAction = qn.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-        #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        nextQValuesB, _, _ = qn.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-        nextMaxQ = nextQValuesB[0, nextAction]
-        #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
-    else:
-        nextMaxQ = 0
-
-    newVal = reward + params.gamma * nextMaxQ
-    targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
-    qValues[0, action] = targetQ
 
     transition = Transition(env,
                             action, 
                             reward,
                             link,
                             params.langIds,
-                            qValues,
                             prevTransition.nextVisited,
                             prevTransition.nextCandidates,
                             nextVisited,
@@ -187,7 +169,7 @@ def Trajectory(env, params, sess, qn, test):
     nextCandidates = Candidates(params, env)
     nextCandidates.AddLinks(startNode, nextVisited, params)
 
-    transition = Transition(env, -1, 0, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
+    transition = Transition(env, -1, 0, None, params.langIds, None, None, nextVisited, nextCandidates)
 
     if test:
         mainStr = "lang:" + str(startNode.lang)

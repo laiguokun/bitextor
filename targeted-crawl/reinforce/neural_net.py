@@ -52,24 +52,11 @@ def GetNextState(env, params, action, visited, candidates):
 
 ######################################################################################
 def NeuralWalk(env, params, eps, candidates, visited, sess, qnA):
-    qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, visited, candidates)
-
-    #print("action", action, linkLang, qValues)
-    if action >= 0:
-        if np.random.rand(1) < eps:
-            #print("actions", type(actions), actions)
-            numActions, _, _, _, _, _ = candidates.GetFeatures()
-            action = np.random.randint(0, numActions)
-            maxQ = qValues[0, action]
-            #print("random")
-        #print("action", action, qValues)
-
-    #print("action", action, maxQ, qValues)
+    action = qnA.PredictAll(env, sess, params.langIds, visited, candidates)
     link, reward = GetNextState(env, params, action, visited, candidates)
     assert(link is not None)
-    #print("action", action, qValues, link.childNode.Debug(), reward)
 
-    return qValues, maxQ, action, link, reward
+    return action, link, reward
 
 ######################################################################################
 class Qnetwork():
@@ -147,21 +134,18 @@ class Qnetwork():
         self.hidden3 = tf.multiply(self.linkSpecific, self.hidden3)
         self.hidden3 = tf.reduce_sum(self.hidden3, axis=2)
 
-        #self.qValues = self.hidden3
-        self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
-
         # softmax
-        self.maxQ = tf.multiply(self.hidden3, self.maskNum)
-        self.maxQ = tf.reduce_max(self.maxQ, axis=1)
-        self.maxQ = tf.reshape(self.maxQ, [self.batchSize, 1])
-        self.smNumer = tf.subtract(self.hidden3, self.maxQ)
+        self.logit = self.hidden3
+        self.maxLogit = tf.multiply(self.logit, self.maskNum)
+        self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
+        self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])
+        self.smNumer = tf.subtract(self.hidden3, self.maxLogit)
         self.smNumer = tf.exp(self.smNumer)
         self.smNumer = tf.multiply(self.smNumer, self.maskNum)
         self.smNumerSum = tf.reduce_sum(self.smNumer, axis=1)
         self.smNumerSum = tf.reshape(self.smNumerSum, [self.batchSize, 1])
         
         self.probs = tf.divide(self.smNumer, self.smNumerSum)
-        #self.probs = tf.nn.softmax(self.qValues, axis=0)
         self.chosenAction = tf.argmax(self.probs,0)
 
         #self.sm = tf.reduce_sum(self.sm, axis=1)
@@ -211,7 +195,7 @@ class Qnetwork():
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
-        (qValues, probs, chosenAction, maxQ) = sess.run([self.qValues, self.probs, self.chosenAction, self.maxQ], 
+        (probs, chosenAction) = sess.run([self.probs, self.chosenAction], 
                                 feed_dict={self.linkLang: linkLang,
                                     self.numActions: numActionsNP,
                                     self.mask: mask,
@@ -238,17 +222,13 @@ class Qnetwork():
         action = np.argmax(probs == action)
         #print("  action", action)
 
-        qValues = np.reshape(qValues, [1, qValues.shape[0] ])
-        maxQ = qValues[0, action]
-        #print("newAction", action, maxQ)
+        return action
 
-        return qValues, maxQ, action
-
-    def Update(self, sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ, actions, discountedRewards):
+    def Update(self, sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, actions, discountedRewards):
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smNumer, smNumerSum, probs, o1, indexes, responsible_outputs = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smNumer, self.smNumerSum, self.probs, self.o1, self.indexes, self.responsible_outputs], 
+        _, loss, hidden3, maskNum, maskNumNeg, smNumer, smNumerSum, probs, o1, indexes, responsible_outputs = sess.run([self.updateModel, self.loss, self.hidden3, self.maskNum, self.maskNumNeg, self.smNumer, self.smNumerSum, self.probs, self.o1, self.indexes, self.responsible_outputs], 
                                     feed_dict={self.linkLang: linkLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
@@ -257,7 +237,6 @@ class Qnetwork():
                                             self.numMatchedSiblings: numMatchedSiblings,
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
-                                            self.nextQ: targetQ,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
