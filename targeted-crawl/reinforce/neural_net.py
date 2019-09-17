@@ -150,12 +150,21 @@ class Qnetwork():
         #self.qValues = self.hidden3
         self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
 
+        # softmax
         self.maxQ = tf.multiply(self.hidden3, self.maskNum)
         self.maxQ = tf.reduce_max(self.maxQ, axis=1)
-
-        # softmax
-        self.probs = tf.nn.softmax(self.qValues, axis=0)
+        self.maxQ = tf.reshape(self.maxQ, [self.batchSize, 1])
+        self.smUpper = tf.subtract(self.hidden3, self.maxQ)
+        self.smUpper = tf.exp(self.smUpper)
+        self.smUpper = tf.multiply(self.smUpper, self.maskNum)
+        self.smUpperSum = tf.reduce_sum(self.smUpper, axis=1)
+        self.smUpperSum = tf.reshape(self.smUpperSum, [self.batchSize, 1])
+        
+        self.probs = tf.divide(self.smUpper, self.smUpperSum)
+        #self.probs = tf.nn.softmax(self.qValues, axis=0)
         self.chosenAction = tf.argmax(self.probs,0)
+
+        #self.sm = tf.reduce_sum(self.sm, axis=1)
 
         # REINFORCE
         self.reward_holder = tf.placeholder(shape=[None, 1],dtype=tf.float32)
@@ -231,7 +240,7 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg], 
+        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smUpper, smUpperSum, sm = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smUpper, self.smUpperSum, self.sm], 
                                     feed_dict={self.linkLang: linkLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
@@ -245,9 +254,14 @@ class Qnetwork():
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
         print("hidden3", hidden3.shape, hidden3)
-        print("   qValues", qValues.shape, qValues)
+        #print("   qValues", qValues.shape, qValues)
         print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
         print("   maxQ", maxQ.shape, maxQ)
+        print("   smUpper", smUpper.shape, smUpper)
+        print("   smUpperSum", smUpperSum.shape, smUpperSum)
+        print("   sm", sm.shape, sm)
+        print()
+
         return loss
 
