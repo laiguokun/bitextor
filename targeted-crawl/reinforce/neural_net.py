@@ -193,6 +193,7 @@ class Qnetwork():
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
         numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+        #print("numActions", numActions)
         
         numActionsNP = np.empty([1,1], dtype=np.int32)
         numActionsNP[0,0] = numActions
@@ -222,15 +223,16 @@ class Qnetwork():
         #print("numSiblings", numSiblings.shape)
         #print("numVisitedSiblings", numVisitedSiblings.shape)
         #print("numMatchedSiblings", numMatchedSiblings.shape)
-        qValues = np.reshape(qValues, [1, qValues.shape[0] ])
         #print("   qValues", qValues)
         #print()
 
+        probs = np.reshape(probs, [probs.shape[1] ])
         action = np.random.choice(probs,p=probs)
         #print("  action", action)
         action = np.argmax(probs == action)
         #print("  action", action)
 
+        qValues = np.reshape(qValues, [1, qValues.shape[0] ])
         maxQ = qValues[0, action]
         #print("newAction", action, maxQ)
 
@@ -240,7 +242,7 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smUpper, smUpperSum, sm = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smUpper, self.smUpperSum, self.sm], 
+        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smUpper, smUpperSum, probs = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smUpper, self.smUpperSum, self.probs], 
                                     feed_dict={self.linkLang: linkLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
@@ -260,7 +262,7 @@ class Qnetwork():
         print("   maxQ", maxQ.shape, maxQ)
         print("   smUpper", smUpper.shape, smUpper)
         print("   smUpperSum", smUpperSum.shape, smUpperSum)
-        print("   sm", sm.shape, sm)
+        print("   probs", probs.shape, probs)
         print()
 
         return loss
