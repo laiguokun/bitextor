@@ -154,13 +154,13 @@ class Qnetwork():
         self.maxQ = tf.multiply(self.hidden3, self.maskNum)
         self.maxQ = tf.reduce_max(self.maxQ, axis=1)
         self.maxQ = tf.reshape(self.maxQ, [self.batchSize, 1])
-        self.smUpper = tf.subtract(self.hidden3, self.maxQ)
-        self.smUpper = tf.exp(self.smUpper)
-        self.smUpper = tf.multiply(self.smUpper, self.maskNum)
-        self.smUpperSum = tf.reduce_sum(self.smUpper, axis=1)
-        self.smUpperSum = tf.reshape(self.smUpperSum, [self.batchSize, 1])
+        self.smNumer = tf.subtract(self.hidden3, self.maxQ)
+        self.smNumer = tf.exp(self.smNumer)
+        self.smNumer = tf.multiply(self.smNumer, self.maskNum)
+        self.smNumerSum = tf.reduce_sum(self.smNumer, axis=1)
+        self.smNumerSum = tf.reshape(self.smNumerSum, [self.batchSize, 1])
         
-        self.probs = tf.divide(self.smUpper, self.smUpperSum)
+        self.probs = tf.divide(self.smNumer, self.smNumerSum)
         #self.probs = tf.nn.softmax(self.qValues, axis=0)
         self.chosenAction = tf.argmax(self.probs,0)
 
@@ -242,7 +242,7 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smUpper, smUpperSum, probs = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smUpper, self.smUpperSum, self.probs], 
+        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smNumer, smNumerSum, probs = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smNumer, self.smNumerSum, self.probs], 
                                     feed_dict={self.linkLang: linkLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
@@ -260,8 +260,8 @@ class Qnetwork():
         #print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
         #print("   maxQ", maxQ.shape, maxQ)
-        #print("   smUpper", smUpper.shape, smUpper)
-        #print("   smUpperSum", smUpperSum.shape, smUpperSum)
+        #print("   smNumer", smNumer.shape, smNumer)
+        #print("   smNumerSum", smNumerSum.shape, smNumerSum)
         #print("   probs", probs.shape, probs)
         #print()
 
