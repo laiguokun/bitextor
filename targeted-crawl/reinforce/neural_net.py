@@ -178,14 +178,12 @@ class Qnetwork():
         self.o1 = tf.reshape(self.probs, [-1]) # all action probs in 1-d
         self.responsible_outputs = tf.gather(self.o1, self.indexes) # the prob of the action. Should have just stored it!? len=length of trajectory
 
+        self.l1 = tf.log(self.responsible_outputs)
+        self.l2 = self.l1 * self.reward_holder  # log prob * reward. len=length of trajectory
+        self.loss = -tf.reduce_mean(self.l2)    # 1 number
+
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
-        nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
-
-        self.loss = nextQMasked - self.qValues
-        #self.loss = tf.reduce_max(tf.square(self.loss))
-        self.loss = tf.reduce_mean(tf.square(self.loss))
-        #self.loss = tf.reduce_sum(tf.square(self.loss))
         
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
         self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)
