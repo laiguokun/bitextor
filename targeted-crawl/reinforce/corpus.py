@@ -60,6 +60,9 @@ class Corpus:
         langsVisited = np.empty([batchSize, 3])
         targetQ = np.empty([batchSize, self.params.MAX_NODES])
 
+        actions = np.empty([batchSize, 1], dtype=np.int)
+        discountedRewards = np.empty([batchSize, 1], dtype=np.float32)
+        
         i = 0
         for transition in batch:
             #curr = transition.curr
@@ -76,9 +79,12 @@ class Corpus:
             langsVisited[i, :] = transition.langsVisited
             targetQ[i, 0:transition.numActions] = transition.targetQ
 
+            actions[i, 0] = transition.action
+            discountedRewards[i, 0] = transition.discountedReward
+
             i += 1
 
-        loss = self.qn.Update(sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
+        loss = self.qn.Update(sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ, actions, discountedRewards)
 
         #print("loss", loss)
         return loss

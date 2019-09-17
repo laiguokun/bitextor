@@ -151,9 +151,9 @@ class Qnetwork():
         self.probs = tf.nn.softmax(self.qValues, axis=0)
         self.chosenAction = tf.argmax(self.probs,0)
 
-        #self.hidden3 = tf.math.reduce_sum(self.hidden3, axis=1)
-        #self.qValues = self.hidden3
-        #print("self.qValues", self.qValue.shapes)
+        # REINFORCE
+        self.reward_holder = tf.placeholder(shape=[None, 1],dtype=tf.float32)
+        self.action_holder = tf.placeholder(shape=[None, 1],dtype=tf.int32) #  0 or 1
        
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
@@ -221,7 +221,8 @@ class Qnetwork():
 
         return qValues, maxQ, action
 
-    def Update(self, sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ):
+    def Update(self, sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ, actions, discountedRewards):
+        #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
         _, loss = sess.run([self.updateModel, self.loss], 
@@ -233,7 +234,9 @@ class Qnetwork():
                                             self.numMatchedSiblings: numMatchedSiblings,
                                             self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
-                                            self.nextQ: targetQ})
+                                            self.nextQ: targetQ,
+                                            self.action_holder: actions,
+                                            self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
         return loss
 
