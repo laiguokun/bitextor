@@ -167,9 +167,17 @@ class Qnetwork():
         #self.sm = tf.reduce_sum(self.sm, axis=1)
 
         # REINFORCE
-        self.reward_holder = tf.placeholder(shape=[None, 1],dtype=tf.float32)
-        self.action_holder = tf.placeholder(shape=[None, 1],dtype=tf.int32) #  0 or 1
+        self.reward_holder = tf.placeholder(shape=[None],dtype=tf.float32)
+        self.action_holder = tf.placeholder(shape=[None],dtype=tf.int32) #  0 or 1
+
+        self.r1 = tf.range(0, self.batchSize)  # 0 1 2 3 4 len=length of trajectory
+        self.r2 = self.params.MAX_NODES
+        self.r3 = self.r1 * self.r2          # 0 2 4 6 8
+        self.indexes = self.r3 + self.action_holder # r3 + 0/1 offset depending on action
        
+        self.o1 = tf.reshape(self.probs, [-1]) # all action probs in 1-d
+        self.responsible_outputs = tf.gather(self.o1, self.indexes) # the prob of the action. Should have just stored it!? len=length of trajectory
+
         # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
         self.nextQ = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         nextQMasked = tf.boolean_mask(self.nextQ, self.mask, axis=0)
@@ -242,7 +250,7 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smNumer, smNumerSum, probs = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smNumer, self.smNumerSum, self.probs], 
+        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg, smNumer, smNumerSum, probs, o1, indexes, responsible_outputs = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg, self.smNumer, self.smNumerSum, self.probs, self.o1, self.indexes, self.responsible_outputs], 
                                     feed_dict={self.linkLang: linkLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
@@ -263,6 +271,9 @@ class Qnetwork():
         #print("   smNumer", smNumer.shape, smNumer)
         #print("   smNumerSum", smNumerSum.shape, smNumerSum)
         #print("   probs", probs.shape, probs)
+        #print("   o1", o1.shape, o1)
+        #print("   indexes", indexes.shape, indexes)
+        print("   responsible_outputs", responsible_outputs.shape, responsible_outputs)
         #print()
 
         return loss

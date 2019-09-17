@@ -121,9 +121,9 @@ def main():
                     #print("ep_history", ep_history)
                     ep_history = np.array(ep_history)
                     #print("   ep_history", ep_history.shape, ep_history)
-                    print("ep_history", ep_history[:,2])
+                    #print("ep_history", ep_history[:,2])
                     ep_history[:,2] = discount_rewards(ep_history[:,2], gamma)
-                    print("   ep_history", ep_history[:,2])
+                    print("   ep_history", ep_history[:,2].shape, ep_history[:,2])
 
                     feed_dict={myAgent.reward_holder:   ep_history[:,2],
                                myAgent.action_holder:   ep_history[:,1],
@@ -143,12 +143,12 @@ def main():
                     #print("output", output.shape, output)
                     #print("r1", r1)
                     #print("r2", r2)
-                    #print("r3", r3)
+                    print("r3", r3)
                     #print("action holder", ep_history[:,1].shape, ep_history[:,1])
                     #print("reward_holder holder", ep_history[:,2].shape, ep_history[:,2])
-                    #print("indexes", indexes)
-                    #print("o1", o1.shape, o1)
-                    #print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
+                    print("indexes", indexes)
+                    print("o1", o1.shape, o1)
+                    print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
                     #print("l2", l2.shape, l2)
                     #print("loss", loss)
                     #for grad in grads:

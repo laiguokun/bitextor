@@ -60,8 +60,8 @@ class Corpus:
         langsVisited = np.empty([batchSize, 3])
         targetQ = np.empty([batchSize, self.params.MAX_NODES])
 
-        actions = np.empty([batchSize, 1], dtype=np.int)
-        discountedRewards = np.empty([batchSize, 1], dtype=np.float32)
+        actions = np.empty([batchSize], dtype=np.int)
+        discountedRewards = np.empty([batchSize], dtype=np.float32)
         
         i = 0
         for transition in batch:
@@ -79,8 +79,8 @@ class Corpus:
             langsVisited[i, :] = transition.langsVisited
             targetQ[i, 0:transition.numActions] = transition.targetQ
 
-            actions[i, 0] = transition.action
-            discountedRewards[i, 0] = transition.discountedReward
+            actions[i] = transition.action
+            discountedRewards[i] = transition.discountedReward
 
             i += 1
 
