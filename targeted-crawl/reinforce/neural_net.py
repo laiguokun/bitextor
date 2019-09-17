@@ -81,8 +81,8 @@ class Qnetwork():
 
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
-        self.maskInt8 = tf.cast(self.mask, dtype=tf.int8)
-        self.maskInt8Neg = tf.multiply(tf.add(self.maskInt8, -1), -1)
+        self.maskNum = tf.cast(self.mask, dtype=tf.float32)
+        self.maskNumNeg = tf.multiply(tf.add(self.maskNum, -1), -1)
 
         # graph represention
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
@@ -150,7 +150,8 @@ class Qnetwork():
         #self.qValues = self.hidden3
         self.qValues = tf.boolean_mask(self.hidden3, self.mask, axis=0)
 
-        self.maxQ = tf.multiply(self.hidden3, tf.cast(self.maskInt8, dtype=tf.float32))
+        self.maxQ = tf.multiply(self.hidden3, self.maskNum)
+        self.maxQ = tf.reduce_max(self.maxQ, axis=1)
 
         # softmax
         self.probs = tf.nn.softmax(self.qValues, axis=0)
@@ -230,7 +231,7 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, hidden3, qValues, maxQ, maskInt8, maskInt8Neg = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskInt8, self.maskInt8Neg], 
+        _, loss, hidden3, qValues, maxQ, maskNum, maskNumNeg = sess.run([self.updateModel, self.loss, self.hidden3, self.qValues, self.maxQ, self.maskNum, self.maskNumNeg], 
                                     feed_dict={self.linkLang: linkLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
@@ -245,8 +246,8 @@ class Qnetwork():
         #print("loss", loss, numActions)
         print("hidden3", hidden3.shape, hidden3)
         print("   qValues", qValues.shape, qValues)
-        #print("   maskInt8", maskInt8.shape, maskInt8)
-        print("   maskInt8Neg", maskInt8Neg.shape, maskInt8Neg)
+        print("   maskNum", maskNum.shape, maskNum)
+        #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
         print("   maxQ", maxQ.shape, maxQ)
         return loss
 
