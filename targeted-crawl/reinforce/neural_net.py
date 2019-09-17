@@ -69,8 +69,7 @@ class Qnetwork():
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
         self.maskNum = tf.cast(self.mask, dtype=tf.float32)
-        self.maskNumNeg = tf.multiply(tf.add(self.maskNum, -1), -1)
-
+        
         # graph represention
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
@@ -148,9 +147,7 @@ class Qnetwork():
         self.probs = tf.divide(self.smNumer, self.smNumerSum)
         self.chosenAction = tf.argmax(self.probs,0)
 
-        #self.sm = tf.reduce_sum(self.sm, axis=1)
-
-        # REINFORCE
+        # training
         self.reward_holder = tf.placeholder(shape=[None],dtype=tf.float32)
         self.action_holder = tf.placeholder(shape=[None],dtype=tf.int32) #  0 or 1
 
@@ -165,21 +162,10 @@ class Qnetwork():
         self.l1 = tf.log(self.responsible_outputs)
         self.l2 = self.l1 * self.reward_holder  # log prob * reward. len=length of trajectory
         self.loss = -tf.reduce_mean(self.l2)    # 1 number
-
-        # Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-        self.nextQ = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
-        self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)
-        
+        self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)        
         self.updateModel = self.trainer.minimize(self.loss)
-
-        #self.sumWeight = tf.reduce_sum(self.W1) \
-        #                 + tf.reduce_sum(self.b1) \
-        #                 + tf.reduce_sum(self.W2) \
-        #                 + tf.reduce_sum(self.b2) \
-        #                 + tf.reduce_sum(self.W3) \
-        #                 + tf.reduce_sum(self.b3) 
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
         numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
@@ -195,7 +181,7 @@ class Qnetwork():
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
-        (probs, chosenAction) = sess.run([self.probs, self.chosenAction], 
+        (probs,) = sess.run([self.probs], 
                                 feed_dict={self.linkLang: linkLang,
                                     self.numActions: numActionsNP,
                                     self.mask: mask,
@@ -228,7 +214,7 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        _, loss, hidden3, maskNum, maskNumNeg, smNumer, smNumerSum, probs, o1, indexes, responsible_outputs = sess.run([self.updateModel, self.loss, self.hidden3, self.maskNum, self.maskNumNeg, self.smNumer, self.smNumerSum, self.probs, self.o1, self.indexes, self.responsible_outputs], 
+        (_, loss) = sess.run([self.updateModel, self.loss], 
                                     feed_dict={self.linkLang: linkLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
@@ -250,7 +236,7 @@ class Qnetwork():
         #print("   probs", probs.shape, probs)
         #print("   o1", o1.shape, o1)
         #print("   indexes", indexes.shape, indexes)
-        print("   responsible_outputs", responsible_outputs.shape, responsible_outputs)
+        #print("   responsible_outputs", responsible_outputs.shape, responsible_outputs)
         #print()
 
         return loss
