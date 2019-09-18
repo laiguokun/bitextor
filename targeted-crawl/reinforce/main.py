@@ -24,7 +24,7 @@ from other_strategies import dumb, randomCrawl, balanced
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, langPair, maxLangId, defaultLang):
         self.gamma = 0.999
-        self.lrn_rate = 0.001
+        self.lrn_rate = 0.01
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1

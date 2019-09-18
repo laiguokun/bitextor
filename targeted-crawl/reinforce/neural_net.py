@@ -161,7 +161,8 @@ class Qnetwork():
         self.l2 = self.l1 * self.reward_holder  # log prob * reward. len=length of trajectory
         self.loss = -tf.reduce_mean(self.l2)    # 1 number
         
-        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=lrn_rate)
+        #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=params.lrn_rate)
+        #self.trainer = tf.train.AdagradOptimizer(learning_rate=params.lrn_rate)        
         self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)        
         self.updateModel = self.trainer.minimize(self.loss)
 
