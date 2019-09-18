@@ -237,7 +237,7 @@ def Train(params, sess, saver, qn, envs, envsTest):
         if epoch > 0 and epoch % params.walk == 0:
             print("epoch", epoch)
             #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
-            RunRLSavePlot(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
+            RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
 
 ######################################################################################
 def main():
