@@ -221,7 +221,7 @@ def Trajectory(env, params, sess, qn, test):
 def Train(params, sess, saver, qn, envs, envsTest):
     print("Start training")
     for epoch in range(params.max_epochs):
-        #print("epoch", epoch)
+        print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
             arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, False)
@@ -235,7 +235,7 @@ def Train(params, sess, saver, qn, envs, envsTest):
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
-            print("epoch", epoch)
+            #print("epoch", epoch)
             #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
 
