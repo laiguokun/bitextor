@@ -69,17 +69,17 @@ def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
 
 ######################################################################################
 def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
-    arrDumb = dumb(env, len(env.nodes), params)
-    arrRandom = randomCrawl(env, len(env.nodes), params)
-    arrBalanced = balanced(env, len(env.nodes), params)
+    arrDumb = dumb(env, params.maxDocs, params)
+    arrRandom = randomCrawl(env, params.maxDocs, params)
+    arrBalanced = balanced(env, params.maxDocs, params)
     #print("arrRL", len(arrRL))
 
     url = env.rootURL
     domain = extract(url).domain
 
-    warmUp = 200
+    warmUp = 0 #200
     avgRandom = avgBalanced = avgRL = 0.0
-    for i in range(len(arrRL)):
+    for i in range(params.maxDocs):
         if i > warmUp and arrDumb[i] > 0:
             avgRandom += arrRandom[i] / arrDumb[i]
             avgBalanced += arrBalanced[i] / arrDumb[i]
@@ -232,7 +232,7 @@ def Trajectory(env, params, sess, qns, test):
         if transition.nextCandidates.Count() == 0:
             break
 
-        if len(transition.visited) > params.maxDocs:
+        if len(transition.visited) >= params.maxDocs:
             break
 
     if test:
