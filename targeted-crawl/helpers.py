@@ -32,7 +32,7 @@ def GetEnv(configFile, languages, url):
             env = pickle.load(f)
     # change language of start node. 0 = stop
     env.nodes[sys.maxsize].lang = languages.GetLang("None")
-
+    print("   ", len(env.nodes), "nodes,", env.numAligned, "aligned docs")
     #for node in env.nodes.values():
     #    print(node.Debug())
 
