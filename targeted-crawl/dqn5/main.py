@@ -59,17 +59,19 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-def SavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
+def RunRLSavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
     for env in envs:
-        SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
+        RunRLSavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
+
+def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
+    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True)
+    SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
-def SavePlot(sess, qns, params, env, saveDirPlots, epoch, sset):
-    print("Walking", env.rootURL)
+def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
     arrDumb = dumb(env, len(env.nodes), params)
     arrRandom = randomCrawl(env, len(env.nodes), params)
     arrBalanced = balanced(env, len(env.nodes), params)
-    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, True)
 
     url = env.rootURL
     domain = extract(url).domain
@@ -245,11 +247,13 @@ def Trajectory(env, params, sess, qns, test):
 def Train(params, sess, saver, qns, envs, envsTest):
     print("Start training")
     for epoch in range(params.max_epochs):
-        #print("epoch", epoch)
+        print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            _ = Trajectory(env, params, sess, qns, False)
+            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, False)
             TIMER.Pause("Trajectory")
+
+            SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
         TIMER.Start("Train")
         qns.q[0].corpus.Train(sess, params)
@@ -257,9 +261,9 @@ def Train(params, sess, saver, qns, envs, envsTest):
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
-            print("epoch", epoch)
-            SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
-            SavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
+            #print("epoch", epoch)
+            #SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
+            RunRLSavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 
 ######################################################################################
 def main():
