@@ -137,7 +137,7 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     nextCandidates = prevTransition.nextCandidates.copy()
     nextVisited = prevTransition.nextVisited.copy()
 
-    qValues, maxQ, action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qnA)
+    qValues, maxQ, action, link, reward = NeuralWalk(env, params, nextCandidates, nextVisited, sess, qnA)
     assert(link is not None)
     assert(qValues.shape[1] > 0)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())

@@ -51,12 +51,12 @@ def GetNextState(env, params, action, visited, candidates):
     return link, reward
 
 ######################################################################################
-def NeuralWalk(env, params, eps, candidates, visited, sess, qnA):
+def NeuralWalk(env, params, candidates, visited, sess, qnA):
     qValues, maxQ, action = qnA.PredictAll(env, sess, params.langIds, visited, candidates)
 
     #print("action", action, linkLang, qValues)
     if action >= 0:
-        if np.random.rand(1) < eps:
+        if np.random.rand(1) < params.eps:
             #print("actions", type(actions), actions)
             numActions, _, _, _, _, _ = candidates.GetFeatures()
             action = np.random.randint(0, numActions)
