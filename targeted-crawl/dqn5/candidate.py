@@ -22,6 +22,15 @@ def GetLangsVisited(visited, langIds, env):
             langsVisited[0, 2] += 1
 
     return langsVisited
+
+def GroupLang(langId, langIds):
+    if langId == langIds[0, 0]:
+        return -1
+    elif langId == langIds[0, 1]:
+        return 1
+    else: 
+        return 0
+
 ######################################################################################
 class Candidates:
     def __init__(self, params, env):
@@ -46,7 +55,7 @@ class Candidates:
         self.grouped.clear()
         
         for link in self.links:
-            parentLang = link.parentNode.lang
+            parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
             numSiblings = len(link.parentNode.links)
             
             numVisitedSiblings = GetVistedSiblings(link.childNode.urlId, link.parentNode, visited)
@@ -57,7 +66,7 @@ class Candidates:
             
             parentMatched = GetNodeMatched(link.parentNode, visited)
 
-            linkLang = link.textLang
+            linkLang = GroupLang(link.textLang, self.params.langIds)
 
             #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
             #for sibling in link.parentNode.links:
@@ -111,7 +120,7 @@ class Candidates:
         for key, nodes in self.grouped.items():
             if numActions >= self.params.MAX_NODES:
                 break
-            
+
             assert(len(nodes) > 0)
 
             parentLang[0, numActions] = key[0]
