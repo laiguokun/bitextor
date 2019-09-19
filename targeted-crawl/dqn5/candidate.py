@@ -56,11 +56,14 @@ class Candidates:
             numMatchedSiblings = len(matchedSiblings)
             
             parentMatched = GetNodeMatched(link.parentNode, visited)
+
+            linkLang = link.textLang
+
             #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
             #for sibling in link.parentNode.links:
             #    print("   sibling", sibling.childNode.url)
 
-            key = (parentLang, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)
+            key = (parentLang, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang)
 
             if key not in self.grouped:
                 self.grouped[key] = []
@@ -101,6 +104,7 @@ class Candidates:
         numVisitedSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         numMatchedSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         parentMatched = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
+        linkLang = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
 
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
         
@@ -112,11 +116,12 @@ class Candidates:
                 numVisitedSiblings[0, numActions] = key[2]
                 numMatchedSiblings[0, numActions] = key[3]
                 parentMatched[0, numActions] = key[4]
+                linkLang[0, numActions] = key[5]
 
                 mask[0, numActions] = True
                 numActions += 1
 
-        return numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched
+        return numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang
 
     def Debug(self):
         ret = str(len(self.links)) + " "
