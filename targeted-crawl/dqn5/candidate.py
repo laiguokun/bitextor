@@ -109,17 +109,20 @@ class Candidates:
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
         
         for key, nodes in self.grouped.items():
-            if len(nodes) > 0:
-                assert(numActions < self.params.MAX_NODES)
-                parentLang[0, numActions] = key[0]
-                numSiblings[0, numActions] = key[1]
-                numVisitedSiblings[0, numActions] = key[2]
-                numMatchedSiblings[0, numActions] = key[3]
-                parentMatched[0, numActions] = key[4]
-                linkLang[0, numActions] = key[5]
+            if numActions >= self.params.MAX_NODES:
+                break
+            
+            assert(len(nodes) > 0)
 
-                mask[0, numActions] = True
-                numActions += 1
+            parentLang[0, numActions] = key[0]
+            numSiblings[0, numActions] = key[1]
+            numVisitedSiblings[0, numActions] = key[2]
+            numMatchedSiblings[0, numActions] = key[3]
+            parentMatched[0, numActions] = key[4]
+            linkLang[0, numActions] = key[5]
+
+            mask[0, numActions] = True
+            numActions += 1
 
         return numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang
 
