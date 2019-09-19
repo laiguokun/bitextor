@@ -23,7 +23,7 @@ from other_strategies import dumb, randomCrawl, balanced
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, langPair, maxLangId, defaultLang):
-        self.gamma = 1.0 #0.999
+        self.gamma = 0.999
         self.lrn_rate = 0.01
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -43,7 +43,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 50 # 9999999999
+        self.maxDocs = 9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -269,8 +269,8 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
-    hosts = ["http://vade-retro.fr/"]
-    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    #hosts = ["http://vade-retro.fr/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
