@@ -57,44 +57,35 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-def RunRLSavePlots(sess, qn, params, envs, saveDirPlots, epoch, sset):
+def RunRLSavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
     for env in envs:
-        RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset)
+        RunRLSavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
 
-######################################################################################
 def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
     arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True)
-    print("epoch test", epoch, env.rootURL, totReward)
-
     SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
 
+######################################################################################
 def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
-    arrDumb = dumb(env, len(env.nodes), params)
-    arrRandom = randomCrawl(env, len(env.nodes), params)
-    arrBalanced = balanced(env, len(env.nodes), params)
+    crawlLen = min(params.maxDocs, len(env.nodes))
+    arrDumb = dumb(env, crawlLen, params)
+    arrRandom = randomCrawl(env, crawlLen, params)
+    arrBalanced = balanced(env, crawlLen, params)
     #print("arrRL", len(arrRL))
 
+    avgRandom = 0
+    avgBalanced = 0
+    avgRL = 0
+    
     url = env.rootURL
     domain = extract(url).domain
-
-    warmUp = 200
-    avgRandom = avgBalanced = avgRL = 0.0
-    for i in range(len(arrRL)):
-        if i > warmUp and arrDumb[i] > 0:
-            avgRandom += arrRandom[i] / arrDumb[i]
-            avgBalanced += arrBalanced[i] / arrDumb[i]
-            avgRL += arrRL[i] / arrDumb[i]
-
-    avgRandom = avgRandom / (len(arrRL) - warmUp)
-    avgBalanced = avgBalanced / (len(arrRL) - warmUp)
-    avgRL = avgRL / (len(arrRL) - warmUp)
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.plot(arrDumb, label="dumb ", color='maroon')
     ax.plot(arrRandom, label="random {0:.1f}".format(avgRandom), color='firebrick')
     ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
-    ax.plot(arrRL, label="RL {0:.1f} {1:.1f}".format(avgRL, totDiscountedReward), color='salmon')
+    ax.plot(arrRL, label="RL {0:.1f} {1:.1f} {2:.1f}".format(avgRL, totReward, totDiscountedReward), color='salmon')
 
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
