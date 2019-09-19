@@ -23,7 +23,7 @@ from other_strategies import dumb, randomCrawl, balanced
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
-        self.gamma = 0.99
+        self.gamma = 1.0 #0.99
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -258,7 +258,7 @@ def Train(params, sess, saver, qns, envs, envsTest):
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
-            #print("epoch", epoch)
+            print("Validating")
             #SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 
@@ -293,8 +293,8 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
-    hosts = ["http://vade-retro.fr/"]
-    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    #hosts = ["http://vade-retro.fr/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
