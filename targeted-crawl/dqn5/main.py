@@ -297,8 +297,8 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
-    hosts = ["http://vade-retro.fr/"]
-    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    #hosts = ["http://vade-retro.fr/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
