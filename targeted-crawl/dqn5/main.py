@@ -110,7 +110,6 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates
-
             numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang = candidates.GetFeatures()
             self.numActions = numActions
             self.parentLang = np.array(parentLang, copy=True) 

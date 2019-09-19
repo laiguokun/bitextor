@@ -101,16 +101,16 @@ class Transition:
         self.action = action
         self.link = link
 
-        self.nextVisited = nextVisited.copy()
-        self.nextCandidates = nextCandidates.copy()
-
+        self.langIds = langIds 
         self.reward = reward
         self.discountedReward = None
 
-        self.langIds = langIds 
+        if visited is not None:
+            self.visited = visited
+            self.langsVisited = GetLangsVisited(visited, langIds, env)
 
         if candidates is not None:
-            self.candidates = candidates.copy()
+            self.candidates = candidates
             numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang = candidates.GetFeatures()
             self.numActions = numActions
             self.parentLang = np.array(parentLang, copy=True) 
@@ -121,10 +121,9 @@ class Transition:
             self.parentMatched = np.array(parentMatched, copy=True) 
             self.linkLang = np.array(linkLang, copy=True) 
 
-        if visited is not None:
-            self.visited = visited.copy()
-            self.langsVisited = GetLangsVisited(visited, langIds, env)
-
+        self.nextVisited = nextVisited
+        self.nextCandidates = nextCandidates
+    
     def Debug(self):
         ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " \
             + str(len(self.visited)) + " " + str(self.candidates.Count()) + " " \
@@ -171,7 +170,7 @@ def Trajectory(env, params, sess, qn, test):
     nextCandidates.Group(nextVisited)
 
     transition = Transition(env, -1, 0, None, params.langIds, None, None, nextVisited, nextCandidates)
-    #print("candidates", transition.nextCandidates.Debug())
+    print("candidates", transition.nextCandidates.Debug())
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
@@ -181,7 +180,7 @@ def Trajectory(env, params, sess, qn, test):
     while True:
         transition, reward = Neural(env, params, transition, sess, qn)
         #print("visited", len(transition.visited))
-        #print("candidates", transition.candidates.Debug())
+        print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 
