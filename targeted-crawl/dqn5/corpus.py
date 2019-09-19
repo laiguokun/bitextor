@@ -53,10 +53,13 @@ class Corpus:
         numSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         numVisitedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         numMatchedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
+        parentMatched = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
+        
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langsVisited = np.empty([batchSize, 3])
         targetQ = np.empty([batchSize, self.params.MAX_NODES])
 
+        langsVisited = np.empty([batchSize, 3])
+        
         i = 0
         for transition in batch:
             #curr = transition.curr
@@ -69,13 +72,16 @@ class Corpus:
             numSiblings[i, :] = transition.numSiblings
             numVisitedSiblings[i, :] = transition.numVisitedSiblings
             numMatchedSiblings[i, :] = transition.numMatchedSiblings
+            parentMatched[i, :] = transition.parentMatched
+
             langIds[i, :] = transition.langIds
-            langsVisited[i, :] = transition.langsVisited
             targetQ[i, 0:transition.numActions] = transition.targetQ
+
+            langsVisited[i, :] = transition.langsVisited
 
             i += 1
 
-        loss = self.qn.Update(sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, targetQ)
+        loss = self.qn.Update(sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, langIds, langsVisited, targetQ)
 
         #print("loss", loss)
         return loss

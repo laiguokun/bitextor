@@ -6,7 +6,7 @@ relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 #print("relDir", relDir)
 sys.path.append(relDir)
 from common import GetLanguages, Languages, Timer
-from helpers import GetVistedSiblings, GetMatchedSiblings
+from helpers import GetVistedSiblings, GetMatchedSiblings, GetNodeMatched
 
 ######################################################################################
 def GetLangsVisited(visited, langIds, env):
@@ -55,11 +55,13 @@ class Candidates:
             matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
             numMatchedSiblings = len(matchedSiblings)
             
+            parentMatched = GetNodeMatched(link.parentNode, visited)
             #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
             #for sibling in link.parentNode.links:
             #    print("   sibling", sibling.childNode.url)
 
-            key = (langId, numSiblings, numVisitedSiblings, numMatchedSiblings) 
+            key = (langId, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)
+
             if key not in self.grouped:
                 self.grouped[key] = []
             self.grouped[key].append(link)
@@ -98,6 +100,7 @@ class Candidates:
         numSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         numVisitedSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         numMatchedSiblings = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
+        parentMatched = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
 
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
         
@@ -108,11 +111,12 @@ class Candidates:
                 numSiblings[0, numActions] = key[1]
                 numVisitedSiblings[0, numActions] = key[2]
                 numMatchedSiblings[0, numActions] = key[3]
+                parentMatched[0, numActions] = key[4]
 
                 mask[0, numActions] = True
                 numActions += 1
 
-        return numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings
+        return numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched
 
     def Debug(self):
         ret = str(len(self.links)) + " "

@@ -101,6 +101,9 @@ class Transition:
         self.action = action
         self.link = link
 
+        self.langIds = langIds 
+        self.targetQ = np.array(targetQ, copy=True)
+
         if visited is not None:
             self.visited = visited
             self.langsVisited = GetLangsVisited(visited, langIds, env)
@@ -108,16 +111,15 @@ class Transition:
         if candidates is not None:
             self.candidates = candidates
 
-            numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+            numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched = candidates.GetFeatures()
             self.numActions = numActions
             self.linkLang = np.array(linkLang, copy=True) 
             self.mask = np.array(mask, copy=True) 
             self.numSiblings = np.array(numSiblings, copy=True) 
             self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
             self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
-            self.langIds = langIds 
-            self.targetQ = np.array(targetQ, copy=True)
-
+            self.parentMatched = np.array(parentMatched, copy=True) 
+            
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates
 
@@ -180,7 +182,7 @@ def Trajectory(env, params, sess, qns, test):
     nextCandidates.Group(nextVisited)
 
     transition = Transition(env, -1, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
-    #print("candidates", transition.nextCandidates.Debug())
+    print("candidates", transition.nextCandidates.Debug())
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
@@ -198,7 +200,7 @@ def Trajectory(env, params, sess, qns, test):
 
         transition, reward = Neural(env, params, transition, sess, qnA, qnB)
         #print("visited", transition.visited)
-        #print("candidates", transition.nextCandidates.Debug())
+        print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 
