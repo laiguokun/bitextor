@@ -46,7 +46,7 @@ class Candidates:
         self.grouped.clear()
         
         for link in self.links:
-            langId = link.parentNode.lang
+            parentLang = link.parentNode.lang
             numSiblings = len(link.parentNode.links)
             
             numVisitedSiblings = GetVistedSiblings(link.childNode.urlId, link.parentNode, visited)
@@ -60,7 +60,7 @@ class Candidates:
             #for sibling in link.parentNode.links:
             #    print("   sibling", sibling.childNode.url)
 
-            key = (langId, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)
+            key = (parentLang, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)
 
             if key not in self.grouped:
                 self.grouped[key] = []
