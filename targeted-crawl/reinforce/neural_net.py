@@ -20,8 +20,8 @@ def GetNextState(env, params, action, visited, candidates):
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        _, linkLang, _, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-        langId = linkLang[0, action]
+        _, parentLang, _, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+        langId = parentLang[0, action]
         numSiblings1 = numSiblings[0, action]
         numVisitedSiblings1 = numVisitedSiblings[0, action]
         numMatchedSiblings1 = numMatchedSiblings[0, action]
@@ -76,13 +76,13 @@ class Qnetwork():
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # link representation
-        self.linkLang = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
+        self.parentLang = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         self.numSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         self.numVisitedSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
         self.numMatchedSiblings = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
 
         # batch size
-        self.batchSize = tf.shape(self.linkLang)[0]
+        self.batchSize = tf.shape(self.parentLang)[0]
         
         # network
         self.input = tf.concat([self.langIds, self.langsVisited, self.numActions], 1)
@@ -113,7 +113,7 @@ class Qnetwork():
         self.WlinkSpecific = tf.Variable(tf.random_uniform([4, HIDDEN_DIM], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
 
-        self.linkSpecific = tf.stack([tf.transpose(self.linkLang), 
+        self.linkSpecific = tf.stack([tf.transpose(self.parentLang), 
                                     tf.transpose(self.numSiblings), 
                                     tf.transpose(self.numVisitedSiblings),
                                     tf.transpose(self.numMatchedSiblings)], 0)
@@ -167,7 +167,7 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+        numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
         #print("numActions", numActions)
         
         numActionsNP = np.empty([1,1], dtype=np.int32)
@@ -175,13 +175,13 @@ class Qnetwork():
 
         assert(numActions > 0)
 
-        #print("linkLang", numActions, linkLang.shape)
+        #print("parentLang", numActions, parentLang.shape)
         #print("mask", mask.shape, mask)
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
         (probs,) = sess.run([self.probs], 
-                                feed_dict={self.linkLang: linkLang,
+                                feed_dict={self.parentLang: parentLang,
                                     self.numActions: numActionsNP,
                                     self.mask: mask,
                                     self.numSiblings: numSiblings,
@@ -209,12 +209,12 @@ class Qnetwork():
 
         return action
 
-    def Update(self, sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, actions, discountedRewards):
+    def Update(self, sess, numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, actions, discountedRewards):
         #print("actions, discountedRewards", actions, discountedRewards)
-        #print("input", linkLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
+        #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
         (_, loss) = sess.run([self.updateModel, self.loss], 
-                                    feed_dict={self.linkLang: linkLang, 
+                                    feed_dict={self.parentLang: parentLang, 
                                             self.numActions: numActions,
                                             self.mask: mask,
                                             self.numSiblings: numSiblings,

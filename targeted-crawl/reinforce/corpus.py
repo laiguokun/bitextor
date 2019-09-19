@@ -53,7 +53,7 @@ class Corpus:
         batchSize = len(batch)
         #print("batchSize", batchSize)
         numActions = np.empty([batchSize, 1], dtype=np.int)
-        linkLang = np.empty([batchSize, self.params.MAX_NODES], dtype=np.int)
+        parentLang = np.empty([batchSize, self.params.MAX_NODES], dtype=np.int)
         mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
         numSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         numVisitedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
@@ -70,7 +70,7 @@ class Corpus:
             #next = transition.next
             #print("transition.numActions", transition.numActions, transition.targetQ.shape, transition.candidates.Count())
             numActions[i, 0] = transition.numActions
-            linkLang[i, :] = transition.linkLang
+            parentLang[i, :] = transition.parentLang
             mask[i, :] = transition.mask
             numSiblings[i, :] = transition.numSiblings
             numVisitedSiblings[i, :] = transition.numVisitedSiblings
@@ -83,7 +83,7 @@ class Corpus:
 
             i += 1
 
-        loss = self.qn.Update(sess, numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, actions, discountedRewards)
+        loss = self.qn.Update(sess, numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, langIds, langsVisited, actions, discountedRewards)
 
         #print("loss", loss)
         return loss

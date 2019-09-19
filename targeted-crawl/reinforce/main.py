@@ -109,9 +109,9 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates.copy()
-            numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+            numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
             self.numActions = numActions
-            self.linkLang = np.array(linkLang, copy=True) 
+            self.parentLang = np.array(parentLang, copy=True) 
             self.mask = np.array(mask, copy=True) 
             self.numSiblings = np.array(numSiblings, copy=True) 
             self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
@@ -263,8 +263,8 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
-    #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://vade-retro.fr/"]
+    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
