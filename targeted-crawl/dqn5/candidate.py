@@ -81,6 +81,13 @@ class Candidates:
                 if otherLink.childNode == link.childNode:
                     otherLinks.remove(otherLink)
 
+        # remove all keys with empty list
+        keys = list(self.dict.keys())
+        for key in keys:
+            values = self.dict[key]
+            if len(values) == 0:
+                del self.dict[key]
+
         return link
 
     def Count(self):

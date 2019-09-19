@@ -44,7 +44,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 500 #9999999999
+        self.maxDocs = 30 #500 #9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -202,7 +202,7 @@ def Trajectory(env, params, sess, qns, test):
 
         transition, reward = Neural(env, params, transition, sess, qnA, qnB)
         #print("visited", transition.visited)
-        #print("candidates", transition.candidates.Debug())
+        print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 
