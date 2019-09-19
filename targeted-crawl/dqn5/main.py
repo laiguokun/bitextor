@@ -44,7 +44,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 500 #9999999999
+        self.maxDocs = 50 #9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -102,11 +102,11 @@ class Transition:
         self.link = link
 
         if visited is not None:
-            self.visited = visited.copy()
+            self.visited = visited
             self.langsVisited = GetLangsVisited(visited, langIds, env)
 
         if candidates is not None:
-            self.candidates = candidates.copy()
+            self.candidates = candidates
 
             numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
             self.numActions = numActions
@@ -118,8 +118,8 @@ class Transition:
             self.langIds = langIds 
             self.targetQ = np.array(targetQ, copy=True)
 
-        self.nextVisited = nextVisited.copy()
-        self.nextCandidates = nextCandidates.copy()
+        self.nextVisited = nextVisited
+        self.nextCandidates = nextCandidates
 
     def Debug(self):
         ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " + str(self.visited)
