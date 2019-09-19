@@ -23,7 +23,7 @@ from other_strategies import dumb, randomCrawl, balanced
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
-        self.gamma = 0.99 #1.0 #0.999
+        self.gamma = 0.999
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -34,7 +34,6 @@ class LearningParams:
         
         self.debug = False
         self.walk = 10
-        self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
         self.saveDir = saveDir
@@ -45,7 +44,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 500 #9999999999
+        self.maxDocs = 9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -87,7 +86,7 @@ def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscou
     ax.plot(arrDumb, label="dumb ", color='maroon')
     ax.plot(arrRandom, label="random {0:.1f}".format(avgRandom), color='firebrick')
     ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
-    ax.plot(arrRL, label="RL {0:.1f} {1:.1f}".format(avgRL, totDiscountedReward), color='salmon')
+    ax.plot(arrRL, label="RL {0:.1f} {1:.1f} {2:.1f}".format(avgRL, totReward, totDiscountedReward), color='salmon')
 
     ax.legend(loc='upper left')
     plt.xlabel('#crawled')
@@ -103,24 +102,28 @@ class Transition:
         self.action = action
         self.link = link
 
-        self.nextVisited = nextVisited.copy()
-        self.nextCandidates = nextCandidates.copy()
+        self.langIds = langIds 
+        self.targetQ = np.array(targetQ, copy=True)
+
+        if visited is not None:
+            self.visited = visited
+            self.langsVisited = GetLangsVisited(visited, langIds, env)
 
         if candidates is not None:
-            self.candidates = candidates.copy()
-            numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+            self.candidates = candidates
+
+            numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang = candidates.GetFeatures()
             self.numActions = numActions
-            self.linkLang = np.array(linkLang, copy=True) 
+            self.parentLang = np.array(parentLang, copy=True) 
             self.mask = np.array(mask, copy=True) 
             self.numSiblings = np.array(numSiblings, copy=True) 
             self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
             self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
-            self.langIds = langIds 
-            self.targetQ = np.array(targetQ, copy=True)
-
-        if visited is not None:
-            self.visited = visited.copy()
-            self.langsVisited = GetLangsVisited(visited, langIds, env)
+            self.parentMatched = np.array(parentMatched, copy=True) 
+            self.linkLang = np.array(linkLang, copy=True) 
+            
+        self.nextVisited = nextVisited
+        self.nextCandidates = nextCandidates
 
     def Debug(self):
         ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " + str(self.visited)
@@ -135,6 +138,7 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     assert(link is not None)
     assert(qValues.shape[1] > 0)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
+    nextCandidates.Group(nextVisited)
 
     # calc nextMaxQ
     if nextCandidates.Count() > 0:
@@ -177,8 +181,10 @@ def Trajectory(env, params, sess, qns, test):
 
     nextCandidates = Candidates(params, env)
     nextCandidates.AddLinks(startNode, nextVisited, params)
+    nextCandidates.Group(nextVisited)
 
     transition = Transition(env, -1, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
+    #print("candidates", transition.nextCandidates.Debug())
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
@@ -196,7 +202,7 @@ def Trajectory(env, params, sess, qns, test):
 
         transition, reward = Neural(env, params, transition, sess, qnA, qnB)
         #print("visited", transition.visited)
-        #print("candidates", transition.candidates.Debug())
+        #print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 
@@ -256,7 +262,7 @@ def Train(params, sess, saver, qns, envs, envsTest):
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
-            #print("epoch", epoch)
+            print("Validating")
             #SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 

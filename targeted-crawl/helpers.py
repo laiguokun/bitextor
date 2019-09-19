@@ -55,6 +55,17 @@ def GetVistedSiblings(urlId, parentNode, visited):
     return ret
 
 ######################################################################################
+def GetNodeMatched(node, visited):
+    ret = 0
+    assert(node.urlId in visited)
+    if node.alignedNode is not None:
+        if node.alignedNode.urlId in visited:
+            # sibling has been matched
+            ret = 1      
+
+    return ret
+
+######################################################################################
 def GetMatchedSiblings(urlId, parentNode, visited):
     ret = []
 
