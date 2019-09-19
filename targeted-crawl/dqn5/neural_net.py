@@ -93,7 +93,7 @@ class Qnetwork():
 
         # graph represention
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
-        self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
+        self.langsVisited = tf.placeholder(shape=[None, 6], dtype=tf.float32)
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # link representation
@@ -111,7 +111,7 @@ class Qnetwork():
         self.input = tf.concat([self.langIds, self.langsVisited, self.numActions], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3 + 3, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([2 + 6 + 1, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)

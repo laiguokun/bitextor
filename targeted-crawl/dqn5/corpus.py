@@ -59,7 +59,7 @@ class Corpus:
         langIds = np.empty([batchSize, 2], dtype=np.int)
         targetQ = np.empty([batchSize, self.params.MAX_NODES])
 
-        langsVisited = np.empty([batchSize, 3])
+        langsVisited = np.empty([batchSize, 6])
         
         i = 0
         for transition in batch:
