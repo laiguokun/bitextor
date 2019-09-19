@@ -23,7 +23,7 @@ from other_strategies import dumb, randomCrawl, balanced
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
-        self.gamma = 1.0 #0.999
+        self.gamma = 0.99 #1.0 #0.999
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -69,25 +69,18 @@ def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
 
 ######################################################################################
 def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
-    arrDumb = dumb(env, params.maxDocs, params)
-    arrRandom = randomCrawl(env, params.maxDocs, params)
-    arrBalanced = balanced(env, params.maxDocs, params)
+    crawlLen = min(params.maxDocs, len(env.nodes))
+    arrDumb = dumb(env, crawlLen, params)
+    arrRandom = randomCrawl(env, crawlLen, params)
+    arrBalanced = balanced(env, crawlLen, params)
     #print("arrRL", len(arrRL))
 
+    avgRandom = 0
+    avgBalanced = 0
+    avgRL = 0
+    
     url = env.rootURL
     domain = extract(url).domain
-
-    warmUp = 0 #200
-    avgRandom = avgBalanced = avgRL = 0.0
-    for i in range(params.maxDocs):
-        if i > warmUp and arrDumb[i] > 0:
-            avgRandom += arrRandom[i] / arrDumb[i]
-            avgBalanced += arrBalanced[i] / arrDumb[i]
-            avgRL += arrRL[i] / arrDumb[i]
-
-    avgRandom = avgRandom / (len(arrRL) - warmUp)
-    avgBalanced = avgBalanced / (len(arrRL) - warmUp)
-    avgRL = avgRL / (len(arrRL) - warmUp)
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -297,8 +290,8 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
-    #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://vade-retro.fr/"]
+    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
