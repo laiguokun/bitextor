@@ -118,9 +118,9 @@ class Candidates:
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
         
         for key, nodes in self.grouped.items():
-            if numActions >= self.params.MAX_NODES:
-                break
-
+            #if numActions >= self.params.MAX_NODES:
+            #    break
+            assert(numActions < self.params.MAX_NODES)
             assert(len(nodes) > 0)
 
             parentLang[0, numActions] = key[0]
