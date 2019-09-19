@@ -34,7 +34,6 @@ class LearningParams:
         
         self.debug = False
         self.walk = 10
-        self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
         self.saveDir = saveDir
