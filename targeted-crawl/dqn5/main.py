@@ -23,7 +23,7 @@ from other_strategies import dumb, randomCrawl, balanced
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
-        self.gamma = 1.0 #0.999
+        self.gamma = 0.99
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -44,7 +44,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 30 #500 #9999999999
+        self.maxDocs = 500 #9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -76,17 +76,9 @@ def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscou
     url = env.rootURL
     domain = extract(url).domain
 
-    warmUp = 0 #200
-    avgRandom = avgBalanced = avgRL = 0.0
-    for i in range(params.maxDocs):
-        if i > warmUp and arrDumb[i] > 0:
-            avgRandom += arrRandom[i] / arrDumb[i]
-            avgBalanced += arrBalanced[i] / arrDumb[i]
-            avgRL += arrRL[i] / arrDumb[i]
-
-    avgRandom = avgRandom / (len(arrRL) - warmUp)
-    avgBalanced = avgBalanced / (len(arrRL) - warmUp)
-    avgRL = avgRL / (len(arrRL) - warmUp)
+    avgRandom = 0
+    avgBalanced = 0
+    avgRL = 0
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
@@ -301,8 +293,8 @@ def main():
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
-    #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://vade-retro.fr/"]
+    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
