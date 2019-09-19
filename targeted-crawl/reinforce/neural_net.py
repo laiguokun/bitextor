@@ -20,12 +20,14 @@ def GetNextState(env, params, action, visited, candidates):
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        _, parentLang, _, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
-        langId = parentLang[0, action]
+        _, parentLang, _, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang = candidates.GetFeatures()
+        parentLang1 = parentLang[0, action]
         numSiblings1 = numSiblings[0, action]
         numVisitedSiblings1 = numVisitedSiblings[0, action]
         numMatchedSiblings1 = numMatchedSiblings[0, action]
-        key = (langId, numSiblings1, numVisitedSiblings1, numMatchedSiblings1)
+        parentMatched1 = parentMatched[0, action]
+        linkLang1 = linkLang[0, action]
+        key = (parentLang1, numSiblings1, numVisitedSiblings1, numMatchedSiblings1, parentMatched1, linkLang1)
         link = candidates.Pop(key)
         candidates.AddLinks(link.childNode, visited, params)
 
@@ -72,7 +74,7 @@ class Qnetwork():
         
         # graph represention
         self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
-        self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
+        self.langsVisited = tf.placeholder(shape=[None, 6], dtype=tf.float32)
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
 
         # link representation
@@ -88,7 +90,7 @@ class Qnetwork():
         self.input = tf.concat([self.langIds, self.langsVisited, self.numActions], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3 + 3, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([2 + 6 + 1, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -167,7 +169,7 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+        numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang = candidates.GetFeatures()
         #print("numActions", numActions)
         
         numActionsNP = np.empty([1,1], dtype=np.int32)

@@ -43,7 +43,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 500 # 9999999999
+        self.maxDocs = 50 # 9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -107,16 +107,19 @@ class Transition:
         self.reward = reward
         self.discountedReward = None
 
+        self.langIds = langIds 
+
         if candidates is not None:
             self.candidates = candidates.copy()
-            numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
+            numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang = candidates.GetFeatures()
             self.numActions = numActions
             self.parentLang = np.array(parentLang, copy=True) 
             self.mask = np.array(mask, copy=True) 
             self.numSiblings = np.array(numSiblings, copy=True) 
             self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
             self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
-            self.langIds = langIds 
+            self.parentMatched = np.array(parentMatched, copy=True) 
+            self.linkLang = np.array(linkLang, copy=True) 
 
         if visited is not None:
             self.visited = visited.copy()
@@ -137,6 +140,7 @@ def Neural(env, params, prevTransition, sess, qn):
     action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qn)
     assert(link is not None)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
+    nextCandidates.Group(nextVisited)
 
     transition = Transition(env,
                             action, 
@@ -164,8 +168,10 @@ def Trajectory(env, params, sess, qn, test):
 
     nextCandidates = Candidates(params, env)
     nextCandidates.AddLinks(startNode, nextVisited, params)
+    nextCandidates.Group(nextVisited)
 
     transition = Transition(env, -1, 0, None, params.langIds, None, None, nextVisited, nextCandidates)
+    #print("candidates", transition.nextCandidates.Debug())
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
@@ -230,7 +236,7 @@ def Train(params, sess, saver, qn, envs, envsTest):
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
-            #print("epoch", epoch)
+            print("Validating")
             #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
 

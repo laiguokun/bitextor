@@ -58,8 +58,9 @@ class Corpus:
         numSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         numVisitedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
         numMatchedSiblings = np.empty([batchSize, self.params.MAX_NODES], dtype=np.float32)
+
         langIds = np.empty([batchSize, 2], dtype=np.int)
-        langsVisited = np.empty([batchSize, 3])
+        langsVisited = np.empty([batchSize, 6])
 
         actions = np.empty([batchSize], dtype=np.int)
         discountedRewards = np.empty([batchSize], dtype=np.float32)
