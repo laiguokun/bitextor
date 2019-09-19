@@ -27,21 +27,18 @@ class Candidates:
     def __init__(self, params, env):
         self.params = params
         self.env = env
-        self.dict = {} # key -> links[]
+        self.links = set()
+        self.grouped = {} # key -> links[]
 
         #for langId in params.langIds:
         #    self.dict[langId] = []
 
     def copy(self):
         ret = Candidates(self.params, self.env)
-
-        for key, value in self.dict.items():
-            #print("key", key, value)
-            ret.dict[key] = value.copy()
-
+        ret.links = self.links.copy()
         return ret
     
-    def AddLink(self, link, visited):
+    def Group(self, link, visited):
         langId = link.parentNode.lang
         numSiblings = len(link.parentNode.links)
         
@@ -55,7 +52,7 @@ class Candidates:
         #for sibling in link.parentNode.links:
         #    print("   sibling", sibling.childNode.url)
 
-        key = (langId,numSiblings, numVisitedSiblings, numMatchedSiblings) 
+        key = (langId, numSiblings, numVisitedSiblings, numMatchedSiblings) 
         if key not in self.dict:
             self.dict[key] = []
         self.dict[key].append(link)
@@ -65,35 +62,27 @@ class Candidates:
         newLinks = node.GetLinks(visited, params)
 
         for link in newLinks:
-            self.AddLink(link, visited)
+            assert(link not in self.links)
+            self.links.add(link)
 
     def Pop(self, key):
-        links = self.dict[key]
+        assert(len(self.grouped) > 0)
+        links = self.grouped[key]
         assert(len(links) > 0)
 
         idx = np.random.randint(0, len(links))
         link = links.pop(idx)
 
         # remove all links going to same node
-        for otherLinks in self.dict.values():
-            otherLinksCopy = otherLinks.copy()
-            for otherLink in otherLinksCopy:
-                if otherLink.childNode == link.childNode:
-                    otherLinks.remove(otherLink)
-
-        # remove all keys with empty list
-        keys = list(self.dict.keys())
-        for key in keys:
-            values = self.dict[key]
-            if len(values) == 0:
-                del self.dict[key]
+        linksCopy = self.links.copy()
+        for linkCopy in linksCopy:
+            if linkCopy.childNode == link.childNode:
+                self.links.remove(linkCopy)
 
         return link
 
     def Count(self):
-        ret = 0
-        for _, dict in self.dict.items():
-            ret += len(dict)
+        ret = len(self.links)
         return ret
 
     def GetFeatures(self):
@@ -105,7 +94,7 @@ class Candidates:
 
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
         
-        for key, nodes in self.dict.items():
+        for key, nodes in self.grouped.items():
             if len(nodes) > 0:
                 assert(numActions < self.params.MAX_NODES)
                 linkLang[0, numActions] = key[0]
@@ -119,9 +108,9 @@ class Candidates:
         return numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings
 
     def Debug(self):
-        ret = ""
-        for key in self.dict:
-            ret += str(key) + ":" + str(len(self.dict[key])) + " "
+        ret = str(len(self.links)) + " "
+        for key in self.grouped:
+            ret += str(key) + ":" + str(len(self.grouped[key])) + " "
             #links = self.dict[key]
             #for link in links:
             #    ret += str(link.parentNode.urlId) + "->" + str(link.childNode.urlId) + " "
