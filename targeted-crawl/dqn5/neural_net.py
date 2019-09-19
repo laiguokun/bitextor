@@ -143,7 +143,7 @@ class Qnetwork():
                                     tf.transpose(self.parentMatched),
                                     tf.transpose(self.linkLang)], 0)
         self.linkSpecific = tf.transpose(self.linkSpecific)
-        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize * self.params.MAX_NODES, 6 ])
+        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize * self.params.MAX_NODES, self.linkSpecific.shape[2] ])
  
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
