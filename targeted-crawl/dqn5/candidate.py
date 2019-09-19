@@ -36,26 +36,33 @@ class Candidates:
     def copy(self):
         ret = Candidates(self.params, self.env)
         ret.links = self.links.copy()
+        
+        for key, nodes in self.grouped.items():
+            ret.grouped[key] = nodes.copy()
+
         return ret
     
-    def Group(self, link, visited):
-        langId = link.parentNode.lang
-        numSiblings = len(link.parentNode.links)
+    def Group(self, visited):
+        self.grouped.clear()
         
-        numVisitedSiblings = GetVistedSiblings(link.childNode.urlId, link.parentNode, visited)
-        numVisitedSiblings = len(numVisitedSiblings)
+        for link in self.links:
+            langId = link.parentNode.lang
+            numSiblings = len(link.parentNode.links)
+            
+            numVisitedSiblings = GetVistedSiblings(link.childNode.urlId, link.parentNode, visited)
+            numVisitedSiblings = len(numVisitedSiblings)
 
-        matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
-        numMatchedSiblings = len(matchedSiblings)
-        
-        #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
-        #for sibling in link.parentNode.links:
-        #    print("   sibling", sibling.childNode.url)
+            matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
+            numMatchedSiblings = len(matchedSiblings)
+            
+            #print("numSiblings", numSiblings, numMatchedSiblings, link.childNode.url)
+            #for sibling in link.parentNode.links:
+            #    print("   sibling", sibling.childNode.url)
 
-        key = (langId, numSiblings, numVisitedSiblings, numMatchedSiblings) 
-        if key not in self.dict:
-            self.dict[key] = []
-        self.dict[key].append(link)
+            key = (langId, numSiblings, numVisitedSiblings, numMatchedSiblings) 
+            if key not in self.grouped:
+                self.grouped[key] = []
+            self.grouped[key].append(link)
         
     def AddLinks(self, node, visited, params):
         #print("   currNode", curr, currNode.Debug())

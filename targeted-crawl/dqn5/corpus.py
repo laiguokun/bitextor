@@ -61,7 +61,7 @@ class Corpus:
         for transition in batch:
             #curr = transition.curr
             #next = transition.next
-            #print("transition.numActions", transition.numActions, transition.targetQ.shape, transition.candidates.Count())
+            #print("transition.numActions", transition.numActions, transition.targetQ.shape, transition.candidates.Debug())
             assert(transition.numActions == transition.targetQ.shape[1])
             numActions[i, 0] = transition.numActions
             linkLang[i, :] = transition.linkLang

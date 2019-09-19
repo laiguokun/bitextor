@@ -109,11 +109,13 @@ class Transition:
         self.action = action
         self.link = link
 
-        self.nextVisited = nextVisited.copy()
-        self.nextCandidates = nextCandidates.copy()
+        if visited is not None:
+            self.visited = visited.copy()
+            self.langsVisited = GetLangsVisited(visited, langIds, env)
 
         if candidates is not None:
             self.candidates = candidates.copy()
+
             numActions, linkLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings = candidates.GetFeatures()
             self.numActions = numActions
             self.linkLang = np.array(linkLang, copy=True) 
@@ -124,9 +126,8 @@ class Transition:
             self.langIds = langIds 
             self.targetQ = np.array(targetQ, copy=True)
 
-        if visited is not None:
-            self.visited = visited.copy()
-            self.langsVisited = GetLangsVisited(visited, langIds, env)
+        self.nextVisited = nextVisited.copy()
+        self.nextCandidates = nextCandidates.copy()
 
     def Debug(self):
         ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " + str(self.visited)
@@ -141,6 +142,7 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     assert(link is not None)
     assert(qValues.shape[1] > 0)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
+    nextCandidates.Group(nextVisited)
 
     # calc nextMaxQ
     if nextCandidates.Count() > 0:
@@ -183,8 +185,10 @@ def Trajectory(env, params, sess, qns, test):
 
     nextCandidates = Candidates(params, env)
     nextCandidates.AddLinks(startNode, nextVisited, params)
+    nextCandidates.Group(nextVisited)
 
     transition = Transition(env, -1, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
+    #print("candidates", transition.nextCandidates.Debug())
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
@@ -202,7 +206,7 @@ def Trajectory(env, params, sess, qns, test):
 
         transition, reward = Neural(env, params, transition, sess, qnA, qnB)
         #print("visited", transition.visited)
-        print("candidates", transition.nextCandidates.Debug())
+        #print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 
