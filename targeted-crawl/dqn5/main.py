@@ -241,11 +241,12 @@ def Trajectory(env, params, sess, qns, test):
 def Train(params, sess, saver, qns, envs, envsTest):
     print("Start training")
     for epoch in range(params.max_epochs):
-        print("epoch", epoch)
+        #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
             arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, False)
             TIMER.Pause("Trajectory")
+            print("epoch train", epoch, env.rootURL, totReward, totDiscountedReward)
 
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
