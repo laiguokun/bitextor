@@ -229,7 +229,7 @@ def Train(params, sess, saver, qn, envs, envsTest):
             TIMER.Start("Trajectory")
             arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, False)
             TIMER.Pause("Trajectory")
-            print("epoch train", epoch, env.rootURL, totReward)
+            print("epoch train", epoch, env.rootURL, totReward, totDiscountedReward)
 
             #if epoch > 0 and epoch % params.walk == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
