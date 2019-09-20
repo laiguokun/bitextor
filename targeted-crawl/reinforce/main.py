@@ -23,7 +23,7 @@ from other_strategies import dumb, randomCrawl, balanced
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, langPair, maxLangId, defaultLang):
-        self.gamma = 0.999
+        self.gamma = 1.0 #0.999
         self.lrn_rate = 0.01
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -43,7 +43,7 @@ class LearningParams:
         self.reward = 100.0 #17.0
         self.cost = -1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = 9999999999
+        self.maxDocs = 500 #9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -82,7 +82,7 @@ def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscou
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.plot(arrDumb, label="dumb ", color='maroon')
+    ax.plot(arrDumb, label="dumb ", color='black')
     ax.plot(arrRandom, label="random {0:.1f}".format(avgRandom), color='firebrick')
     ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
     ax.plot(arrRL, label="RL {0:.1f} {1:.1f} {2:.1f}".format(avgRL, totReward, totDiscountedReward), color='salmon')
