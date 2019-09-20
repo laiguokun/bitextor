@@ -42,6 +42,7 @@ class Corpus:
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
                 loss = self.UpdateQN(params, sess, batch)
                 self.losses.append(loss)
+
             self.transitions.clear()
         
     def UpdateQN(self, params, sess, batch):
