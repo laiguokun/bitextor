@@ -141,6 +141,7 @@ class Node:
         self.alignedNode = None
 
         self.normURL = None
+        self.depth = sys.maxsize
 
         #print("self.lang", self.lang, langIds, urlId, url, docIds)
         #for lang in langIds:
@@ -194,7 +195,7 @@ class Node:
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedNode),
                         StrNone(self.redirect), str(len(self.links)),
-                        StrNone(self.normURL) ] )
+                        StrNone(self.normURL), str(self.depth) ] )
 
 ######################################################################################
 class Env:
@@ -227,9 +228,13 @@ class Env:
 
         self.PruneNodes(self.rootNode)
 
+        self.rootNode.depth = 0
+        self.CalcDepth(self.rootNode)
+
         startNode = Node(sys.maxsize, "START", [], [], None)
         startNode.CreateLink("", 0, self.rootNode)
         self.nodes[startNode.urlId] = startNode
+
 
         # stop node
         node = Node(0, "STOP", [], [], None)
@@ -239,10 +244,28 @@ class Env:
         print("nodes", len(self.nodes), 
             "numAligned,", self.numAligned, 
             "maxLangId", self.maxLangId)
-        #for node in self.nodes.values():
-        #    print(node.Debug())
+        for node in self.nodes.values():
+            print(node.Debug())
 
         print("graph created")
+
+    def CalcDepth(self, node):
+        links = []
+
+        # init
+        for link in node.links:
+            links.append(link)
+
+        while len(links) > 0:
+            link = links.pop()
+            currDepth = link.parentNode.depth
+
+            if link.childNode.depth > currDepth + 1:
+                link.childNode.depth = currDepth + 1
+
+                for childLink in link.childNode.links:
+                    links.append(childLink)
+
 
     def ImportURLAlign(self, sqlconn, visited):
         #print("visited", visited.keys())
