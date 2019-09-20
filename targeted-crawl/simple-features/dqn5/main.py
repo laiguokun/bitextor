@@ -206,6 +206,7 @@ def Trajectory(env, params, sess, qns, test, verbose):
 ######################################################################################
 def Train(params, sess, saver, qns, envs, envsTest):
     print("Start training")
+    RunRLSavePlots(sess, qns, params, envsTest, params.saveDirPlots, 0, "test")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:

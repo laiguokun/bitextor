@@ -180,6 +180,7 @@ def Trajectory(env, params, sess, qn, test):
 ######################################################################################
 def Train(params, sess, saver, qn, envs, envsTest):
     print("Start training")
+    RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, 0, "test")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
