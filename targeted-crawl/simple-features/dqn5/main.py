@@ -19,7 +19,7 @@ from save_plot import SavePlot
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
-        self.gamma = 0.99
+        self.gamma = 1.0 #0.99
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -43,7 +43,7 @@ class LearningParams:
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
-        self.MAX_NODES = 1000
+        self.MAX_NODES = 3
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
@@ -76,15 +76,10 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates
-            numActions, parentLang, mask, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched, linkLang = candidates.GetFeatures()
+            numActions, parentLang, mask = candidates.GetFeatures()
             self.numActions = numActions
             self.parentLang = np.array(parentLang, copy=True) 
             self.mask = np.array(mask, copy=True) 
-            self.numSiblings = np.array(numSiblings, copy=True) 
-            self.numVisitedSiblings = np.array(numVisitedSiblings, copy=True) 
-            self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
-            self.parentMatched = np.array(parentMatched, copy=True) 
-            self.linkLang = np.array(linkLang, copy=True) 
             
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates
@@ -215,7 +210,7 @@ def Train(params, sess, saver, qns, envs, envsTest):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, False, 1)
+            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, False, 0)
             TIMER.Pause("Trajectory")
             print("epoch train", epoch, env.rootURL, totReward, totDiscountedReward)
 
@@ -266,8 +261,8 @@ def main():
 
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
-    hosts = ["http://vade-retro.fr/"]
-    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    #hosts = ["http://vade-retro.fr/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
