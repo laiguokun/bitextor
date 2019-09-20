@@ -5,10 +5,6 @@ import numpy as np
 import argparse
 import hashlib
 import tensorflow as tf
-from tldextract import extract
-import matplotlib
-matplotlib.use('Agg')
-import pylab as plt
 
 relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 #print("relDir", relDir)
@@ -18,7 +14,7 @@ from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelD
 from corpus import Corpus
 from neural_net import Qnets, Qnetwork, NeuralWalk, GetNextState
 from candidate import Candidates, GetLangsVisited
-from other_strategies import dumb, randomCrawl, balanced
+from save_plot import SavePlot
 
 ######################################################################################
 class LearningParams:
@@ -64,36 +60,6 @@ def RunRLSavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
 def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
     arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True)
     SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
-
-######################################################################################
-def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
-    crawlLen = min(params.maxDocs, len(env.nodes))
-    arrDumb = dumb(env, crawlLen, params)
-    arrRandom = randomCrawl(env, crawlLen, params)
-    arrBalanced = balanced(env, crawlLen, params)
-    #print("arrRL", len(arrRL))
-
-    avgRandom = 0
-    avgBalanced = 0
-    avgRL = 0
-    
-    url = env.rootURL
-    domain = extract(url).domain
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.plot(arrDumb, label="dumb ", color='black')
-    ax.plot(arrRandom, label="random {0:.1f}".format(avgRandom), color='firebrick')
-    ax.plot(arrBalanced, label="balanced {0:.1f}".format(avgBalanced), color='red')
-    ax.plot(arrRL, label="RL {0:.1f} {1:.1f} {2:.1f}".format(avgRL, totReward, totDiscountedReward), color='salmon')
-
-    ax.legend(loc='upper left')
-    plt.xlabel('#crawled')
-    plt.ylabel('#found')
-    plt.title("{sset} {domain}".format(sset=sset, domain=domain))
-
-    fig.savefig("{dir}/{sset}-{domain}-{epoch}.png".format(dir=saveDirPlots, sset=sset, domain=domain, epoch=epoch))
-    fig.show()
 
 ######################################################################################
 class Transition:

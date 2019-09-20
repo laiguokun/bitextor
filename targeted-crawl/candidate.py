@@ -99,7 +99,8 @@ class Candidates:
         links = self.grouped[key]
         assert(len(links) > 0)
 
-        idx = np.random.randint(0, len(links))
+        #idx = np.random.randint(0, len(links))
+        idx = 0
         link = links.pop(idx)
 
         # remove all links going to same node
