@@ -26,7 +26,7 @@ class LearningParams:
         self.eps = 0.1
         self.maxBatchSize = 128
         self.minCorpusSize = 200
-        self.overSampling = 1
+        self.overSampling = 10
         
         self.debug = False
         self.walk = 10
