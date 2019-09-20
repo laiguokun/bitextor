@@ -23,7 +23,7 @@ class LearningParams:
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
-        self.eps = 0.1
+        self.eps = 1.0 #0.9
         self.maxBatchSize = 32
         self.minCorpusSize = 200
         self.overSampling = 1
@@ -230,6 +230,8 @@ def Train(params, sess, saver, qns, envs, envsTest):
             #SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 
+        params.eps *= 0.95
+
 ######################################################################################
 def main():
     global TIMER
@@ -262,7 +264,8 @@ def main():
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
