@@ -19,7 +19,7 @@ from save_plot import SavePlot
 ######################################################################################
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, langPair, maxLangId, defaultLang):
-        self.gamma = 1.0 #0.999
+        self.gamma = 0.999
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -187,7 +187,7 @@ def Train(params, sess, saver, qn, envs, envsTest):
             TIMER.Start("Trajectory")
             arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, False)
             TIMER.Pause("Trajectory")
-            print("epoch train", epoch, env.rootURL, totReward, totDiscountedReward)
+            print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward)
 
             #if epoch > 0 and epoch % params.walk == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
