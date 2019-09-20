@@ -40,8 +40,8 @@ class LearningParams:
 
         self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
-        self.reward = 100.0 #17.0
-        self.cost = -1.0
+        self.reward = 1.0 #17.0
+        self.cost = 0.0 #-1.0
         self.unusedActionCost = 0.0 #-555.0
         self.maxDocs = 500 #9999999999
 

@@ -24,7 +24,7 @@ from other_strategies import dumb, randomCrawl, balanced
 class LearningParams:
     def __init__(self, languages, saveDir, saveDirPlots, langPair, maxLangId, defaultLang):
         self.gamma = 1.0 #0.999
-        self.lrn_rate = 0.01
+        self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
@@ -40,8 +40,8 @@ class LearningParams:
         self.saveDir = saveDir
         self.saveDirPlots = saveDirPlots
         
-        self.reward = 100.0 #17.0
-        self.cost = -1.0
+        self.reward = 1.0 #17.0
+        self.cost = 0 #-1.0
         self.unusedActionCost = 0.0 #-555.0
         self.maxDocs = 500 #9999999999
 
@@ -170,7 +170,7 @@ def Trajectory(env, params, sess, qn, test):
     nextCandidates.Group(nextVisited)
 
     transition = Transition(env, -1, 0, None, params.langIds, None, None, nextVisited, nextCandidates)
-    print("candidates", transition.nextCandidates.Debug())
+    #print("candidates", transition.nextCandidates.Debug())
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
@@ -180,7 +180,7 @@ def Trajectory(env, params, sess, qn, test):
     while True:
         transition, reward = Neural(env, params, transition, sess, qn)
         #print("visited", len(transition.visited))
-        print("candidates", transition.nextCandidates.Debug())
+        #print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 

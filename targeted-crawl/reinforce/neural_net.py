@@ -109,8 +109,8 @@ class Qnetwork():
         self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden3 = tf.matmul(self.hidden2, self.W3)
-        self.hidden3 = tf.add(self.hidden3, self.b3)
-        #self.hidden3 = tf.nn.relu(self.hidden3)
+        #self.hidden3 = tf.add(self.hidden3, self.b3)
+        self.hidden3 = tf.nn.relu(self.hidden3)
         self.hidden3 = tf.nn.sigmoid(self.hidden3)
 
         # link-specific
@@ -128,8 +128,8 @@ class Qnetwork():
 
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
-        #self.linkSpecific = tf.nn.relu(self.linkSpecific)
-        self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
+        self.linkSpecific = tf.nn.relu(self.linkSpecific)
+        #self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
         self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, 512])
 
         # final q-values
