@@ -8,7 +8,7 @@ sys.path.append(relDir)
 from helpers import NumParallelDocs
 
 ######################################################################################
-def dumb(env, maxDocs, params):
+def dumb(env, maxDocs, params, breadthOrDepth):
     ret = []
     todo = []
     todo.append(env.rootNode)
@@ -17,7 +17,10 @@ def dumb(env, maxDocs, params):
     langsVisited = {}
 
     while len(todo) > 0 and len(visited) < maxDocs:
-        node = todo.pop(0)
+        if breadthOrDepth == 0:
+            node = todo.pop(0)
+        else:
+            node = todo.pop(-1)
         #print("node", node.Debug())
         
         if node.urlId not in visited:
