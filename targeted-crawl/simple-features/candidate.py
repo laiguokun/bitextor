@@ -100,6 +100,7 @@ class Candidates:
         return ret
 
     def GetFeatures(self):
+        #print("self", self.Debug())
         numActions = 0
         parentLang = np.zeros([1, self.params.MAX_NODES], dtype=np.int32)
         mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
@@ -107,6 +108,7 @@ class Candidates:
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.MAX_NODES:
             #    break
+            #print("numActions", numActions)
             assert(numActions < self.params.MAX_NODES)
             assert(len(nodes) > 0)
 

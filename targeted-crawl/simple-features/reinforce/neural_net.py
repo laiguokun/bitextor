@@ -160,14 +160,14 @@ class Qnetwork():
     def PredictAll(self, env, sess, langIds, visited, candidates):
         numActions, parentLang, mask = candidates.GetFeatures()
         #print("numActions", numActions)
+        #print("mask", mask.shape, mask)
+        #print("parentLang", parentLang.shape, parentLang)
         
         numActionsNP = np.empty([1,1], dtype=np.int32)
         numActionsNP[0,0] = numActions
 
         assert(numActions > 0)
 
-        #print("parentLang", numActions, parentLang.shape)
-        #print("mask", mask.shape, mask)
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
@@ -177,24 +177,14 @@ class Qnetwork():
                                     self.mask: mask,
                                     self.langIds: langIds,
                                     self.langsVisited: langsVisited})
-        #print("hidden3", hidden3.shape, hidden3)
-        #print("qValues", qValues.shape, qValues)
-        #print("   maxQ", maxQ.shape, maxQ)
         #print("  probs", probs.shape, probs)
-        #print("  chosenAction", chosenAction.shape, chosenAction)
-        #print("linkSpecific", linkSpecific.shape)
-        #print("numSiblings", numSiblings.shape)
-        #print("numVisitedSiblings", numVisitedSiblings.shape)
-        #print("numMatchedSiblings", numMatchedSiblings.shape)
-        #print("   qValues", qValues)
         #print()
 
         probs = np.reshape(probs, [probs.shape[1] ])
         action = np.random.choice(probs,p=probs)
-        #print("  action", action)
         action = np.argmax(probs == action)
         #print("  action", action)
-
+        
         return action
 
     def Update(self, sess, numActions, parentLang, mask, langIds, langsVisited, actions, discountedRewards):

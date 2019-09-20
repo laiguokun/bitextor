@@ -43,7 +43,7 @@ class LearningParams:
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
-        self.MAX_NODES = 1000
+        self.MAX_NODES = 3
 
         langPairList = langPair.split(",")
         assert(len(langPairList) == 2)
