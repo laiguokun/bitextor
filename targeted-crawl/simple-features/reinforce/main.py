@@ -12,32 +12,32 @@ sys.path.append(relDir)
 from common import GetLanguages, Languages, Timer
 from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelDocs, Env, Link
 from corpus import Corpus
-from neural_net import Qnets, Qnetwork, NeuralWalk, GetNextState
+from neural_net import Qnetwork, NeuralWalk, GetNextState
 from candidate import Candidates, GetLangsVisited
 from save_plot import SavePlot
 
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, saveDirPlots, deleteDuplicateTransitions, langPair, maxLangId, defaultLang):
-        self.gamma = 0.99
+    def __init__(self, languages, saveDir, saveDirPlots, langPair, maxLangId, defaultLang):
+        self.gamma = 1.0 #0.999
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
-        self.eps = 0.1 #1.0
-        self.maxBatchSize = 32
+        self.eps = 0.1
+        self.maxBatchSize = 128
         self.minCorpusSize = 200
-        self.overSampling = 10
+        self.overSampling = 1
         
         self.debug = False
         self.walk = 10
+        self.NUM_ACTIONS = 30
+        self.FEATURES_PER_ACTION = 1
 
         self.saveDir = saveDir
         self.saveDirPlots = saveDirPlots
-
-        self.deleteDuplicateTransitions = deleteDuplicateTransitions
         
         self.reward = 1.0 #17.0
-        self.cost = 0.0 #-1.0
+        self.cost = 0 #-1.0
         self.unusedActionCost = 0.0 #-555.0
         self.maxDocs = 500 #9999999999
 
@@ -58,17 +58,18 @@ def RunRLSavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
         RunRLSavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
 
 def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
-    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True, 1)
+    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True)
     SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
 class Transition:
-    def __init__(self, env, action, link, langIds, targetQ, visited, candidates, nextVisited, nextCandidates):
+    def __init__(self, env, action, reward, link, langIds, visited, candidates, nextVisited, nextCandidates):
         self.action = action
         self.link = link
 
         self.langIds = langIds 
-        self.targetQ = np.array(targetQ, copy=True)
+        self.reward = reward
+        self.discountedReward = None
 
         if visited is not None:
             self.visited = visited
@@ -85,45 +86,32 @@ class Transition:
             self.numMatchedSiblings = np.array(numMatchedSiblings, copy=True) 
             self.parentMatched = np.array(parentMatched, copy=True) 
             self.linkLang = np.array(linkLang, copy=True) 
-            
+
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates
-
+    
     def Debug(self):
-        ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " + str(self.visited)
+        ret = str(self.link.parentNode.urlId) + "->" + str(self.link.childNode.urlId) + " " \
+            + str(len(self.visited)) + " " + str(self.candidates.Count()) + " " \
+            + str(self.reward) + " " + str(self.discountedReward)
+
         return ret
     
 ######################################################################################
-def Neural(env, params, prevTransition, sess, qnA, qnB):
+def Neural(env, params, prevTransition, sess, qn):
     nextCandidates = prevTransition.nextCandidates.copy()
     nextVisited = prevTransition.nextVisited.copy()
 
-    qValues, maxQ, action, link, reward = NeuralWalk(env, params, nextCandidates, nextVisited, sess, qnA)
+    action, link, reward = NeuralWalk(env, params, params.eps, nextCandidates, nextVisited, sess, qn)
     assert(link is not None)
-    assert(qValues.shape[1] > 0)
     #print("qValues", qValues.shape, action, prevTransition.nextCandidates.Count(), nextCandidates.Count())
     nextCandidates.Group(nextVisited)
 
-    # calc nextMaxQ
-    if nextCandidates.Count() > 0:
-        #  links to follow NEXT
-        _, _, nextAction = qnA.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-        #print("nextAction", nextAction, nextLangRequested, nextCandidates.Debug())
-        nextQValuesB, _, _ = qnB.PredictAll(env, sess, params.langIds, nextVisited, nextCandidates)
-        nextMaxQ = nextQValuesB[0, nextAction]
-        #print("nextMaxQ", nextMaxQ, nextMaxQB, nextQValuesA[0, nextAction])
-    else:
-        nextMaxQ = 0
-
-    newVal = reward + params.gamma * nextMaxQ
-    targetQ = (1 - params.alpha) * maxQ + params.alpha * newVal
-    qValues[0, action] = targetQ
-
     transition = Transition(env,
                             action, 
+                            reward,
                             link,
                             params.langIds,
-                            qValues,
                             prevTransition.nextVisited,
                             prevTransition.nextCandidates,
                             nextVisited,
@@ -132,7 +120,7 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     return transition, reward
 
 ######################################################################################
-def Trajectory(env, params, sess, qns, test, verbose):
+def Trajectory(env, params, sess, qn, test):
     ret = []
     totReward = 0.0
     totDiscountedReward = 0.0
@@ -147,59 +135,45 @@ def Trajectory(env, params, sess, qns, test, verbose):
     nextCandidates.AddLinks(startNode, nextVisited, params)
     nextCandidates.Group(nextVisited)
 
-    transition = Transition(env, -1, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
+    transition = Transition(env, -1, 0, None, params.langIds, None, None, nextVisited, nextCandidates)
     #print("candidates", transition.nextCandidates.Debug())
 
-    if verbose > 0:
+    if test:
         mainStr = "lang:" + str(startNode.lang)
         rewardStr = "rewards:"
         actionStr = "actions:"
 
     while True:
-        tmp = np.random.rand(1)
-        if tmp > 0.5:
-            qnA = qns.q[0]
-            qnB = qns.q[1]
-        else:
-            qnA = qns.q[1]
-            qnB = qns.q[0]
-
-        transition, reward = Neural(env, params, transition, sess, qnA, qnB)
-        #print("visited", transition.visited)
+        transition, reward = Neural(env, params, transition, sess, qn)
+        #print("visited", len(transition.visited))
         #print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 
-        numParallelDocs = NumParallelDocs(env, transition.nextVisited)
+        numParallelDocs = NumParallelDocs(env, transition.visited)
         ret.append(numParallelDocs)
 
         totReward += reward
         totDiscountedReward += discount * reward
         discount *= params.gamma
 
-        if verbose > 0:
+        if test:
             mainStr += "->" + str(transition.link.childNode.lang)
             rewardStr += "->" + str(reward)
             actionStr += str(transition.action) + " "
 
             if transition.link.childNode.alignedNode is not None:
                 mainStr += "*"
-        
-        if not test:
-            tmp = np.random.rand(1)
-            if tmp > 0.5:
-                corpus = qnA.corpus
-            else:
-                corpus = qnB.corpus
-            corpus.AddTransition(transition)
+        else:
+            qn.corpus.AddTransition(transition)
 
         if transition.nextCandidates.Count() == 0:
             break
 
-        if len(transition.visited) >= params.maxDocs:
+        if len(transition.visited) > params.maxDocs:
             break
 
-    if verbose > 0:
+    if test:
         mainStr += " " + str(len(ret)) 
         rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
         print(actionStr)
@@ -209,31 +183,27 @@ def Trajectory(env, params, sess, qns, test, verbose):
     return ret, totReward, totDiscountedReward
 
 ######################################################################################
-def Train(params, sess, saver, qns, envs, envsTest):
+def Train(params, sess, saver, qn, envs, envsTest):
     print("Start training")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, False, 1)
+            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, False)
             TIMER.Pause("Trajectory")
             print("epoch train", epoch, env.rootURL, totReward, totDiscountedReward)
 
+            #if epoch > 0 and epoch % params.walk == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
         TIMER.Start("Train")
-        qns.q[0].corpus.Train(sess, params)
-        qns.q[1].corpus.Train(sess, params)
+        qn.corpus.Train(sess, params)
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
             print("Validating")
-            #SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
-            RunRLSavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
-
-        #params.eps *= 0.95
-        #params.eps = max(params.eps, 0.1) 
-        #print("eps", params.eps)
+            #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
+            RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
 
 ######################################################################################
 def main():
@@ -249,8 +219,6 @@ def main():
                          help="Directory that model WIP are saved to. If existing model exists then load it")
     oparser.add_argument("--save-plots", dest="saveDirPlots", default="plot",
                      help="Directory ")
-    oparser.add_argument("--delete-duplicate-transitions", dest="deleteDuplicateTransitions",
-                         default=False, help="If True then only unique transition are used in each batch")
     oparser.add_argument("--num-train-hosts", dest="numTrainHosts", type=int,
                          default=1, help="Number of domains to train on")
     oparser.add_argument("--num-test-hosts", dest="numTestHosts", type=int,
@@ -260,15 +228,14 @@ def main():
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
-    if not os.path.exists("pickled_domains/"): os.makedirs("pickled_domains/", exist_ok=True)
     languages = GetLanguages(options.configFile)
-    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.deleteDuplicateTransitions, options.langPair, languages.maxLangId, languages.GetLang("None"))
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.langPair, languages.maxLangId, languages.GetLang("None"))
 
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
-    hosts = ["http://vade-retro.fr/"]
-    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
-    #hosts = ["http://tagar.es/"]
+    print("options.numTrainHosts", options.numTrainHosts)
+    #hosts = ["http://vade-retro.fr/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
@@ -279,14 +246,14 @@ def main():
     envsTest = GetEnvs(options.configFile, languages, hostsTest[:options.numTestHosts])
 
     tf.reset_default_graph()
-    qns = Qnets(params)
+    qn = Qnetwork(params)
     init = tf.global_variables_initializer()
 
     saver = None #tf.train.Saver()
     with tf.Session() as sess:
         sess.run(init)
 
-        Train(params, sess, saver, qns, envs, envsTest)
+        Train(params, sess, saver, qn, envs, envsTest)
 
 ######################################################################################
 main()
