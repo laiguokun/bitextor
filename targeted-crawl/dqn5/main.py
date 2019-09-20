@@ -58,7 +58,7 @@ def RunRLSavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
         RunRLSavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
 
 def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
-    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True)
+    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True, 1)
     SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
@@ -132,7 +132,7 @@ def Neural(env, params, prevTransition, sess, qnA, qnB):
     return transition, reward
 
 ######################################################################################
-def Trajectory(env, params, sess, qns, test):
+def Trajectory(env, params, sess, qns, test, verbose):
     ret = []
     totReward = 0.0
     totDiscountedReward = 0.0
@@ -150,7 +150,7 @@ def Trajectory(env, params, sess, qns, test):
     transition = Transition(env, -1, None, params.langIds, 0, None, None, nextVisited, nextCandidates)
     #print("candidates", transition.nextCandidates.Debug())
 
-    if test:
+    if verbose > 0:
         mainStr = "lang:" + str(startNode.lang)
         rewardStr = "rewards:"
         actionStr = "actions:"
@@ -170,21 +170,22 @@ def Trajectory(env, params, sess, qns, test):
         #print("transition", transition.Debug())
         #print()
 
-        numParallelDocs = NumParallelDocs(env, transition.visited)
+        numParallelDocs = NumParallelDocs(env, transition.nextVisited)
         ret.append(numParallelDocs)
 
         totReward += reward
         totDiscountedReward += discount * reward
         discount *= params.gamma
 
-        if test:
+        if verbose > 0:
             mainStr += "->" + str(transition.link.childNode.lang)
             rewardStr += "->" + str(reward)
             actionStr += str(transition.action) + " "
 
             if transition.link.childNode.alignedNode is not None:
                 mainStr += "*"
-        else:
+        
+        if not test:
             tmp = np.random.rand(1)
             if tmp > 0.5:
                 corpus = qnA.corpus
@@ -198,7 +199,7 @@ def Trajectory(env, params, sess, qns, test):
         if len(transition.visited) >= params.maxDocs:
             break
 
-    if test:
+    if verbose > 0:
         mainStr += " " + str(len(ret)) 
         rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
         print(actionStr)
@@ -214,7 +215,7 @@ def Train(params, sess, saver, qns, envs, envsTest):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, False)
+            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qns, False, 1)
             TIMER.Pause("Trajectory")
             print("epoch train", epoch, env.rootURL, totReward, totDiscountedReward)
 
