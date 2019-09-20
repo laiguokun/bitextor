@@ -170,7 +170,7 @@ def Trajectory(env, params, sess, qn, test):
     nextCandidates.Group(nextVisited)
 
     transition = Transition(env, -1, 0, None, params.langIds, None, None, nextVisited, nextCandidates)
-    #print("candidates", transition.nextCandidates.Debug())
+    print("candidates", transition.nextCandidates.Debug())
 
     if test:
         mainStr = "lang:" + str(startNode.lang)
@@ -180,7 +180,7 @@ def Trajectory(env, params, sess, qn, test):
     while True:
         transition, reward = Neural(env, params, transition, sess, qn)
         #print("visited", len(transition.visited))
-        #print("candidates", transition.nextCandidates.Debug())
+        print("candidates", transition.nextCandidates.Debug())
         #print("transition", transition.Debug())
         #print()
 
