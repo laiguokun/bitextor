@@ -24,9 +24,9 @@ class LearningParams:
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1 #1.0
-        self.maxBatchSize = 1 #32
+        self.maxBatchSize = 32
         self.minCorpusSize = 200
-        self.overSampling = 1
+        self.overSampling = 10
         
         self.debug = False
         self.walk = 10
@@ -231,9 +231,9 @@ def Train(params, sess, saver, qns, envs, envsTest):
             #SavePlots(sess, qns, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qns, params, envsTest, params.saveDirPlots, epoch, "test")
 
-        params.eps *= 0.95
-        params.eps = max(params.eps, 0.1) 
-        print("eps", params.eps)
+        #params.eps *= 0.95
+        #params.eps = max(params.eps, 0.1) 
+        #print("eps", params.eps)
 
 ######################################################################################
 def main():
