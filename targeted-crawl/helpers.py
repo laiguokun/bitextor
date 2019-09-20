@@ -195,8 +195,9 @@ class Node:
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedNode),
                         StrNone(self.redirect), str(len(self.links)),
-                        StrNone(self.normURL), str(self.depth) ] )
-
+                        StrNone(self.normURL) ] )
+                        # , str(self.depth)
+                        
 ######################################################################################
 class Env:
     def __init__(self, sqlconn, url):
