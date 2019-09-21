@@ -87,13 +87,6 @@ class Qnetwork():
         self.hidden1 = tf.nn.relu(self.hidden1)
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
-        self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
-        self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden3 = tf.matmul(self.hidden1, self.W3)
-        #self.hidden3 = tf.add(self.hidden3, self.b3)
-        self.hidden3 = tf.nn.relu(self.hidden3)
-        self.hidden3 = tf.nn.sigmoid(self.hidden3)
-
         # link-specific
         self.WlinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
@@ -109,16 +102,16 @@ class Qnetwork():
         self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, HIDDEN_DIM])
 
         # final q-values
-        self.hidden3 = tf.reshape(self.hidden3, [self.batchSize, 1, HIDDEN_DIM])
-        self.hidden3 = tf.multiply(self.linkSpecific, self.hidden3)
-        self.hidden3 = tf.reduce_sum(self.hidden3, axis=2)
+        self.hidden1 = tf.reshape(self.hidden1, [self.batchSize, 1, HIDDEN_DIM])
+        self.hidden1 = tf.multiply(self.linkSpecific, self.hidden1)
+        self.hidden1 = tf.reduce_sum(self.hidden1, axis=2)
 
         # softmax
-        self.logit = self.hidden3
+        self.logit = self.hidden1
         self.maxLogit = tf.multiply(self.logit, self.maskNum)
         self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
         self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])
-        self.smNumer = tf.subtract(self.hidden3, self.maxLogit)
+        self.smNumer = tf.subtract(self.logit, self.maxLogit)
         self.smNumer = tf.exp(self.smNumer)
         self.smNumer = tf.multiply(self.smNumer, self.maskNum)
         self.smNumerSum = tf.reduce_sum(self.smNumer, axis=1)
