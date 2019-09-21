@@ -87,16 +87,9 @@ class Qnetwork():
         self.hidden1 = tf.nn.relu(self.hidden1)
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
-        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
-        self.b2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden2 = tf.matmul(self.hidden1, self.W2)
-        self.hidden2 = tf.add(self.hidden2, self.b2)
-        self.hidden2 = tf.nn.relu(self.hidden2)
-        #self.hidden2 = tf.nn.sigmoid(self.hidden2)
-
         self.W3 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], 0, 0.01))
         self.b3 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.hidden3 = tf.matmul(self.hidden2, self.W3)
+        self.hidden3 = tf.matmul(self.hidden1, self.W3)
         #self.hidden3 = tf.add(self.hidden3, self.b3)
         self.hidden3 = tf.nn.relu(self.hidden3)
         self.hidden3 = tf.nn.sigmoid(self.hidden3)
