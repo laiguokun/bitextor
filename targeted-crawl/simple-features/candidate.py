@@ -10,12 +10,11 @@ from helpers import GetVistedSiblings, GetMatchedSiblings, GetNodeMatched
 
 ######################################################################################
 def GetLangsVisited(visited, langIds, env):
-    langsVisited = np.zeros([1, 6]) # langId -> count
+    langsVisited = np.zeros([1, 3]) # langId -> count
 
     for urlId in visited:
         node = env.nodes[urlId]
-        isMatched = GetNodeMatched(node, visited)
-
+        
         if node.lang == langIds[0, 0]:
             offset = 0
         elif node.lang == langIds[0, 1]:
@@ -26,8 +25,9 @@ def GetLangsVisited(visited, langIds, env):
         langsVisited[0, offset] += 1
 
         # count unmatched
-        if isMatched == 0:
-            langsVisited[0, offset + 3] += 1
+        #isMatched = GetNodeMatched(node, visited)
+        #if isMatched == 0:
+        #    langsVisited[0, offset] += 1
             
     return langsVisited
 
