@@ -20,9 +20,11 @@ def GetNextState(env, params, action, visited, candidates):
         stopNode = env.nodes[0]
         link = Link("", 0, stopNode, stopNode)
     else:
-        _, parentLang, _ = candidates.GetFeatures()
-        parentLang1 = parentLang[0, action]
-        key = (parentLang1,)
+        #_, parentLang, _ = candidates.GetFeatures()
+        #parentLang1 = parentLang[0, action]
+        #key = (parentLang1,)
+        key = (action,)
+        
         link = candidates.Pop(key)
         candidates.AddLinks(link.childNode, visited, params)
 
@@ -159,8 +161,9 @@ class Qnetwork():
         action = np.random.choice(self.params.MAX_NODES,p=probs)
         #print("  action", action)
         
+        #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         if np.random.rand(1) < .005:
-            print("action", action, probs, logit, langsVisited, parentLang, numActions)
+            print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         #print()
 
         return action

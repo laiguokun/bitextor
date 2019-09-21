@@ -33,11 +33,11 @@ def GetLangsVisited(visited, langIds, env):
 
 def GroupLang(langId, langIds):
     if langId == langIds[0, 0]:
-        return 1
+        return 0
     elif langId == langIds[0, 1]:
-        return 2
+        return 1
     else: 
-        return 3
+        return 2
 
 ######################################################################################
 class Candidates:
@@ -113,7 +113,7 @@ class Candidates:
             assert(len(nodes) > 0)
 
             parentLang[0, numActions] = key[0]
-            mask[0, numActions] = True
+            mask[0, key] = True
             numActions += 1
 
         return numActions, parentLang, mask
