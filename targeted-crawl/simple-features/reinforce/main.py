@@ -18,8 +18,8 @@ from save_plot import SavePlot
 
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, saveDirPlots, langPair, maxCrawl, maxLangId, defaultLang):
-        self.gamma = 0.999
+    def __init__(self, languages, saveDir, saveDirPlots, langPair, maxCrawl, gamma, maxLangId, defaultLang):
+        self.gamma = gamma
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -221,13 +221,15 @@ def main():
                          default=3, help="Number of domains to test on")
     oparser.add_argument("--max-crawl", dest="maxCrawl", type=int,
                          default=sys.maxsize, help="Maximum number of pages to crawl")
+    oparser.add_argument("--gamma", dest="gamma", type=float,
+                         default=0.999, help="Reward discount")
     options = oparser.parse_args()
 
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
     languages = GetLanguages(options.configFile)
-    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.langPair, options.maxCrawl, languages.maxLangId, languages.GetLang("None"))
+    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.langPair, options.maxCrawl, options.gamma, languages.maxLangId, languages.GetLang("None"))
 
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
