@@ -155,11 +155,8 @@ class Qnetwork():
                                 feed_dict={self.parentLang: parentLang,
                                     self.mask: mask,
                                     self.langsVisited: langsVisited})
-        #print("  probs", probs.shape, probs)
-
         probs = np.reshape(probs, [probs.shape[1] ])
-        action = np.random.choice(probs,p=probs)
-        action = np.argmax(probs == action)
+        action = np.random.choice(self.params.MAX_NODES,p=probs)
         #print("  action", action)
         #print("action", action, probs, langsVisited, parentLang, numActions)
         #print()
