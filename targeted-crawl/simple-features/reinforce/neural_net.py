@@ -73,10 +73,9 @@ class Qnetwork():
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
         
         # link representation
-        self.parentLang = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
 
         # batch size
-        self.batchSize = tf.shape(self.parentLang)[0]
+        self.batchSize = tf.shape(self.mask)[0]
         
         # network
         self.input = tf.concat([self.langsVisited], 1)
@@ -90,22 +89,9 @@ class Qnetwork():
         self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
         # link-specific
-        self.WlinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-        self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
-
-        self.linkSpecific = tf.stack([tf.transpose(self.parentLang)], 0)
-        self.linkSpecific = tf.transpose(self.linkSpecific)
-        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize * self.params.MAX_NODES, self.linkSpecific.shape[2] ])
-
-        self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
-        self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
-        #self.linkSpecific = tf.nn.relu(self.linkSpecific)
-        self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
-        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, HIDDEN_DIM])
 
         # final q-values
         self.hidden1 = tf.reshape(self.hidden1, [self.batchSize, 1, HIDDEN_DIM])
-        self.hidden1 = tf.multiply(self.linkSpecific, self.hidden1)
         self.hidden1 = tf.reduce_sum(self.hidden1, axis=2)
 
         # softmax
@@ -144,7 +130,7 @@ class Qnetwork():
         self.updateModel = self.trainer.minimize(self.loss)
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, parentLang, mask = candidates.GetFeatures()
+        numActions, mask = candidates.GetFeatures()
         #print("numActions", numActions)
         #print("mask", mask.shape, mask)
         #print("parentLang", parentLang.shape, parentLang)
@@ -154,8 +140,7 @@ class Qnetwork():
         #print("langsVisited", langsVisited)
         
         (probs,logit) = sess.run([self.probs, self.logit], 
-                                feed_dict={self.parentLang: parentLang,
-                                    self.mask: mask,
+                                feed_dict={self.mask: mask,
                                     self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])
         action = np.random.choice(self.params.MAX_NODES,p=probs)
@@ -163,18 +148,17 @@ class Qnetwork():
         
         #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         if np.random.rand(1) < .005:
-            print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
+            print("action", action, probs, logit, mask, langsVisited, numActions)
         #print()
 
         return action
 
-    def Update(self, sess, numActions, parentLang, mask, langIds, langsVisited, actions, discountedRewards):
+    def Update(self, sess, numActions, mask, langIds, langsVisited, actions, discountedRewards):
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
         (_, loss) = sess.run([self.updateModel, self.loss], 
-                                    feed_dict={self.parentLang: parentLang, 
-                                            self.mask: mask,
+                                    feed_dict={self.mask: mask,
                                             self.langsVisited: langsVisited,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
