@@ -68,10 +68,8 @@ class Qnetwork():
         self.maskNum = tf.cast(self.mask, dtype=tf.float32)
         
         # graph represention
-        self.langIds = tf.placeholder(shape=[None, 2], dtype=tf.float32)
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
-        self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-
+        
         # link representation
         self.parentLang = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.float32)
 
@@ -79,10 +77,10 @@ class Qnetwork():
         self.batchSize = tf.shape(self.parentLang)[0]
         
         # network
-        self.input = tf.concat([self.langIds, self.langsVisited, self.numActions], 1)
+        self.input = tf.concat([self.langsVisited], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([2 + 3 + 1, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([3, HIDDEN_DIM], 0, 0.01))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -162,10 +160,6 @@ class Qnetwork():
         #print("numActions", numActions)
         #print("mask", mask.shape, mask)
         #print("parentLang", parentLang.shape, parentLang)
-        
-        numActionsNP = np.empty([1,1], dtype=np.int32)
-        numActionsNP[0,0] = numActions
-
         assert(numActions > 0)
 
         langsVisited = GetLangsVisited(visited, langIds, env)
@@ -173,9 +167,7 @@ class Qnetwork():
         
         (probs,) = sess.run([self.probs], 
                                 feed_dict={self.parentLang: parentLang,
-                                    self.numActions: numActionsNP,
                                     self.mask: mask,
-                                    self.langIds: langIds,
                                     self.langsVisited: langsVisited})
         #print("  probs", probs.shape, probs)
 
@@ -194,9 +186,7 @@ class Qnetwork():
         #print("targetQ", targetQ)
         (_, loss) = sess.run([self.updateModel, self.loss], 
                                     feed_dict={self.parentLang: parentLang, 
-                                            self.numActions: numActions,
                                             self.mask: mask,
-                                            self.langIds: langIds, 
                                             self.langsVisited: langsVisited,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
