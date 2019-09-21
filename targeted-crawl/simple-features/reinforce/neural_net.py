@@ -175,8 +175,8 @@ class Qnetwork():
         action = np.random.choice(probs,p=probs)
         action = np.argmax(probs == action)
         #print("  action", action)
-        #print()
-        #print("action", action, probs, langsVisited, parentLang, numActions)
+        print("action", action, probs, langsVisited, parentLang, numActions)
+        print()
 
         return action
 

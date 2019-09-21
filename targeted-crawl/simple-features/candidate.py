@@ -33,11 +33,11 @@ def GetLangsVisited(visited, langIds, env):
 
 def GroupLang(langId, langIds):
     if langId == langIds[0, 0]:
-        return -1
-    elif langId == langIds[0, 1]:
         return 1
+    elif langId == langIds[0, 1]:
+        return 2
     else: 
-        return 0
+        return 3
 
 ######################################################################################
 class Candidates:
