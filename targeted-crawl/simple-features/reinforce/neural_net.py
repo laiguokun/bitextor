@@ -84,8 +84,8 @@ class Qnetwork():
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
-        self.hidden1 = tf.nn.relu(self.hidden1)
-        #self.hidden1 = tf.nn.sigmoid(self.hidden1)
+        #self.hidden1 = tf.nn.relu(self.hidden1)
+        self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
         # link-specific
         self.WlinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
@@ -97,8 +97,8 @@ class Qnetwork():
 
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
-        self.linkSpecific = tf.nn.relu(self.linkSpecific)
-        #self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
+        #self.linkSpecific = tf.nn.relu(self.linkSpecific)
+        self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
         self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, HIDDEN_DIM])
 
         # final q-values
@@ -151,14 +151,16 @@ class Qnetwork():
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
-        (probs,) = sess.run([self.probs], 
+        (probs,logit) = sess.run([self.probs, self.logit], 
                                 feed_dict={self.parentLang: parentLang,
                                     self.mask: mask,
                                     self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])
         action = np.random.choice(self.params.MAX_NODES,p=probs)
         #print("  action", action)
-        #print("action", action, probs, langsVisited, parentLang, numActions)
+        
+        if np.random.rand(1) < .005:
+            print("action", action, probs, logit, langsVisited, parentLang, numActions)
         #print()
 
         return action
