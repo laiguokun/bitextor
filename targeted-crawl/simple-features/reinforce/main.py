@@ -139,7 +139,7 @@ def Trajectory(env, params, sess, qn, test):
         actionStr = "actions:"
 
     while True:
-        print("candidates", transition.nextCandidates.Debug())
+        #print("candidates", transition.nextCandidates.Debug())
         transition, reward = Neural(env, params, transition, sess, qn)
         #print("visited", len(transition.visited))
         #print("candidates", transition.nextCandidates.Debug())

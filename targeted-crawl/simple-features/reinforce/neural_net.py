@@ -61,7 +61,7 @@ class Qnetwork():
         self.params = params
         self.corpus = Corpus(params, self)
 
-        HIDDEN_DIM = 512
+        HIDDEN_DIM = 10
 
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
@@ -113,7 +113,7 @@ class Qnetwork():
         self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
         self.linkSpecific = tf.nn.relu(self.linkSpecific)
         #self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
-        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, 512])
+        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.MAX_NODES, HIDDEN_DIM])
 
         # final q-values
         self.hidden3 = tf.reshape(self.hidden3, [self.batchSize, 1, HIDDEN_DIM])
@@ -175,8 +175,8 @@ class Qnetwork():
         action = np.random.choice(probs,p=probs)
         action = np.argmax(probs == action)
         #print("  action", action)
-        print("action", action, probs, langsVisited, parentLang, numActions)
-        print()
+        #print("action", action, probs, langsVisited, parentLang, numActions)
+        #print()
 
         return action
 
