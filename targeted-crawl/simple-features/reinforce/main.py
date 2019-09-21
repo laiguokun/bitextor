@@ -18,8 +18,8 @@ from save_plot import SavePlot
 
 ######################################################################################
 class LearningParams:
-    def __init__(self, languages, saveDir, saveDirPlots, langPair, maxCrawl, gamma, maxLangId, defaultLang):
-        self.gamma = gamma
+    def __init__(self, languages, options, maxLangId, defaultLang):
+        self.gamma = options.gamma
         self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
@@ -33,19 +33,19 @@ class LearningParams:
         self.NUM_ACTIONS = 30
         self.FEATURES_PER_ACTION = 1
 
-        self.saveDir = saveDir
-        self.saveDirPlots = saveDirPlots
+        self.saveDir = options.saveDir
+        self.saveDirPlots = options.saveDirPlots
         
         self.reward = 1.0 #17.0
         self.cost = 0 #-1.0
         self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = maxCrawl #500 #9999999999
+        self.maxDocs = options.maxCrawl #500 #9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
         self.MAX_NODES = 3
 
-        langPairList = langPair.split(",")
+        langPairList = options.langPair.split(",")
         assert(len(langPairList) == 2)
         self.langIds = np.empty([1,2], dtype=np.int32)
         self.langIds[0,0] = languages.GetLang(langPairList[0])
@@ -229,7 +229,7 @@ def main():
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
     languages = GetLanguages(options.configFile)
-    params = LearningParams(languages, options.saveDir, options.saveDirPlots, options.langPair, options.maxCrawl, options.gamma, languages.maxLangId, languages.GetLang("None"))
+    params = LearningParams(languages, options, languages.maxLangId, languages.GetLang("None"))
 
     if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
 
