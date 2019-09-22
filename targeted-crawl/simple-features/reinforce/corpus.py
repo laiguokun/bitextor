@@ -40,7 +40,7 @@ class Corpus:
 
             numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
             numIter = int(numIter) + 1
-            #print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
+            print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
             for i in range(numIter):
                 batch = self.GetBatchWithoutDelete(params.maxBatchSize)
                 loss = self.UpdateQN(params, sess, batch)

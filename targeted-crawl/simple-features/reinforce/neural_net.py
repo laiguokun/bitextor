@@ -81,21 +81,29 @@ class Qnetwork():
         self.input = tf.concat([self.langsVisited], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3, HIDDEN_DIM], 0, 0.01))
-        self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
+        self.W1 = tf.Variable(tf.random_uniform([3, HIDDEN_DIM], minval=-5, maxval=5))
+        self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=-5, maxval=5))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
         #self.hidden1 = tf.nn.relu(self.hidden1)
         self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
+        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, self.params.MAX_NODES], 0, 0.01))
+        self.b2 = tf.Variable(tf.random_uniform([1, self.params.MAX_NODES], 0, 0.01))
+        self.hidden2 = tf.matmul(self.hidden1, self.W2)
+        self.hidden2 = tf.add(self.hidden2, self.b2)
+        #self.hidden2 = tf.nn.relu(self.hidden2)
+        self.hidden2 = tf.nn.sigmoid(self.hidden2)
+        print("hidden2", self.hidden2.shape)
+
         # link-specific
 
         # final q-values
-        self.hidden1 = tf.reshape(self.hidden1, [self.batchSize, 1, HIDDEN_DIM])
-        self.hidden1 = tf.reduce_sum(self.hidden1, axis=2)
+        #self.hidden2 = tf.reshape(self.hidden2, [self.batchSize, 1, HIDDEN_DIM])
+        #self.hidden1 = tf.reduce_sum(self.hidden1, axis=2)
 
         # softmax
-        self.logit = self.hidden1
+        self.logit = self.hidden2
         self.maxLogit = tf.multiply(self.logit, self.maskNum)
         self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
         self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])

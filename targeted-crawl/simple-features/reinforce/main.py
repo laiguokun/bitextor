@@ -20,13 +20,13 @@ from save_plot import SavePlot
 class LearningParams:
     def __init__(self, languages, options, maxLangId, defaultLang):
         self.gamma = options.gamma
-        self.lrn_rate = 0.001
+        self.lrn_rate = 0.01
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
-        self.maxBatchSize = 128
-        self.minCorpusSize = 200
-        self.overSampling = 10
+        self.maxBatchSize = 3000
+        self.minCorpusSize = 3000
+        self.overSampling = 1
         
         self.debug = False
         self.walk = 10
