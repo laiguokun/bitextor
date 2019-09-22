@@ -63,7 +63,7 @@ class Qnetwork():
         self.params = params
         self.corpus = Corpus(params, self)
 
-        HIDDEN_DIM = 3
+        HIDDEN_DIM = 4
 
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
@@ -87,17 +87,26 @@ class Qnetwork():
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=0, maxval=0))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
-        #self.hidden1 = tf.nn.relu(self.hidden1)
+        self.hidden1 = tf.nn.relu(self.hidden1)
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
+        print("self.hidden1", self.hidden1.shape)
+
+        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, params.MAX_NODES], minval=0, maxval=0))
+        self.b2 = tf.Variable(tf.random_uniform([1, params.MAX_NODES], minval=0, maxval=0))
+        self.hidden2 = tf.matmul(self.hidden1, self.W2)
+        self.hidden2 = tf.add(self.hidden2, self.b2)
+        #self.hidden2 = tf.nn.relu(self.hidden3)
+        #self.hidden2 = tf.nn.sigmoid(self.hidden3)
+        print("self.hidden2", self.hidden2.shape)
 
         # link-specific
 
         # final q-values
         #self.hidden2 = tf.reshape(self.hidden2, [self.batchSize, 1, HIDDEN_DIM])
-        #self.hidden1 = tf.reduce_sum(self.hidden1, axis=2)
+        #self.hidden2 = tf.reduce_sum(self.hidden2, axis=2)
 
         # softmax
-        self.logit = self.hidden1
+        self.logit = self.hidden2
         self.maxLogit = tf.add(self.logit, self.maskBigNeg)
         self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
         self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])
@@ -190,7 +199,7 @@ class Qnetwork():
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
-        print("W1", W1, b1)
+        #print("W1", W1, b1)
         #print("   qValues", qValues.shape, qValues)
         #print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
