@@ -88,14 +88,6 @@ class Qnetwork():
         #self.hidden1 = tf.nn.relu(self.hidden1)
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
-        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, self.params.MAX_NODES], 0, 0.01))
-        self.b2 = tf.Variable(tf.random_uniform([1, self.params.MAX_NODES], 0, 0.01))
-        self.hidden2 = tf.matmul(self.hidden1, self.W2)
-        self.hidden2 = tf.add(self.hidden2, self.b2)
-        #self.hidden2 = tf.nn.relu(self.hidden2)
-        #self.hidden2 = tf.nn.sigmoid(self.hidden2)
-        #print("hidden2", self.hidden2.shape)
-
         # link-specific
 
         # final q-values
@@ -103,7 +95,7 @@ class Qnetwork():
         #self.hidden1 = tf.reduce_sum(self.hidden1, axis=2)
 
         # softmax
-        self.logit = self.hidden2
+        self.logit = self.hidden1
         self.maxLogit = tf.multiply(self.logit, self.maskNum)
         self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
         self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])
