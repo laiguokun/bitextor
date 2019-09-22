@@ -201,6 +201,8 @@ def Train(params, sess, saver, qn, envs, envsTest):
             #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
 
+        sys.stdout.flush()
+        
 ######################################################################################
 def main():
     global TIMER
