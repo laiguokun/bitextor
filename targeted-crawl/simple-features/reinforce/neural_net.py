@@ -162,17 +162,17 @@ class Qnetwork():
             print("maskBigNeg", maskBigNeg)
             dsds
 
-        print("langsVisited", probs, logit, smNumer, smNumerSum, langsVisited)
-        print("probs", probs)
-        print("logit", logit)
-        print("maxLogit", maxLogit)
-        print("smNumer", smNumer)
-        print("smNumerSum", smNumerSum)
-        print("langsVisited", langsVisited)
-        print("mask", mask)
-        print("maskBigNeg", maskBigNeg)
-        print()
-        
+        # print("langsVisited", probs, logit, smNumer, smNumerSum, langsVisited)
+        # print("probs", probs)
+        # print("logit", logit)
+        # print("maxLogit", maxLogit)
+        # print("smNumer", smNumer)
+        # print("smNumerSum", smNumerSum)
+        # print("langsVisited", langsVisited)
+        # print("mask", mask)
+        # print("maskBigNeg", maskBigNeg)
+        # print()
+
         #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         if np.random.rand(1) < .005:
             print("action", action, probs, logit, mask, langsVisited, numActions)
