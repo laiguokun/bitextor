@@ -85,7 +85,7 @@ class Qnetwork():
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=-5, maxval=5))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
-        self.hidden1 = tf.nn.relu(self.hidden1)
+        #self.hidden1 = tf.nn.relu(self.hidden1)
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
 
         self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, self.params.MAX_NODES], 0, 0.01))
