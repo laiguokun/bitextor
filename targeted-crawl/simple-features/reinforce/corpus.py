@@ -32,8 +32,8 @@ class Corpus:
             transition.discountedReward = runningReward
             #print("t", t, transition.Debug())
 
-    def Train(self, sess, params):
-        if len(self.transitions) >= params.minCorpusSize:
+    def Train(self, sess):
+        if len(self.transitions) >= self.params.minCorpusSize:
             self.CalcDiscountedReward()
             #for transition in self.transitions:
             #    print(DebugTransition(transition))
@@ -46,7 +46,7 @@ class Corpus:
             #    loss = self.UpdateQN(params, sess, batch)
             #    self.losses.append(loss)
 
-            loss = self.UpdateQN(params, sess, self.transitions)
+            loss = self.UpdateQN(self.params, sess, self.transitions)
             print("transitions", len(self.transitions), loss)
 
             self.transitions.clear()

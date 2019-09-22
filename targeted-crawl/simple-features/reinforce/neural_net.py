@@ -139,12 +139,16 @@ class Qnetwork():
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
-        (probs,logit) = sess.run([self.probs, self.logit], 
+        (probs,logit, smNumer, smNumerSum) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum], 
                                 feed_dict={self.mask: mask,
                                     self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])
-        action = np.random.choice(self.params.MAX_NODES,p=probs)
-        #print("  action", action)
+        
+        try:
+            action = np.random.choice(self.params.MAX_NODES,p=probs)
+        except:
+            print("langsVisited", probs, logit, smNumer, smNumerSum, langsVisited)
+            dsds
         
         #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         if np.random.rand(1) < .005:
