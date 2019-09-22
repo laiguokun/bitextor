@@ -37,8 +37,8 @@ class Corpus:
 
         #for transition in self.transitions:
         #    print(transition.Debug())
-        lastTrans = self.transitions[-1]
-        print("lastTrans", lastTrans.Debug())
+        #lastTrans = self.transitions[-1]
+        #print("lastTrans", lastTrans.Debug())
 
         #numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
         #numIter = int(numIter) + 1

@@ -83,8 +83,8 @@ class Qnetwork():
         self.input = tf.concat([self.langsVisited], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3, HIDDEN_DIM], minval=-5, maxval=5))
-        self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=-5, maxval=5))
+        self.W1 = tf.Variable(tf.random_uniform([3, HIDDEN_DIM], minval=0, maxval=0))
+        self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=0, maxval=0))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
         #self.hidden1 = tf.nn.relu(self.hidden1)
@@ -190,7 +190,7 @@ class Qnetwork():
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
-        #print("W1", W1, b1)
+        print("W1", W1, b1)
         #print("   qValues", qValues.shape, qValues)
         #print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
