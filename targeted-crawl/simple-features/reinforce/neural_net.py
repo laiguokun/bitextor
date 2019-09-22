@@ -63,7 +63,7 @@ class Qnetwork():
         self.params = params
         self.corpus = Corpus(params, self)
 
-        HIDDEN_DIM = 10
+        HIDDEN_DIM = 3
 
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
@@ -165,13 +165,13 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
-        (_, loss) = sess.run([self.updateModel, self.loss], 
+        (_, loss, W1, b1) = sess.run([self.updateModel, self.loss, self.W1, self.b1], 
                                     feed_dict={self.mask: mask,
                                             self.langsVisited: langsVisited,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
-        #print("hidden3", hidden3.shape, hidden3)
+        print("W1", W1, b1)
         #print("   qValues", qValues.shape, qValues)
         #print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
