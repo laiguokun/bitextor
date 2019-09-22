@@ -38,13 +38,16 @@ class Corpus:
             #for transition in self.transitions:
             #    print(DebugTransition(transition))
 
-            numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
-            numIter = int(numIter) + 1
-            print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
-            for i in range(numIter):
-                batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-                loss = self.UpdateQN(params, sess, batch)
-                self.losses.append(loss)
+            #numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
+            #numIter = int(numIter) + 1
+            #print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
+            #for i in range(numIter):
+            #    batch = self.GetBatchWithoutDelete(params.maxBatchSize)
+            #    loss = self.UpdateQN(params, sess, batch)
+            #    self.losses.append(loss)
+
+            loss = self.UpdateQN(params, sess, self.transitions)
+            print("transitions", len(self.transitions), loss)
 
             self.transitions.clear()
         
