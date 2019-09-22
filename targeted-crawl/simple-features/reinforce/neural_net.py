@@ -68,7 +68,9 @@ class Qnetwork():
         # mask
         self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
         self.maskNum = tf.cast(self.mask, dtype=tf.float32)
-        
+        self.maskBigNeg = tf.subtract(self.maskNum, 1)
+        self.maskBigNeg = tf.multiply(self.maskBigNeg, 999999)
+
         # graph represention
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
         
@@ -96,13 +98,15 @@ class Qnetwork():
 
         # softmax
         self.logit = self.hidden1
-        self.maxLogit = tf.multiply(self.logit, self.maskNum)
+        self.maxLogit = tf.add(self.logit, self.maskBigNeg)
         self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
         self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])
+
         self.smNumer = tf.subtract(self.logit, self.maxLogit)
         self.smNumer = tf.multiply(self.smNumer, self.maskNum)
         self.smNumer = tf.exp(self.smNumer)
         self.smNumer = tf.multiply(self.smNumer, self.maskNum)
+
         self.smNumerSum = tf.reduce_sum(self.smNumer, axis=1)
         self.smNumerSum = tf.reshape(self.smNumerSum, [self.batchSize, 1])
         
@@ -140,12 +144,35 @@ class Qnetwork():
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
-        (probs,logit) = sess.run([self.probs, self.logit], 
+        (probs,logit, smNumer, smNumerSum, maxLogit, maskBigNeg) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum, self.maxLogit, self.maskBigNeg], 
                                 feed_dict={self.mask: mask,
                                     self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])        
-        action = np.random.choice(self.params.MAX_NODES,p=probs)
+        try:
+            action = np.random.choice(self.params.MAX_NODES,p=probs)
+        except:
+            print("langsVisited", probs, logit, smNumer, smNumerSum, langsVisited)
+            print("probs", probs)
+            print("logit", logit)
+            print("maxLogit", maxLogit)
+            print("smNumer", smNumer)
+            print("smNumerSum", smNumerSum)
+            print("langsVisited", langsVisited)
+            print("mask", mask)
+            print("maskBigNeg", maskBigNeg)
+            dsds
 
+        print("langsVisited", probs, logit, smNumer, smNumerSum, langsVisited)
+        print("probs", probs)
+        print("logit", logit)
+        print("maxLogit", maxLogit)
+        print("smNumer", smNumer)
+        print("smNumerSum", smNumerSum)
+        print("langsVisited", langsVisited)
+        print("mask", mask)
+        print("maskBigNeg", maskBigNeg)
+        print()
+        
         #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         if np.random.rand(1) < .005:
             print("action", action, probs, logit, mask, langsVisited, numActions)
@@ -163,7 +190,7 @@ class Qnetwork():
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
-        print("W1", W1, b1)
+        #print("W1", W1, b1)
         #print("   qValues", qValues.shape, qValues)
         #print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)

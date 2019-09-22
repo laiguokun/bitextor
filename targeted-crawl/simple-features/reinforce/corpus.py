@@ -33,23 +33,25 @@ class Corpus:
             #print("t", t, transition.Debug())
 
     def Train(self, sess):
-        if len(self.transitions) >= self.params.minCorpusSize:
-            self.CalcDiscountedReward()
-            #for transition in self.transitions:
-            #    print(DebugTransition(transition))
+        self.CalcDiscountedReward()
 
-            #numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
-            #numIter = int(numIter) + 1
-            #print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
-            #for i in range(numIter):
-            #    batch = self.GetBatchWithoutDelete(params.maxBatchSize)
-            #    loss = self.UpdateQN(params, sess, batch)
-            #    self.losses.append(loss)
+        #for transition in self.transitions:
+        #    print(transition.Debug())
+        lastTrans = self.transitions[-1]
+        print("lastTrans", lastTrans.Debug())
 
-            loss = self.UpdateQN(self.params, sess, self.transitions)
-            print("transitions", len(self.transitions), loss)
+        #numIter = len(self.transitions) * params.overSampling / params.maxBatchSize
+        #numIter = int(numIter) + 1
+        #print("numIter", numIter, len(self.transitions), params.overSampling, params.maxBatchSize)
+        #for i in range(numIter):
+        #    batch = self.GetBatchWithoutDelete(params.maxBatchSize)
+        #    loss = self.UpdateQN(params, sess, batch)
+        #    self.losses.append(loss)
 
-            self.transitions.clear()
+        loss = self.UpdateQN(self.params, sess, self.transitions)
+        #print("transitions", len(self.transitions), loss)
+
+        self.transitions.clear()
         
     def UpdateQN(self, params, sess, batch):
         batchSize = len(batch)
