@@ -100,6 +100,7 @@ class Qnetwork():
         self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
         self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])
         self.smNumer = tf.subtract(self.logit, self.maxLogit)
+        self.smNumer = tf.multiply(self.smNumer, self.maskNum)
         self.smNumer = tf.exp(self.smNumer)
         self.smNumer = tf.multiply(self.smNumer, self.maskNum)
         self.smNumerSum = tf.reduce_sum(self.smNumer, axis=1)
@@ -139,22 +140,11 @@ class Qnetwork():
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
-        (probs,logit, smNumer, smNumerSum, maxLogit) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum, self.maxLogit], 
+        (probs,logit) = sess.run([self.probs, self.logit], 
                                 feed_dict={self.mask: mask,
                                     self.langsVisited: langsVisited})
-        probs = np.reshape(probs, [probs.shape[1] ])
-        
-        try:
-            action = np.random.choice(self.params.MAX_NODES,p=probs)
-        except:
-            print("probs", probs)
-            print("logit", logit)
-            print("maxLogit", maxLogit)
-            print("smNumer", smNumer)
-            print("smNumerSum", smNumerSum)
-            print("langsVisited", langsVisited)
-            print("mask", mask)
-            dsds
+        probs = np.reshape(probs, [probs.shape[1] ])        
+        action = np.random.choice(self.params.MAX_NODES,p=probs)
 
         #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         if np.random.rand(1) < .005:
