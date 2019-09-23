@@ -274,7 +274,7 @@ class Qnetwork():
         return loss
 
     def UpdateGrads(self, sess, corpus):
-        print("UpdateGrads")
+        #print("UpdateGrads")
 
         feed_dict= dict(zip(self.gradient_holders, corpus.gradBuffer))
         _ = sess.run(self.update_batch, feed_dict=feed_dict)

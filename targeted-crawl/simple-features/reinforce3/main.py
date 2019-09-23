@@ -193,11 +193,11 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
         if epoch % params.updateFrequency == 0 and epoch != 0:
+            print("UpdateGrads & Validating")
             TIMER.Start("UpdateGrads")
             qn.UpdateGrads(sess, corpus)
             TIMER.Pause("UpdateGrads")
 
-            print("Validating")
             #SavePlots(sess, qn, corpus, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
 
