@@ -187,7 +187,7 @@ class Qnetwork():
 
         #print("action", action, probs, logit, mask, langsVisited, numActions)
         if np.random.rand(1) < .005:
-            print("action", action, probs, logit, maskNum, numCandidates, langsVisited, numActions)
+            print("action", action, probs, logit, numCandidates, langsVisited, numActions)
         #print()
 
         return action
