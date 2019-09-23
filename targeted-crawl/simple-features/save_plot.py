@@ -7,7 +7,7 @@ from other_strategies import dumb, randomCrawl, balanced
 
 ######################################################################################
 def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
-    crawlLen = min(params.maxDocs, len(env.nodes))
+    crawlLen = min(params.maxCrawl, len(env.nodes))
     arrBreadth = dumb(env, crawlLen, params, 0)
     arrDepth = dumb(env, crawlLen, params, 1)
     arrRandom = randomCrawl(env, crawlLen, params)

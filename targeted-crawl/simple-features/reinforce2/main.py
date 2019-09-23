@@ -30,21 +30,17 @@ class LearningParams:
         self.updateFrequency = 5
 
         self.debug = False
-        self.walk = 10
-        self.NUM_ACTIONS = 30
-        self.FEATURES_PER_ACTION = 1
+        self.NUM_ACTIONS = 3
 
         self.saveDir = options.saveDir
         self.saveDirPlots = options.saveDirPlots
         
         self.reward = 1.0 #17.0
         self.cost = 0 #-1.0
-        self.unusedActionCost = 0.0 #-555.0
-        self.maxDocs = options.maxCrawl #500 #9999999999
+        self.maxCrawl = options.maxCrawl #500 #9999999999
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
-        self.MAX_NODES = 3
 
         langPairList = options.langPair.split(",")
         assert(len(langPairList) == 2)
@@ -166,7 +162,7 @@ def Trajectory(env, params, sess, qn, corpus, test):
         if transition.nextCandidates.Count() == 0:
             break
 
-        if len(transition.visited) > params.maxDocs:
+        if len(transition.visited) > params.maxCrawl:
             break
 
     if test:
@@ -202,7 +198,6 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             qn.UpdateGrads(sess, corpus)
             TIMER.Pause("UpdateGrads")
 
-        if epoch > 0 and epoch % params.walk == 0:
             print("Validating")
             #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")

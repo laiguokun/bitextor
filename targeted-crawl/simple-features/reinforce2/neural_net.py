@@ -65,7 +65,7 @@ class Qnetwork():
         HIDDEN_DIM = 4
 
         # mask
-        self.mask = tf.placeholder(shape=[None, self.params.MAX_NODES], dtype=tf.bool)
+        self.mask = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.bool)
         self.maskNum = tf.cast(self.mask, dtype=tf.float32)
         self.maskBigNeg = tf.subtract(self.maskNum, 1)
         self.maskBigNeg = tf.multiply(self.maskBigNeg, 999999)
@@ -90,8 +90,8 @@ class Qnetwork():
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
         print("self.hidden1", self.hidden1.shape)
 
-        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, params.MAX_NODES], minval=0, maxval=0))
-        self.b2 = tf.Variable(tf.random_uniform([1, params.MAX_NODES], minval=0, maxval=0))
+        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, params.NUM_ACTIONS], minval=0, maxval=0))
+        self.b2 = tf.Variable(tf.random_uniform([1, params.NUM_ACTIONS], minval=0, maxval=0))
         self.hidden2 = tf.matmul(self.hidden1, self.W2)
         self.hidden2 = tf.add(self.hidden2, self.b2)
         #self.hidden2 = tf.nn.relu(self.hidden3)
@@ -126,7 +126,7 @@ class Qnetwork():
         self.action_holder = tf.placeholder(shape=[None],dtype=tf.int32) #  0 or 1
 
         self.r1 = tf.range(0, self.batchSize)  # 0 1 2 3 4 len=length of trajectory
-        self.r2 = self.params.MAX_NODES
+        self.r2 = self.params.NUM_ACTIONS
         self.r3 = self.r1 * self.r2          # 0 2 4 6 8
         self.indexes = self.r3 + self.action_holder # r3 + 0/1 offset depending on action
        
@@ -168,7 +168,7 @@ class Qnetwork():
                                     self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])        
         try:
-            action = np.random.choice(self.params.MAX_NODES,p=probs)
+            action = np.random.choice(self.params.NUM_ACTIONS,p=probs)
         except:
             print("langsVisited", probs, logit, smNumer, smNumerSum, langsVisited)
             print("probs", probs)
@@ -227,7 +227,7 @@ class Qnetwork():
         batchSize = len(corpus.transitions)
         #print("batchSize", batchSize)
         numActions = np.empty([batchSize, 1], dtype=np.int)
-        mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
+        mask = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.bool)
 
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, 3])

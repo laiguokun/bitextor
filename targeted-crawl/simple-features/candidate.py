@@ -102,13 +102,13 @@ class Candidates:
     def GetFeatures(self):
         #print("self", self.Debug())
         numActions = 0
-        mask = np.full([1, self.params.MAX_NODES], False, dtype=np.bool)
+        mask = np.full([1, self.params.NUM_ACTIONS], False, dtype=np.bool)
         
         for key, nodes in self.grouped.items():
-            #if numActions >= self.params.MAX_NODES:
+            #if numActions >= self.params.NUM_ACTIONS:
             #    break
             #print("numActions", numActions)
-            assert(numActions < self.params.MAX_NODES)
+            assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
 
             mask[0, key[0] ] = True
