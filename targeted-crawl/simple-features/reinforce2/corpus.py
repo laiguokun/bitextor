@@ -32,7 +32,7 @@ class Corpus:
             transition.discountedReward = runningReward
             #print("t", t, transition.Debug())
 
-    def Train(self, sess):
+    def CalcGrads(self, sess):
         self.CalcDiscountedReward()
 
         #for transition in self.transitions:
@@ -48,13 +48,7 @@ class Corpus:
         #    loss = self.UpdateQN(params, sess, batch)
         #    self.losses.append(loss)
 
-        loss = self.UpdateQN(self.params, sess, self.transitions)
-        #print("transitions", len(self.transitions), loss)
-
-        self.transitions.clear()
-        
-    def UpdateQN(self, params, sess, batch):
-        batchSize = len(batch)
+        batchSize = len(self.transitions)
         #print("batchSize", batchSize)
         numActions = np.empty([batchSize, 1], dtype=np.int)
         mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
@@ -66,7 +60,7 @@ class Corpus:
         discountedRewards = np.empty([batchSize], dtype=np.float32)
         
         i = 0
-        for transition in batch:
+        for transition in self.transitions:
             #curr = transition.curr
             #next = transition.next
             #print("transition.numActions", transition.numActions, transition.targetQ.shape, transition.candidates.Count())
@@ -81,7 +75,9 @@ class Corpus:
 
             i += 1
 
-        loss = self.qn.Update(sess, numActions, mask, langIds, langsVisited, actions, discountedRewards)
+        loss = self.qn.CalcGrads(sess, numActions, mask, langIds, langsVisited, actions, discountedRewards)
+
+        self.transitions.clear()
 
         #print("loss", loss)
         return loss

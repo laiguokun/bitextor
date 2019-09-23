@@ -200,7 +200,7 @@ class Qnetwork():
 
         return action
 
-    def Update(self, sess, numActions, mask, langIds, langsVisited, actions, discountedRewards):
+    def CalcGrads(self, sess, numActions, mask, langIds, langsVisited, actions, discountedRewards):
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)

@@ -193,7 +193,7 @@ def Train(params, sess, saver, qn, envs, envsTest):
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
         TIMER.Start("Train")
-        qn.corpus.Train(sess)
+        qn.corpus.CalcGrads(sess)
         TIMER.Pause("Train")
 
         if epoch > 0 and epoch % params.walk == 0:
