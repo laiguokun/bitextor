@@ -286,5 +286,5 @@ class Qnetwork():
         feed_dict= dict(zip(self.gradient_holders, corpus.gradBuffer))
         _ = sess.run(self.update_batch, feed_dict=feed_dict)
 
-        for ix,grad in enumerate(corpus.gradBuffer):
-            corpus.gradBuffer[ix] = grad * 0
+        for idx,grad in enumerate(corpus.gradBuffer):
+            corpus.gradBuffer[idx] = grad * 0
