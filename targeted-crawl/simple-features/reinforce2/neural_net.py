@@ -207,16 +207,18 @@ class Qnetwork():
             transition.discountedReward = runningReward
             #print("t", t, transition.Debug())
 
-
-    def CalcGradsInternal(self, sess, numActions, mask, langIds, langsVisited, actions, discountedRewards):
-        #print("actions, discountedRewards", actions, discountedRewards)
-        #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
-        #print("targetQ", targetQ)
+    def GetGradBuffer(self, sess):
         gradBuffer = sess.run(tf.trainable_variables())
         for idx,grad in enumerate(gradBuffer):
             #print("idx", idx)
             gradBuffer[idx] = grad * 0
         #print("gradBuffer", gradBuffer)
+        return gradBuffer
+
+    def CalcGradsInternal(self, sess, corpus, numActions, mask, langIds, langsVisited, actions, discountedRewards):
+        #print("actions, discountedRewards", actions, discountedRewards)
+        #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
+        #print("targetQ", targetQ)
 
         (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
                                     feed_dict={self.mask: mask,
@@ -240,12 +242,12 @@ class Qnetwork():
 
         for idx,grad in enumerate(grads):
             #print("idx", idx)
-            gradBuffer[idx] += grad         # accumulate gradients
+            corpus.gradBuffer[idx] += grad         # accumulate gradients
 
-        feed_dict= dict(zip(self.gradient_holders, gradBuffer))
+        feed_dict= dict(zip(self.gradient_holders, corpus.gradBuffer))
         _ = sess.run(self.update_batch, feed_dict=feed_dict)
-        for ix,grad in enumerate(gradBuffer):
-            gradBuffer[ix] = grad * 0
+        for ix,grad in enumerate(corpus.gradBuffer):
+            corpus.gradBuffer[ix] = grad * 0
 
         #(_, loss, W1, b1, grads) = sess.run([self.updateModel, self.loss, self.W1, self.b1, self.gradients], 
         #                            feed_dict={self.mask: mask,
@@ -291,7 +293,7 @@ class Qnetwork():
 
             i += 1
 
-        loss = self.CalcGradsInternal(sess, numActions, mask, langIds, langsVisited, actions, discountedRewards)
+        loss = self.CalcGradsInternal(sess, corpus, numActions, mask, langIds, langsVisited, actions, discountedRewards)
 
         corpus.transitions.clear()
 

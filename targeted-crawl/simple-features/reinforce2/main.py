@@ -255,7 +255,7 @@ def main():
     saver = None #tf.train.Saver()
     with tf.Session() as sess:
         sess.run(init)
-        corpus = Corpus(params)
+        corpus = Corpus(params, sess, qn)
 
         Train(params, sess, saver, qn, corpus, envs, envsTest)
 
