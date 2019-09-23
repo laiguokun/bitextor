@@ -192,9 +192,9 @@ def Train(params, sess, saver, qn, envs, envsTest):
             #if epoch > 0 and epoch % params.walk == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
-        TIMER.Start("Train")
+        TIMER.Start("CalcGrads")
         qn.corpus.CalcGrads(sess)
-        TIMER.Pause("Train")
+        TIMER.Pause("CalcGrads")
 
         if epoch > 0 and epoch % params.walk == 0:
             print("Validating")
