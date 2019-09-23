@@ -124,6 +124,7 @@ class Candidates:
             mask[0, action] = True
             numActions += 1
 
+        #print("   numActions", numActions, mask)
         return numActions, mask
 
     def Debug(self):

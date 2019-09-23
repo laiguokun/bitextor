@@ -26,7 +26,6 @@ class LearningParams:
         self.eps = 0.1
         self.maxBatchSize = 3000
         self.minCorpusSize = 3000
-        self.overSampling = 1
         self.updateFrequency = options.updateFrequency
 
         self.debug = False
@@ -37,7 +36,7 @@ class LearningParams:
         
         self.reward = 1.0 #17.0
         self.cost = 0 #-1.0
-        self.maxCrawl = options.maxCrawl #500 #9999999999
+        self.maxCrawl = options.maxCrawl
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -240,8 +239,8 @@ def main():
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://telasmos.org/"]
-    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    #hosts = ["http://telasmos.org/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
