@@ -78,9 +78,19 @@ class Candidates:
             assert(link not in self.links)
             self.links.add(link)
 
-    def PopNotKey(self, action):
+    def Count(self):
+        ret = len(self.links)
+        return ret
+
+    def ActionToKey(self, action):
+        return (action,)
+
+    def KeyToAction(self, key):
+        return key[0]
+
+    def PopWithAction(self, action):
         assert(len(self.grouped) > 0)
-        key = (action,)
+        key = self.ActionToKey(action)
         links = self.grouped[key]
         assert(len(links) > 0)
 
@@ -96,10 +106,6 @@ class Candidates:
 
         return link
 
-    def Count(self):
-        ret = len(self.links)
-        return ret
-
     def GetMask(self):
         #print("self", self.Debug())
         numActions = 0
@@ -111,8 +117,9 @@ class Candidates:
             #print("numActions", numActions)
             assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
+            action = self.KeyToAction(key)
 
-            mask[0, key[0] ] = True
+            mask[0, action] = True
             numActions += 1
 
         return numActions, mask
