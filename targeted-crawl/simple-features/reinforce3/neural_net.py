@@ -15,18 +15,13 @@ from candidate import GetLangsVisited
 def GetNextState(env, params, action, visited, candidates):
 
     #print("candidates", action, candidates.Debug())
-    if action == -1:
-        # no explicit stop state but no candidates
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
-    else:
-        #_, parentLang, _ = candidates.GetFeatures()
-        #parentLang1 = parentLang[0, action]
-        #key = (parentLang1,)
-        key = (action,)
-        
-        link = candidates.Pop(key)
-        candidates.AddLinks(link.childNode, visited, params)
+    #_, parentLang, _ = candidates.GetFeatures()
+    #parentLang1 = parentLang[0, action]
+    #key = (parentLang1,)
+    key = (action,)
+    
+    link = candidates.Pop(key)
+    candidates.AddLinks(link.childNode, visited, params)
 
     assert(link.childNode.urlId not in visited)
     visited.add(link.childNode.urlId)
