@@ -61,7 +61,6 @@ def NeuralWalk(env, params, eps, candidates, visited, sess, qnA):
 class Qnetwork():
     def __init__(self, params):
         self.params = params
-        self.corpus = Corpus(params, self)
 
         HIDDEN_DIM = 4
 

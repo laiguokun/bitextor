@@ -4,9 +4,8 @@ import numpy as np
 
 ######################################################################################
 class Corpus:
-    def __init__(self, params, qn):
+    def __init__(self, params):
         self.params = params
-        self.qn = qn
         self.transitions = []
         self.losses = []
 
@@ -32,7 +31,7 @@ class Corpus:
             transition.discountedReward = runningReward
             #print("t", t, transition.Debug())
 
-    def CalcGrads(self, sess):
+    def CalcGrads(self, sess, qn):
         self.CalcDiscountedReward()
 
         #for transition in self.transitions:
@@ -75,7 +74,7 @@ class Corpus:
 
             i += 1
 
-        loss = self.qn.CalcGrads(sess, numActions, mask, langIds, langsVisited, actions, discountedRewards)
+        loss = qn.CalcGrads(sess, numActions, mask, langIds, langsVisited, actions, discountedRewards)
 
         self.transitions.clear()
 

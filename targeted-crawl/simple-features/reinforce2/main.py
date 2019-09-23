@@ -114,7 +114,7 @@ def Neural(env, params, prevTransition, sess, qn):
     return transition, reward
 
 ######################################################################################
-def Trajectory(env, params, sess, qn, test):
+def Trajectory(env, params, sess, qn, corpus, test):
     ret = []
     totReward = 0.0
     totDiscountedReward = 0.0
@@ -160,7 +160,7 @@ def Trajectory(env, params, sess, qn, test):
             if transition.link.childNode.alignedNode is not None:
                 mainStr += "*"
         else:
-            qn.corpus.AddTransition(transition)
+            corpus.AddTransition(transition)
 
         if transition.nextCandidates.Count() == 0:
             break
@@ -178,14 +178,14 @@ def Trajectory(env, params, sess, qn, test):
     return ret, totReward, totDiscountedReward
 
 ######################################################################################
-def Train(params, sess, saver, qn, envs, envsTest):
+def Train(params, sess, saver, qn, corpus, envs, envsTest):
     print("Start training")
     RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, 0, "test")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
-            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, False)
+            arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, False)
             TIMER.Pause("Trajectory")
             print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward)
 
@@ -193,7 +193,7 @@ def Train(params, sess, saver, qn, envs, envsTest):
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
         TIMER.Start("CalcGrads")
-        qn.corpus.CalcGrads(sess)
+        corpus.CalcGrads(sess, qn)
         TIMER.Pause("CalcGrads")
 
         if epoch > 0 and epoch % params.walk == 0:
@@ -255,8 +255,9 @@ def main():
     saver = None #tf.train.Saver()
     with tf.Session() as sess:
         sess.run(init)
+        corpus = Corpus(params)
 
-        Train(params, sess, saver, qn, envs, envsTest)
+        Train(params, sess, saver, qn, corpus, envs, envsTest)
 
 ######################################################################################
 main()
