@@ -216,6 +216,7 @@ class Qnetwork():
             #print("t", t, transition.Debug())
 
     def CalcGrads(self, sess, corpus):
+        #print("CalcGrads")
         self.CalcDiscountedReward(corpus.transitions)
 
         #for transition in self.transitions:
@@ -280,6 +281,8 @@ class Qnetwork():
         return loss
 
     def UpdateGrads(self, sess, corpus):
+        print("UpdateGrads")
+
         feed_dict= dict(zip(self.gradient_holders, corpus.gradBuffer))
         _ = sess.run(self.update_batch, feed_dict=feed_dict)
 
