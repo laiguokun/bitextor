@@ -64,7 +64,8 @@ class Candidates:
         
         for link in self.links:
             parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
-            key = (parentLang,)
+            linkLang = GroupLang(link.textLang, self.params.langIds)
+            key = (parentLang,linkLang)
 
             if key not in self.grouped:
                 self.grouped[key] = []
@@ -83,10 +84,11 @@ class Candidates:
         return ret
 
     def ActionToKey(self, action):
-        return (action,)
+        parentLang, linkLang = divmod(action, 3)
+        return (parentLang,linkLang)
 
     def KeyToAction(self, key):
-        return key[0]
+        return key[0] * 3 + key[1]
 
     def PopWithAction(self, action):
         assert(len(self.grouped) > 0)

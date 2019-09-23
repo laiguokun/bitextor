@@ -30,7 +30,7 @@ class LearningParams:
         self.updateFrequency = options.updateFrequency
 
         self.debug = False
-        self.NUM_ACTIONS = 3
+        self.NUM_ACTIONS = 9
 
         self.saveDir = options.saveDir
         self.saveDirPlots = options.saveDirPlots

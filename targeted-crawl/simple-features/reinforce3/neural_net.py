@@ -184,7 +184,7 @@ class Qnetwork():
         # print("maskBigNeg", maskBigNeg)
         # print()
 
-        #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
+        #print("action", action, probs, logit, mask, langsVisited, numActions)
         if np.random.rand(1) < .005:
             print("action", action, probs, logit, mask, langsVisited, numActions)
         #print()
