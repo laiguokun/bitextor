@@ -99,7 +99,7 @@ class Candidates:
         ret = len(self.links)
         return ret
 
-    def GetFeatures(self):
+    def GetMask(self):
         #print("self", self.Debug())
         numActions = 0
         mask = np.full([1, self.params.NUM_ACTIONS], False, dtype=np.bool)

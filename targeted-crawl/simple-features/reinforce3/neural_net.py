@@ -15,7 +15,6 @@ from candidate import GetLangsVisited
 def GetNextState(env, params, action, visited, candidates):
 
     #print("candidates", action, candidates.Debug())
-    #_, parentLang, _ = candidates.GetFeatures()
     #parentLang1 = parentLang[0, action]
     #key = (parentLang1,)
     key = (action,)
@@ -149,7 +148,7 @@ class Qnetwork():
         self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, mask = candidates.GetFeatures()
+        numActions, mask = candidates.GetMask()
         #print("numActions", numActions)
         #print("mask", mask.shape, mask)
         #print("parentLang", parentLang.shape, parentLang)
