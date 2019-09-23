@@ -199,7 +199,16 @@ class Qnetwork():
 
         return action
 
-    def CalcGrads(self, sess, numActions, mask, langIds, langsVisited, actions, discountedRewards):
+    def CalcDiscountedReward(self, transitions):
+        runningReward = 0.0
+        for t in reversed(range(0, len(transitions))):
+            transition = transitions[t]
+            runningReward = runningReward * self.params.gamma + transition.reward
+            transition.discountedReward = runningReward
+            #print("t", t, transition.Debug())
+
+
+    def CalcGradsInternal(self, sess, numActions, mask, langIds, langsVisited, actions, discountedRewards):
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
@@ -245,5 +254,47 @@ class Qnetwork():
         #                                    self.reward_holder: discountedRewards})
         
 
+        return loss
+
+    def CalcGrads(self, sess, corpus):
+        self.CalcDiscountedReward(corpus.transitions)
+
+        #for transition in self.transitions:
+        #    print(transition.Debug())
+        #lastTrans = self.transitions[-1]
+        #print("lastTrans", lastTrans.Debug())
+
+        batchSize = len(corpus.transitions)
+        #print("batchSize", batchSize)
+        numActions = np.empty([batchSize, 1], dtype=np.int)
+        mask = np.empty([batchSize, self.params.MAX_NODES], dtype=np.bool)
+
+        langIds = np.empty([batchSize, 2], dtype=np.int)
+        langsVisited = np.empty([batchSize, 3])
+
+        actions = np.empty([batchSize], dtype=np.int)
+        discountedRewards = np.empty([batchSize], dtype=np.float32)
+        
+        i = 0
+        for transition in corpus.transitions:
+            #curr = transition.curr
+            #next = transition.next
+            #print("transition.numActions", transition.numActions, transition.targetQ.shape, transition.candidates.Count())
+            numActions[i, 0] = transition.numActions
+            mask[i, :] = transition.mask
+
+            langIds[i, :] = transition.langIds
+            langsVisited[i, :] = transition.langsVisited
+
+            actions[i] = transition.action
+            discountedRewards[i] = transition.discountedReward
+
+            i += 1
+
+        loss = self.CalcGradsInternal(sess, numActions, mask, langIds, langsVisited, actions, discountedRewards)
+
+        corpus.transitions.clear()
+
+        #print("loss", loss)
         return loss
 
