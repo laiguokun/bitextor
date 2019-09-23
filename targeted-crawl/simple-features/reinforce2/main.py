@@ -27,7 +27,7 @@ class LearningParams:
         self.maxBatchSize = 3000
         self.minCorpusSize = 3000
         self.overSampling = 1
-        self.updateFrequency = 5
+        self.updateFrequency = options.updateFrequency
 
         self.debug = False
         self.NUM_ACTIONS = 3
@@ -226,6 +226,8 @@ def main():
                          default=sys.maxsize, help="Maximum number of pages to crawl")
     oparser.add_argument("--gamma", dest="gamma", type=float,
                          default=0.999, help="Reward discount")
+    oparser.add_argument("--update-freq", dest="updateFrequency", type=int,
+                         default=5, help="Number of epoch between model gradient updates")
     options = oparser.parse_args()
 
     np.random.seed()
