@@ -66,7 +66,7 @@ class agent():
         self.gradient_holders.append(self.gradient_holder0)
         self.gradient_holders.append(self.gradient_holder1)
 
-        self.grads = self.gradients = tf.gradients(self.loss,tvars) # grads same shape as gradient_holder0. (4,8) (8,2)
+        self.gradients = tf.gradients(self.loss,tvars) # grads same shape as gradient_holder0. (4,8) (8,2)
         
         # update weights
         optimizer = tf.train.AdamOptimizer(learning_rate=lr)
@@ -123,12 +123,12 @@ def main():
                     #print("   ep_history", ep_history.shape, ep_history)
                     #print("ep_history", ep_history[:,2])
                     ep_history[:,2] = discount_rewards(ep_history[:,2], gamma)
-                    print("   ep_history", ep_history[:,2].shape, ep_history[:,2])
+                    #print("   ep_history", ep_history[:,2].shape, ep_history[:,2])
 
                     feed_dict={myAgent.reward_holder:   ep_history[:,2],
                                myAgent.action_holder:   ep_history[:,1],
                                myAgent.state_in:        np.vstack(ep_history[:,0])}
-                    [grads, indexes, responsible_outputs, r1, r2, r3, output, o1, l2, loss, grads] = sess.run([myAgent.gradients, 
+                    [grads, indexes, responsible_outputs, r1, r2, r3, output, o1, l2, loss] = sess.run([myAgent.gradients, 
                                                                                 myAgent.indexes, 
                                                                                 myAgent.responsible_outputs, 
                                                                                 myAgent.r1, 
@@ -137,18 +137,17 @@ def main():
                                                                                 myAgent.output,
                                                                                 myAgent.o1,
                                                                                 myAgent.l2,
-                                                                                myAgent.loss,
-                                                                                myAgent.grads], feed_dict=feed_dict)
-                    #print("grads", grads, indexes)
+                                                                                myAgent.loss], feed_dict=feed_dict)
+                    #print("grads", grads)
                     #print("output", output.shape, output)
                     #print("r1", r1)
                     #print("r2", r2)
-                    print("r3", r3)
+                    #print("r3", r3)
                     #print("action holder", ep_history[:,1].shape, ep_history[:,1])
                     #print("reward_holder holder", ep_history[:,2].shape, ep_history[:,2])
-                    print("indexes", indexes)
-                    print("o1", o1.shape, o1)
-                    print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
+                    #print("indexes", indexes)
+                    #print("o1", o1.shape, o1)
+                    #print("responsible_outputs", responsible_outputs.shape, responsible_outputs)
                     #print("l2", l2.shape, l2)
                     #print("loss", loss)
                     #for grad in grads:
@@ -176,7 +175,7 @@ def main():
             
                 #Update our running tally of scores.
             if i % 100 == 0:
-                print(np.mean(total_reward[-100:]))
+                print(i, np.mean(total_reward[-100:]))
             i += 1
 
 ######################################################################################
