@@ -20,7 +20,7 @@ from save_plot import SavePlot
 class LearningParams:
     def __init__(self, languages, options, maxLangId, defaultLang):
         self.gamma = options.gamma
-        self.lrn_rate = 0.001
+        self.lrn_rate = 0.01
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
@@ -190,12 +190,12 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             TIMER.Pause("Trajectory")
             print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward)
 
+            TIMER.Start("CalcGrads")
+            qn.CalcGrads(sess, corpus)
+            TIMER.Pause("CalcGrads")
+
             #if epoch > 0 and epoch % params.walk == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
-
-        TIMER.Start("CalcGrads")
-        qn.CalcGrads(sess, corpus)
-        TIMER.Pause("CalcGrads")
 
         if epoch % params.updateFrequency == 0 and epoch != 0:
             TIMER.Start("UpdateGrads")
