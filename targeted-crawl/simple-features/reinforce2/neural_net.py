@@ -179,7 +179,7 @@ class Qnetwork():
             print("langsVisited", langsVisited)
             print("mask", mask)
             print("maskBigNeg", maskBigNeg)
-            dsds
+            bugger_something_went_wrong
 
         # print("langsVisited", probs, logit, smNumer, smNumerSum, langsVisited)
         # print("probs", probs)
