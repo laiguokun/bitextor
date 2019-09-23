@@ -50,12 +50,12 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-def RunRLSavePlots(sess, qns, params, envs, saveDirPlots, epoch, sset):
+def RunRLSavePlots(sess, qn, corpus, params, envs, saveDirPlots, epoch, sset):
     for env in envs:
-        RunRLSavePlot(sess, qns, params, env, saveDirPlots, epoch, sset)
+        RunRLSavePlot(sess, qn, corpus, params, env, saveDirPlots, epoch, sset)
 
-def RunRLSavePlot(sess, qn, params, env, saveDirPlots, epoch, sset):
-    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, True)
+def RunRLSavePlot(sess, qn, corpus, params, env, saveDirPlots, epoch, sset):
+    arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, True)
     SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
@@ -177,7 +177,7 @@ def Trajectory(env, params, sess, qn, corpus, test):
 ######################################################################################
 def Train(params, sess, saver, qn, corpus, envs, envsTest):
     print("Start training")
-    RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, 0, "test")
+    RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, 0, "test")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
@@ -199,8 +199,8 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             TIMER.Pause("UpdateGrads")
 
             print("Validating")
-            #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
-            RunRLSavePlots(sess, qn, params, envsTest, params.saveDirPlots, epoch, "test")
+            #SavePlots(sess, qn, corpus, params, envs, params.saveDirPlots, epoch, "train")
+            RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
 
         sys.stdout.flush()
         
@@ -240,8 +240,8 @@ def main():
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://telasmos.org/"]
-    #hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    #hosts = ["http://telasmos.org/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
