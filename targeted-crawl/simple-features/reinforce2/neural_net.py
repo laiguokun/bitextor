@@ -151,7 +151,8 @@ class Qnetwork():
         #self.trainer = tf.train.GradientDescentOptimizer(learning_rate=params.lrn_rate)
         #self.trainer = tf.train.AdagradOptimizer(learning_rate=params.lrn_rate)        
         self.trainer = tf.train.AdamOptimizer(learning_rate=params.lrn_rate)        
-        self.updateModel = self.trainer.minimize(self.loss)
+        #self.updateModel = self.trainer.minimize(self.loss)
+        self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
         numActions, mask = candidates.GetFeatures()
@@ -209,14 +210,14 @@ class Qnetwork():
             gradBuffer[idx] = grad * 0
         #print("gradBuffer", gradBuffer)
 
-        (_, loss, W1, b1, grads) = sess.run([self.updateModel, self.loss, self.W1, self.b1, self.gradients], 
+        (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
                                     feed_dict={self.mask: mask,
                                             self.langsVisited: langsVisited,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
         #print("W1", W1, b1)
-        print("grads", grads)
+        #print("grads", grads)
         #print("   qValues", qValues.shape, qValues)
         #print("   maskNum", maskNum.shape, maskNum)
         #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
@@ -232,6 +233,11 @@ class Qnetwork():
         for idx,grad in enumerate(grads):
             #print("idx", idx)
             gradBuffer[idx] += grad         # accumulate gradients
+
+        feed_dict= dict(zip(self.gradient_holders, gradBuffer))
+        _ = sess.run(self.update_batch, feed_dict=feed_dict)
+        for ix,grad in enumerate(gradBuffer):
+            gradBuffer[ix] = grad * 0
 
         #(_, loss, W1, b1, grads) = sess.run([self.updateModel, self.loss, self.W1, self.b1, self.gradients], 
         #                            feed_dict={self.mask: mask,
