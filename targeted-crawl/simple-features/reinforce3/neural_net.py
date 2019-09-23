@@ -57,7 +57,8 @@ class Qnetwork():
         HIDDEN_DIM = 20
 
         # mask
-        self.mask = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.bool)
+        self.numCandidates = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.float32)
+        self.mask = tf.cast(self.numCandidates, dtype=tf.bool)
         self.maskNum = tf.cast(self.mask, dtype=tf.float32)
         self.maskBigNeg = tf.subtract(self.maskNum, 1)
         self.maskBigNeg = tf.multiply(self.maskBigNeg, 999999)
@@ -146,7 +147,7 @@ class Qnetwork():
         self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, mask = candidates.GetMask()
+        numActions, numCandidates = candidates.GetMask()
         #print("numActions", numActions)
         #print("mask", mask.shape, mask)
         #print("parentLang", parentLang.shape, parentLang)
@@ -155,8 +156,8 @@ class Qnetwork():
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
-        (probs,logit, smNumer, smNumerSum, maxLogit, maskBigNeg) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum, self.maxLogit, self.maskBigNeg], 
-                                feed_dict={self.mask: mask,
+        (probs,logit, smNumer, smNumerSum, maxLogit, maskNum, maskBigNeg) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum, self.maxLogit, self.maskNum, self.maskBigNeg], 
+                                feed_dict={self.numCandidates: numCandidates,
                                     self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])        
         try:
@@ -169,7 +170,7 @@ class Qnetwork():
             print("smNumer", smNumer)
             print("smNumerSum", smNumerSum)
             print("langsVisited", langsVisited)
-            print("mask", mask)
+            print("numCandidates", numCandidates)
             print("maskBigNeg", maskBigNeg)
             bugger_something_went_wrong
 
@@ -186,7 +187,7 @@ class Qnetwork():
 
         #print("action", action, probs, logit, mask, langsVisited, numActions)
         if np.random.rand(1) < .005:
-            print("action", action, probs, logit, mask, langsVisited, numActions)
+            print("action", action, probs, logit, maskNum, numCandidates, langsVisited, numActions)
         #print()
 
         return action
@@ -219,7 +220,7 @@ class Qnetwork():
         batchSize = len(corpus.transitions)
         #print("batchSize", batchSize)
         numActions = np.empty([batchSize, 1], dtype=np.int)
-        mask = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.bool)
+        numCandidates = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.float)
 
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, 3])
@@ -233,7 +234,7 @@ class Qnetwork():
             #next = transition.next
             #print("transition.numActions", transition.numActions, transition.targetQ.shape, transition.candidates.Count())
             numActions[i, 0] = transition.numActions
-            mask[i, :] = transition.mask
+            numCandidates[i, :] = transition.numCandidates
 
             langIds[i, :] = transition.langIds
             langsVisited[i, :] = transition.langsVisited
@@ -244,7 +245,7 @@ class Qnetwork():
             i += 1
 
         (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
-                                    feed_dict={self.mask: mask,
+                                    feed_dict={self.numCandidates: numCandidates,
                                             self.langsVisited: langsVisited,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})

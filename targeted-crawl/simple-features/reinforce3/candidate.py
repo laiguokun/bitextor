@@ -111,7 +111,7 @@ class Candidates:
     def GetMask(self):
         #print("self", self.Debug())
         numActions = 0
-        mask = np.full([1, self.params.NUM_ACTIONS], False, dtype=np.bool)
+        numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
         
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
@@ -121,11 +121,11 @@ class Candidates:
             assert(len(nodes) > 0)
             action = self.KeyToAction(key)
 
-            mask[0, action] = True
+            numCandidates[0, action] += len(nodes)
             numActions += 1
 
         #print("   numActions", numActions, mask)
-        return numActions, mask
+        return numActions, numCandidates
 
     def Debug(self):
         ret = str(len(self.links)) + " "
