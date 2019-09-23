@@ -199,14 +199,6 @@ class Qnetwork():
 
         return action
 
-    def CalcDiscountedReward(self, transitions):
-        runningReward = 0.0
-        for t in reversed(range(0, len(transitions))):
-            transition = transitions[t]
-            runningReward = runningReward * self.params.gamma + transition.reward
-            transition.discountedReward = runningReward
-            #print("t", t, transition.Debug())
-
     def GetGradBuffer(self, sess):
         gradBuffer = sess.run(tf.trainable_variables())
         for idx,grad in enumerate(gradBuffer):
@@ -215,48 +207,13 @@ class Qnetwork():
         #print("gradBuffer", gradBuffer)
         return gradBuffer
 
-    def CalcGradsInternal(self, sess, corpus, numActions, mask, langIds, langsVisited, actions, discountedRewards):
-        #print("actions, discountedRewards", actions, discountedRewards)
-        #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
-        #print("targetQ", targetQ)
-
-        (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
-                                    feed_dict={self.mask: mask,
-                                            self.langsVisited: langsVisited,
-                                            self.action_holder: actions,
-                                            self.reward_holder: discountedRewards})
-        #print("loss", loss, numActions)
-        #print("W1", W1, b1)
-        #print("grads", grads)
-        #print("   qValues", qValues.shape, qValues)
-        #print("   maskNum", maskNum.shape, maskNum)
-        #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
-        #print("   maxQ", maxQ.shape, maxQ)
-        #print("   smNumer", smNumer.shape, smNumer)
-        #print("   smNumerSum", smNumerSum.shape, smNumerSum)
-        #print("   probs", probs.shape, probs)
-        #print("   o1", o1.shape, o1)
-        #print("   indexes", indexes.shape, indexes)
-        #print("   responsible_outputs", responsible_outputs.shape, responsible_outputs)
-        #print()
-
-        for idx,grad in enumerate(grads):
-            #print("idx", idx)
-            corpus.gradBuffer[idx] += grad         # accumulate gradients
-
-        feed_dict= dict(zip(self.gradient_holders, corpus.gradBuffer))
-        _ = sess.run(self.update_batch, feed_dict=feed_dict)
-        for ix,grad in enumerate(corpus.gradBuffer):
-            corpus.gradBuffer[ix] = grad * 0
-
-        #(_, loss, W1, b1, grads) = sess.run([self.updateModel, self.loss, self.W1, self.b1, self.gradients], 
-        #                            feed_dict={self.mask: mask,
-        #                                    self.langsVisited: langsVisited,
-        #                                    self.action_holder: actions,
-        #                                    self.reward_holder: discountedRewards})
-        
-
-        return loss
+    def CalcDiscountedReward(self, transitions):
+        runningReward = 0.0
+        for t in reversed(range(0, len(transitions))):
+            transition = transitions[t]
+            runningReward = runningReward * self.params.gamma + transition.reward
+            transition.discountedReward = runningReward
+            #print("t", t, transition.Debug())
 
     def CalcGrads(self, sess, corpus):
         self.CalcDiscountedReward(corpus.transitions)
@@ -293,10 +250,38 @@ class Qnetwork():
 
             i += 1
 
-        loss = self.CalcGradsInternal(sess, corpus, numActions, mask, langIds, langsVisited, actions, discountedRewards)
+        (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
+                                    feed_dict={self.mask: mask,
+                                            self.langsVisited: langsVisited,
+                                            self.action_holder: actions,
+                                            self.reward_holder: discountedRewards})
+        #print("loss", loss, numActions)
+        #print("W1", W1, b1)
+        #print("grads", grads)
+        #print("   qValues", qValues.shape, qValues)
+        #print("   maskNum", maskNum.shape, maskNum)
+        #print("   maskNumNeg", maskNumNeg.shape, maskNumNeg)
+        #print("   maxQ", maxQ.shape, maxQ)
+        #print("   smNumer", smNumer.shape, smNumer)
+        #print("   smNumerSum", smNumerSum.shape, smNumerSum)
+        #print("   probs", probs.shape, probs)
+        #print("   o1", o1.shape, o1)
+        #print("   indexes", indexes.shape, indexes)
+        #print("   responsible_outputs", responsible_outputs.shape, responsible_outputs)
+        #print()
+
+        for idx,grad in enumerate(grads):
+            #print("idx", idx)
+            corpus.gradBuffer[idx] += grad         # accumulate gradients
 
         corpus.transitions.clear()
 
         #print("loss", loss)
         return loss
 
+    def UpdateGrads(self, sess, corpus):
+        feed_dict= dict(zip(self.gradient_holders, corpus.gradBuffer))
+        _ = sess.run(self.update_batch, feed_dict=feed_dict)
+
+        for ix,grad in enumerate(corpus.gradBuffer):
+            corpus.gradBuffer[ix] = grad * 0

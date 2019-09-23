@@ -196,6 +196,10 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
         qn.CalcGrads(sess, corpus)
         TIMER.Pause("CalcGrads")
 
+        TIMER.Start("UpdateGrads")
+        qn.UpdateGrads(sess, corpus)
+        TIMER.Pause("UpdateGrads")
+
         if epoch > 0 and epoch % params.walk == 0:
             print("Validating")
             #SavePlots(sess, qn, params, envs, params.saveDirPlots, epoch, "train")
