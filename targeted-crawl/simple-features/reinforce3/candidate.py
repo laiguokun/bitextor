@@ -78,8 +78,9 @@ class Candidates:
             assert(link not in self.links)
             self.links.add(link)
 
-    def Pop(self, key):
+    def PopNotKey(self, action):
         assert(len(self.grouped) > 0)
+        key = (action,)
         links = self.grouped[key]
         assert(len(links) > 0)
 

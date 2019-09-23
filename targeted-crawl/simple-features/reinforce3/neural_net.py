@@ -16,10 +16,8 @@ def GetNextState(env, params, action, visited, candidates):
 
     #print("candidates", action, candidates.Debug())
     #parentLang1 = parentLang[0, action]
-    #key = (parentLang1,)
-    key = (action,)
-    
-    link = candidates.Pop(key)
+    #key = (parentLang1,)    
+    link = candidates.PopNotKey(action)
     candidates.AddLinks(link.childNode, visited, params)
 
     assert(link.childNode.urlId not in visited)
