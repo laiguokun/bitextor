@@ -203,6 +203,12 @@ class Qnetwork():
         #print("actions, discountedRewards", actions, discountedRewards)
         #print("input", parentLang.shape, langIds.shape, langFeatures.shape, targetQ.shape)
         #print("targetQ", targetQ)
+        gradBuffer = sess.run(tf.trainable_variables())
+        for idx,grad in enumerate(gradBuffer):
+            #print("idx", idx)
+            gradBuffer[idx] = grad * 0
+        #print("gradBuffer", gradBuffer)
+
         (_, loss, W1, b1, grads) = sess.run([self.updateModel, self.loss, self.W1, self.b1, self.gradients], 
                                     feed_dict={self.mask: mask,
                                             self.langsVisited: langsVisited,
@@ -222,6 +228,17 @@ class Qnetwork():
         #print("   indexes", indexes.shape, indexes)
         #print("   responsible_outputs", responsible_outputs.shape, responsible_outputs)
         #print()
+
+        for idx,grad in enumerate(grads):
+            #print("idx", idx)
+            gradBuffer[idx] += grad         # accumulate gradients
+
+        #(_, loss, W1, b1, grads) = sess.run([self.updateModel, self.loss, self.W1, self.b1, self.gradients], 
+        #                            feed_dict={self.mask: mask,
+        #                                    self.langsVisited: langsVisited,
+        #                                    self.action_holder: actions,
+        #                                    self.reward_holder: discountedRewards})
+        
 
         return loss
 
