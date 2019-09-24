@@ -181,7 +181,9 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             TIMER.Start("Trajectory")
             arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, False)
             TIMER.Pause("Trajectory")
-            print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward)
+
+            lastLangVisited = corpus.transitions[-1].langsVisited
+            print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward, lastLangVisited)
 
             if epoch % params.updateFrequency == 0:
                 SavePlot(params, env, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
