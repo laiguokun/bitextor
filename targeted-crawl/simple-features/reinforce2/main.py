@@ -20,7 +20,7 @@ from save_plot import SavePlot
 class LearningParams:
     def __init__(self, languages, options, maxLangId, defaultLang):
         self.gamma = options.gamma
-        self.lrn_rate = 0.001
+        self.lrn_rate = options.lrn_rate # 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
@@ -177,7 +177,6 @@ def Trajectory(env, params, sess, qn, corpus, test):
 ######################################################################################
 def Train(params, sess, saver, qn, corpus, envs, envsTest):
     print("Start training")
-    RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, 0, "test")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
@@ -190,17 +189,15 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             qn.CalcGrads(sess, corpus)
             TIMER.Pause("CalcGrads")
 
-            #if epoch > 0 and epoch % params.walk == 0:
+        if epoch % params.updateFrequency == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
-
-        if epoch % params.updateFrequency == 0 and epoch != 0:
-            TIMER.Start("UpdateGrads")
-            qn.UpdateGrads(sess, corpus)
-            TIMER.Pause("UpdateGrads")
-
-            print("Validating")
-            #SavePlots(sess, qn, corpus, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
+
+            if epoch != 0:
+                print("UpdateGrads & Validating")
+                TIMER.Start("UpdateGrads")
+                qn.UpdateGrads(sess, corpus)
+                TIMER.Pause("UpdateGrads")
 
         sys.stdout.flush()
         
@@ -228,6 +225,8 @@ def main():
                          default=0.999, help="Reward discount")
     oparser.add_argument("--update-freq", dest="updateFrequency", type=int,
                          default=5, help="Number of epoch between model gradient updates")
+    oparser.add_argument("--learning-rate", dest="lrn_rate", type=float,
+                         default=0.001, help="Model learning rate")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -241,7 +240,7 @@ def main():
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
     #hosts = ["http://telasmos.org/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://telasmos.org/", "http://www.buchmann.ch/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]

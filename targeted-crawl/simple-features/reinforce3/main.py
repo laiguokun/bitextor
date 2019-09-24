@@ -20,7 +20,7 @@ from save_plot import SavePlot
 class LearningParams:
     def __init__(self, languages, options, maxLangId, defaultLang):
         self.gamma = options.gamma
-        self.lrn_rate = 0.001
+        self.lrn_rate = options.lrn_rate # 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
@@ -188,8 +188,6 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             qn.CalcGrads(sess, corpus)
             TIMER.Pause("CalcGrads")
 
-            #if epoch > 0 and epoch % params.walk == 0:
-
         if epoch % params.updateFrequency == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
             RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
@@ -227,6 +225,8 @@ def main():
                          default=0.999, help="Reward discount")
     oparser.add_argument("--update-freq", dest="updateFrequency", type=int,
                          default=5, help="Number of epoch between model gradient updates")
+    oparser.add_argument("--learning-rate", dest="lrn_rate", type=float,
+                         default=0.001, help="Model learning rate")
     options = oparser.parse_args()
 
     np.random.seed()
