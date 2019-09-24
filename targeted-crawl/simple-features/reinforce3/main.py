@@ -239,7 +239,7 @@ def main():
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
     #hosts = ["http://telasmos.org/"]
-    hosts = ["http://telasmos.org/", "http://www.buchmann.ch/", "http://tagar.es/"]
+    hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
