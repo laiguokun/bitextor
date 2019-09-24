@@ -72,10 +72,10 @@ class Qnetwork():
         self.batchSize = tf.shape(self.mask)[0]
         
         # network
-        self.input = tf.concat([self.langsVisited], 1)
+        self.input = tf.concat([self.langsVisited, self.numCandidates], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3, HIDDEN_DIM], minval=0, maxval=0))
+        self.W1 = tf.Variable(tf.random_uniform([12, HIDDEN_DIM], minval=0, maxval=0))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=0, maxval=0))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
