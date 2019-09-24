@@ -184,12 +184,14 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             TIMER.Pause("Trajectory")
             print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward)
 
+            if epoch % params.updateFrequency == 0:
+                SavePlot(params, env, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
+
             TIMER.Start("CalcGrads")
             qn.CalcGrads(sess, corpus)
             TIMER.Pause("CalcGrads")
 
         if epoch % params.updateFrequency == 0:
-            SavePlot(params, env, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
             RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDir, epoch, "test")
 
             if epoch != 0:

@@ -54,7 +54,7 @@ class Qnetwork():
     def __init__(self, params):
         self.params = params
 
-        HIDDEN_DIM = 4
+        HIDDEN_DIM = 10
 
         # mask
         self.numCandidates = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.float32)
