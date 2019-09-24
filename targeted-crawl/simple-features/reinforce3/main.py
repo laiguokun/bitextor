@@ -73,9 +73,9 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates
-            numActions, mask = candidates.GetMask()
+            numActions, numCandidates = candidates.GetMask()
             self.numActions = numActions
-            self.mask = np.array(mask, copy=True) 
+            self.numCandidates = np.array(numCandidates, copy=True) 
 
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates
@@ -193,11 +193,11 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
 
         if epoch % params.updateFrequency == 0 and epoch != 0:
+            print("UpdateGrads & Validating")
             TIMER.Start("UpdateGrads")
             qn.UpdateGrads(sess, corpus)
             TIMER.Pause("UpdateGrads")
 
-            print("Validating")
             #SavePlots(sess, qn, corpus, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
 
