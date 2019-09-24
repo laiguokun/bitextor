@@ -20,7 +20,7 @@ from save_plot import SavePlot
 class LearningParams:
     def __init__(self, languages, options, maxLangId, defaultLang):
         self.gamma = options.gamma
-        self.lrn_rate = 0.01
+        self.lrn_rate = 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
