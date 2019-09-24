@@ -33,7 +33,6 @@ class LearningParams:
         self.NUM_ACTIONS = 3
 
         self.saveDir = options.saveDir
-        self.saveDirPlots = options.saveDirPlots
         
         self.reward = 1.0 #17.0
         self.cost = 0 #-1.0
@@ -50,13 +49,13 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-def RunRLSavePlots(sess, qn, corpus, params, envs, saveDirPlots, epoch, sset):
+def RunRLSavePlots(sess, qn, corpus, params, envs, saveDir, epoch, sset):
     for env in envs:
-        RunRLSavePlot(sess, qn, corpus, params, env, saveDirPlots, epoch, sset)
+        RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset)
 
-def RunRLSavePlot(sess, qn, corpus, params, env, saveDirPlots, epoch, sset):
+def RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset):
     arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, True)
-    SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
+    SavePlot(params, env, saveDir, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
 class Transition:
@@ -190,8 +189,8 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             TIMER.Pause("CalcGrads")
 
         if epoch % params.updateFrequency == 0:
-            SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
-            RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
+            SavePlot(params, env, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
+            RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDir, epoch, "test")
 
             if epoch != 0:
                 print("UpdateGrads & Validating")
@@ -213,8 +212,6 @@ def main():
                          help="The 2 language we're interested in, separated by ,")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                          help="Directory that model WIP are saved to. If existing model exists then load it")
-    oparser.add_argument("--save-plots", dest="saveDirPlots", default="plot",
-                     help="Directory ")
     oparser.add_argument("--num-train-hosts", dest="numTrainHosts", type=int,
                          default=1, help="Number of domains to train on")
     oparser.add_argument("--num-test-hosts", dest="numTestHosts", type=int,
@@ -235,7 +232,7 @@ def main():
     languages = GetLanguages(options.configFile)
     params = LearningParams(languages, options, languages.maxLangId, languages.GetLang("None"))
 
-    if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
+    if not os.path.exists(options.saveDir): os.makedirs(options.saveDir, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
