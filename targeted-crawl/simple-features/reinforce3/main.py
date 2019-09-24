@@ -176,7 +176,6 @@ def Trajectory(env, params, sess, qn, corpus, test):
 ######################################################################################
 def Train(params, sess, saver, qn, corpus, envs, envsTest):
     print("Start training")
-    RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, 0, "test")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
@@ -190,16 +189,17 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             TIMER.Pause("CalcGrads")
 
             #if epoch > 0 and epoch % params.walk == 0:
+
+        if epoch % params.updateFrequency == 0:
             SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
-
-        if epoch % params.updateFrequency == 0 and epoch != 0:
-            print("UpdateGrads & Validating")
-            TIMER.Start("UpdateGrads")
-            qn.UpdateGrads(sess, corpus)
-            TIMER.Pause("UpdateGrads")
-
-            #SavePlots(sess, qn, corpus, params, envs, params.saveDirPlots, epoch, "train")
             RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
+
+            if epoch != 0:
+                print("UpdateGrads & Validating")
+                TIMER.Start("UpdateGrads")
+                qn.UpdateGrads(sess, corpus)
+                TIMER.Pause("UpdateGrads")
+
 
         sys.stdout.flush()
         
@@ -240,7 +240,7 @@ def main():
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
     #hosts = ["http://telasmos.org/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://telasmos.org/", "http://www.buchmann.ch/", "http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
