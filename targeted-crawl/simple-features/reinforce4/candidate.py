@@ -103,8 +103,8 @@ class Candidates:
         #print("self", self.Debug())
         numActions = 0
         numCandidates = np.full([1, self.params.NUM_ACTIONS], False, dtype=np.float)
-        #parentLang = np.empty([1, self.params.NUM_ACTIONS], dtype=np.float)
-        parentLang = np.full([1, self.params.NUM_ACTIONS], fill_value=66543.44, dtype=np.float)
+        parentLang = np.empty([1, self.params.NUM_ACTIONS], dtype=np.float)
+        #parentLang = np.full([1, self.params.NUM_ACTIONS], fill_value=66543.44, dtype=np.float)
 
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
@@ -113,8 +113,8 @@ class Candidates:
             assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
 
-            numCandidates[0, key[0] ] += len(nodes)
-            parentLang[0, key[0] ] = key[0]
+            numCandidates[0, numActions ] += len(nodes)
+            parentLang[0, numActions ] = key[0]
             numActions += 1
 
         return numActions, numCandidates, parentLang

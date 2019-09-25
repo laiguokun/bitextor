@@ -19,7 +19,6 @@ def GetNextState(env, params, action, visited, candidates):
     #print("   mask", numActions, mask)
     parentLang1 = parentLang[0, action]
     key = (parentLang1,)
-    key = (action,)
     
     link = candidates.Pop(key)
     candidates.AddLinks(link.childNode, visited, params)
@@ -163,8 +162,8 @@ class Qnetwork():
         tvars = tf.trainable_variables()
         self.gradient_holders = []
         for idx,var in enumerate(tvars): # idx = contiguous int, var = variable shape (4,8) (8,2)
-            print("idx", idx)
-            print("var", var)
+            #print("idx", idx)
+            #print("var", var)
             placeholder = tf.placeholder(tf.float32,name=str(idx)+'_holder')
             self.gradient_holders.append(placeholder)
         self.gradients = tf.gradients(self.loss,tvars) # grads same shape as gradient_holder0. (4,8) (8,2)
