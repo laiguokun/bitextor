@@ -72,10 +72,11 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates
-            numActions, numCandidates, parentLang = candidates.GetMask()
+            numActions, numCandidates, parentLang, linkLang = candidates.GetMask()
             self.numActions = numActions
             self.numCandidates = np.array(numCandidates, copy=True) 
             self.parentLang = np.array(parentLang, copy=True) 
+            self.linkLang = np.array(linkLang, copy=True) 
 
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates
@@ -206,6 +207,16 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
         sys.stdout.flush()
         
 ######################################################################################
+def Temp():
+    a = np.empty([2,3])
+    a[0,0] = 1; a[0,1] = 2; a[0,2] = 3
+    a[1,0] = 4; a[1,1] = 5; a[1,2] = 6
+    print("a", a)
+    a = np.reshape(a, [6])
+    print("a", a)
+    sasasdasd
+
+######################################################################################
 def main():
     global TIMER
     TIMER = Timer()
@@ -233,6 +244,7 @@ def main():
 
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
+    #Temp()
 
     languages = GetLanguages(options.configFile)
     params = LearningParams(languages, options, languages.maxLangId, languages.GetLang("None"))

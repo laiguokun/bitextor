@@ -114,21 +114,23 @@ class Candidates:
         numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
         parentLang = np.empty([1, self.params.NUM_ACTIONS], dtype=np.float)
         #parentLang = np.full([1, self.params.NUM_ACTIONS], fill_value=66543.44, dtype=np.float)
+        linkLang = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
 
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
             #    break
-            #print("numActions", numActions)
+            print("numActions", numActions, key, len(nodes))
             assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
             action = self.KeyToAction(key)
 
             numCandidates[0, action] += len(nodes)
             parentLang[0, action ] = key[0]
+            linkLang[0, action] = key[1]
             numActions += 1
 
         #print("   numActions", numActions, mask)
-        return numActions, numCandidates, parentLang
+        return numActions, numCandidates, parentLang, linkLang
 
     def Debug(self):
         ret = str(len(self.links)) + " "

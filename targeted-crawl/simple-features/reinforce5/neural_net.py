@@ -172,7 +172,7 @@ class Qnetwork():
         self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, numCandidates, parentLang = candidates.GetMask()
+        numActions, numCandidates, parentLang, linkLang = candidates.GetMask()
         #print("numActions", numActions)
         #print("mask", mask.shape, mask)
         #print("parentLang", parentLang.shape, parentLang)
