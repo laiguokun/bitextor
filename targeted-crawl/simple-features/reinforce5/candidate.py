@@ -119,7 +119,7 @@ class Candidates:
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
             #    break
-            print("numActions", numActions, key, len(nodes))
+            #print("numActions", numActions, key, len(nodes))
             assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
             action = self.KeyToAction(key)
