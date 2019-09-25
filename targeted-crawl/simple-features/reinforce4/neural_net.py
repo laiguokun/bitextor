@@ -261,7 +261,9 @@ class Qnetwork():
 
         actions = np.empty([batchSize], dtype=np.int)
         discountedRewards = np.empty([batchSize], dtype=np.float32)
-        
+
+        parentLang = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.float32)
+
         i = 0
         for transition in corpus.transitions:
             #curr = transition.curr
@@ -276,10 +278,13 @@ class Qnetwork():
             actions[i] = transition.action
             discountedRewards[i] = transition.discountedReward
 
+            parentLang[i, :] = transition.parentLang
+
             i += 1
 
         (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
                                     feed_dict={self.mask: mask,
+                                            self.parentLang: parentLang,
                                             self.langsVisited: langsVisited,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
