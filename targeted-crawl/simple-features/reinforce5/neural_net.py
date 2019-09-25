@@ -174,9 +174,6 @@ class Qnetwork():
         #print("linkSpecific", linkSpecific.shape, linkSpecific)
         assert(numActions > 0)
 
-        linkSpecific = np.reshape(linkSpecific, [1, linkSpecific.shape[0], linkSpecific.shape[1] ])
-        #print("linkSpecific", linkSpecific.shape, linkSpecific)
-
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
