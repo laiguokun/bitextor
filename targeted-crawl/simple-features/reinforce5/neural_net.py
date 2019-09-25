@@ -14,8 +14,6 @@ from candidate import GetLangsVisited
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
     #print("candidates", action, candidates.Debug())
-    #parentLang1 = parentLang[0, action]
-    #key = (parentLang1,)    
     link = candidates.PopWithAction(action)
     candidates.AddLinks(link.childNode, visited, params)
 
@@ -67,6 +65,9 @@ class Qnetwork():
         
         # link representation
         self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, 2], dtype=tf.float32)
+        print("self.linkSpecific", self.linkSpecificInput.shape)
+        self.numLinkFeatures = int(self.linkSpecificInput.shape[2])
+        #print("self.numLinkFeatures", type(self.numLinkFeatures), self.numLinkFeatures)
 
         # batch size
         self.batchSize = tf.shape(self.mask)[0]
@@ -92,11 +93,6 @@ class Qnetwork():
         print("self.hidden2", self.hidden2.shape)
 
         # link-specific
-        #self.linkSpecific = tf.stack([tf.transpose(self.parentLang), tf.transpose(self.linkLang)])
-        print("self.linkSpecific", self.linkSpecificInput.shape)
-
-        self.numLinkFeatures = int(self.linkSpecificInput.shape[2])
-        #print("self.numLinkFeatures", type(self.numLinkFeatures), self.numLinkFeatures)
         self.WlinkSpecific = tf.Variable(tf.random_uniform([self.numLinkFeatures, HIDDEN_DIM], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
 
@@ -172,7 +168,7 @@ class Qnetwork():
         self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, numCandidates, parentLang, linkLang, linkSpecific = candidates.GetMask()
+        numActions, numCandidates, linkSpecific = candidates.GetMask()
         #print("numActions", numActions)
         #print("numCandidates", numCandidates.shape, numCandidates)
         #print("linkSpecific", linkSpecific.shape, linkSpecific)
@@ -216,7 +212,7 @@ class Qnetwork():
 
         #print("action", action, probs, logit, mask, langsVisited, numActions)
         if np.random.rand(1) < .005:
-            print("action", action, probs, logit, numCandidates, parentLang, linkLang, linkSpecific, langsVisited, numActions)
+            print("action", action, probs, logit, numCandidates, linkSpecific, langsVisited, numActions)
         #print()
 
         return action
@@ -257,9 +253,6 @@ class Qnetwork():
         actions = np.empty([batchSize], dtype=np.int)
         discountedRewards = np.empty([batchSize], dtype=np.float32)
 
-        parentLang = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.float32)
-        linkLang = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.float32)
-
         linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, 2], dtype=np.float32)
 
         i = 0
@@ -276,8 +269,6 @@ class Qnetwork():
             actions[i] = transition.action
             discountedRewards[i] = transition.discountedReward
 
-            parentLang[i, :] = transition.parentLang
-            linkLang[i, :] = transition.linkLang
             linkSpecific[i, :, :] = transition.linkSpecific
 
             i += 1

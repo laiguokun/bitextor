@@ -84,9 +84,9 @@ class Candidates:
         return ret
 
     def ActionToKey(self, action):
-        _, _, parentLang, linkLang, linkSpecific = self.GetMask()
-        parentLang1 = parentLang[0, action]
-        linkLang1 = linkLang[0, action]
+        _, _, linkSpecific = self.GetMask()
+        parentLang1 = linkSpecific[action, 0]
+        linkLang1 = linkSpecific[action, 1]
         key = (parentLang1,linkLang1)    
         return key
 
@@ -112,9 +112,6 @@ class Candidates:
         #print("self", self.Debug())
         numActions = 0
         numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
-        parentLang = np.empty([1, self.params.NUM_ACTIONS], dtype=np.float)
-        #parentLang = np.full([1, self.params.NUM_ACTIONS], fill_value=66543.44, dtype=np.float)
-        linkLang = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
         linkSpecific = np.zeros([self.params.NUM_ACTIONS, 2], dtype=np.float)
 
         for key, nodes in self.grouped.items():
@@ -125,8 +122,6 @@ class Candidates:
             assert(len(nodes) > 0)
 
             numCandidates[0, numActions] += len(nodes)
-            parentLang[0, numActions ] = key[0]
-            linkLang[0, numActions] = key[1]
 
             linkSpecific[numActions, 0] = key[0]
             linkSpecific[numActions, 1] = key[1]
@@ -134,7 +129,7 @@ class Candidates:
             numActions += 1
 
         #print("   numActions", numActions, mask)
-        return numActions, numCandidates, parentLang, linkLang, linkSpecific
+        return numActions, numCandidates, linkSpecific
 
     def Debug(self):
         ret = str(len(self.links)) + " "
