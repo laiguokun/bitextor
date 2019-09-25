@@ -66,8 +66,7 @@ class Qnetwork():
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
         
         # link representation
-        self.parentLang = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.float32)
-        self.linkLang = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.float32)
+        self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, 2], dtype=tf.float32)
 
         # batch size
         self.batchSize = tf.shape(self.mask)[0]
@@ -93,16 +92,17 @@ class Qnetwork():
         print("self.hidden2", self.hidden2.shape)
 
         # link-specific
-        self.linkSpecific = tf.stack([tf.transpose(self.parentLang), tf.transpose(self.linkLang)])
+        #self.linkSpecific = tf.stack([tf.transpose(self.parentLang), tf.transpose(self.linkLang)])
+        print("self.linkSpecific", self.linkSpecificInput.shape)
 
-        self.numLinkFeatures = int(self.linkSpecific.shape[0])
+        self.numLinkFeatures = int(self.linkSpecificInput.shape[2])
         #print("self.numLinkFeatures", type(self.numLinkFeatures), self.numLinkFeatures)
         self.WlinkSpecific = tf.Variable(tf.random_uniform([self.numLinkFeatures, HIDDEN_DIM], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
 
-        self.linkSpecific = tf.transpose(self.linkSpecific)
+        #self.linkSpecific = tf.transpose(self.linkSpecific)
         #print("self.linkSpecific1", self.linkSpecific.shape)
-        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize * self.params.NUM_ACTIONS, self.numLinkFeatures ])
+        self.linkSpecific = tf.reshape(self.linkSpecificInput, [self.batchSize * self.params.NUM_ACTIONS, self.numLinkFeatures ])
         #print("self.linkSpecific2", self.linkSpecific.shape)
 
         self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
@@ -172,19 +172,21 @@ class Qnetwork():
         self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, numCandidates, parentLang, linkLang = candidates.GetMask()
+        numActions, numCandidates, parentLang, linkLang, linkSpecific = candidates.GetMask()
         #print("numActions", numActions)
-        #print("mask", mask.shape, mask)
-        #print("parentLang", parentLang.shape, parentLang)
+        #print("numCandidates", numCandidates.shape, numCandidates)
+        #print("linkSpecific", linkSpecific.shape, linkSpecific)
         assert(numActions > 0)
+
+        linkSpecific = np.reshape(linkSpecific, [1, linkSpecific.shape[0], linkSpecific.shape[1] ])
+        #print("linkSpecific", linkSpecific.shape, linkSpecific)
 
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
         (probs,logit, smNumer, smNumerSum, maxLogit, maskNum, maskBigNeg) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum, self.maxLogit, self.maskNum, self.maskBigNeg], 
                                 feed_dict={self.numCandidates: numCandidates,
-                                        self.parentLang: parentLang,
-                                        self.linkLang: linkLang,
+                                        self.linkSpecificInput: linkSpecific,
                                         self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])        
         try:
@@ -214,7 +216,7 @@ class Qnetwork():
 
         #print("action", action, probs, logit, mask, langsVisited, numActions)
         if np.random.rand(1) < .005:
-            print("action", action, probs, logit, numCandidates, parentLang, linkLang, langsVisited, numActions)
+            print("action", action, probs, logit, numCandidates, parentLang, linkLang, linkSpecific, langsVisited, numActions)
         #print()
 
         return action
@@ -258,6 +260,8 @@ class Qnetwork():
         parentLang = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.float32)
         linkLang = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.float32)
 
+        linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, 2], dtype=np.float32)
+
         i = 0
         for transition in corpus.transitions:
             #curr = transition.curr
@@ -274,13 +278,13 @@ class Qnetwork():
 
             parentLang[i, :] = transition.parentLang
             linkLang[i, :] = transition.linkLang
+            linkSpecific[i, :, :] = transition.linkSpecific
 
             i += 1
 
         (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
                                     feed_dict={self.numCandidates: numCandidates,
-                                            self.parentLang: parentLang,
-                                            self.linkLang: linkLang,
+                                            self.linkSpecificInput: linkSpecific,
                                             self.langsVisited: langsVisited,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
