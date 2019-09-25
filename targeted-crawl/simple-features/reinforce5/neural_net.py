@@ -13,7 +13,6 @@ from candidate import GetLangsVisited
 
 ######################################################################################
 def GetNextState(env, params, action, visited, candidates):
-
     #print("candidates", action, candidates.Debug())
     #parentLang1 = parentLang[0, action]
     #key = (parentLang1,)    

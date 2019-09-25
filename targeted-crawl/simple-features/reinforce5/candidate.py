@@ -84,11 +84,11 @@ class Candidates:
         return ret
 
     def ActionToKey(self, action):
-        parentLang, linkLang = divmod(action, 3)
-        return (parentLang,linkLang)
-
-    def KeyToAction(self, key):
-        return key[0] * 3 + key[1]
+        _, _, parentLang, linkLang = self.GetMask()
+        parentLang1 = parentLang[0, action]
+        linkLang1 = linkLang[0, action]
+        key = (parentLang1,linkLang1)    
+        return key
 
     def PopWithAction(self, action):
         assert(len(self.grouped) > 0)
@@ -122,11 +122,10 @@ class Candidates:
             #print("numActions", numActions, key, len(nodes))
             assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
-            action = self.KeyToAction(key)
 
-            numCandidates[0, action] += len(nodes)
-            parentLang[0, action ] = key[0]
-            linkLang[0, action] = key[1]
+            numCandidates[0, numActions] += len(nodes)
+            parentLang[0, numActions ] = key[0]
+            linkLang[0, numActions] = key[1]
             numActions += 1
 
         #print("   numActions", numActions, mask)
