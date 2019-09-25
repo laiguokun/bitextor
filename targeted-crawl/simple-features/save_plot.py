@@ -32,3 +32,9 @@ def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscou
 
     fig.savefig("{dir}/{sset}-{domain}-{epoch}.png".format(dir=saveDirPlots, sset=sset, domain=domain, epoch=epoch))
     plt.close()
+
+    f = open("{dir}/{domain}-rewards.txt".format(dir=saveDirPlots, domain=domain), "a")
+    out = "\t".join([str(epoch), str(arrRL[-1]), str(totReward), str(totDiscountedReward)])
+    f.write(out + "\n")
+    f.close()
+    

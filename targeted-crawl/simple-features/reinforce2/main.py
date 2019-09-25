@@ -20,7 +20,7 @@ from save_plot import SavePlot
 class LearningParams:
     def __init__(self, languages, options, maxLangId, defaultLang):
         self.gamma = options.gamma
-        self.lrn_rate = 0.001
+        self.lrn_rate = options.lrn_rate # 0.001
         self.alpha = 0.7
         self.max_epochs = 100001
         self.eps = 0.1
@@ -33,7 +33,6 @@ class LearningParams:
         self.NUM_ACTIONS = 3
 
         self.saveDir = options.saveDir
-        self.saveDirPlots = options.saveDirPlots
         
         self.reward = 1.0 #17.0
         self.cost = 0 #-1.0
@@ -50,13 +49,13 @@ class LearningParams:
         #print("self.langs", self.langs)
 
 ######################################################################################
-def RunRLSavePlots(sess, qn, corpus, params, envs, saveDirPlots, epoch, sset):
+def RunRLSavePlots(sess, qn, corpus, params, envs, saveDir, epoch, sset):
     for env in envs:
-        RunRLSavePlot(sess, qn, corpus, params, env, saveDirPlots, epoch, sset)
+        RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset)
 
-def RunRLSavePlot(sess, qn, corpus, params, env, saveDirPlots, epoch, sset):
+def RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset):
     arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, True)
-    SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward)
+    SavePlot(params, env, saveDir, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
 class Transition:
@@ -74,9 +73,9 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates
-            numActions, mask = candidates.GetFeatures()
+            numActions, numCandidates = candidates.GetMask()
             self.numActions = numActions
-            self.mask = np.array(mask, copy=True) 
+            self.numCandidates = np.array(numCandidates, copy=True) 
 
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates
@@ -177,30 +176,31 @@ def Trajectory(env, params, sess, qn, corpus, test):
 ######################################################################################
 def Train(params, sess, saver, qn, corpus, envs, envsTest):
     print("Start training")
-    RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, 0, "test")
     for epoch in range(params.max_epochs):
         #print("epoch", epoch)
         for env in envs:
             TIMER.Start("Trajectory")
             arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, False)
             TIMER.Pause("Trajectory")
-            print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward)
+
+            lastLangVisited = corpus.transitions[-1].langsVisited
+            print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward, lastLangVisited)
+
+            if epoch % params.updateFrequency == 0:
+                SavePlot(params, env, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
 
             TIMER.Start("CalcGrads")
             qn.CalcGrads(sess, corpus)
             TIMER.Pause("CalcGrads")
 
-            #if epoch > 0 and epoch % params.walk == 0:
-            SavePlot(params, env, params.saveDirPlots, epoch, "train", arrRL, totReward, totDiscountedReward)
+        if epoch % params.updateFrequency == 0:
+            RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDir, epoch, "test")
 
-        if epoch % params.updateFrequency == 0 and epoch != 0:
-            TIMER.Start("UpdateGrads")
-            qn.UpdateGrads(sess, corpus)
-            TIMER.Pause("UpdateGrads")
-
-            print("Validating")
-            #SavePlots(sess, qn, corpus, params, envs, params.saveDirPlots, epoch, "train")
-            RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDirPlots, epoch, "test")
+            if epoch != 0:
+                print("UpdateGrads & Validating")
+                TIMER.Start("UpdateGrads")
+                qn.UpdateGrads(sess, corpus)
+                TIMER.Pause("UpdateGrads")
 
         sys.stdout.flush()
         
@@ -216,8 +216,6 @@ def main():
                          help="The 2 language we're interested in, separated by ,")
     oparser.add_argument("--save-dir", dest="saveDir", default=".",
                          help="Directory that model WIP are saved to. If existing model exists then load it")
-    oparser.add_argument("--save-plots", dest="saveDirPlots", default="plot",
-                     help="Directory ")
     oparser.add_argument("--num-train-hosts", dest="numTrainHosts", type=int,
                          default=1, help="Number of domains to train on")
     oparser.add_argument("--num-test-hosts", dest="numTestHosts", type=int,
@@ -228,6 +226,8 @@ def main():
                          default=0.999, help="Reward discount")
     oparser.add_argument("--update-freq", dest="updateFrequency", type=int,
                          default=5, help="Number of epoch between model gradient updates")
+    oparser.add_argument("--learning-rate", dest="lrn_rate", type=float,
+                         default=0.001, help="Model learning rate")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -236,12 +236,12 @@ def main():
     languages = GetLanguages(options.configFile)
     params = LearningParams(languages, options, languages.maxLangId, languages.GetLang("None"))
 
-    if not os.path.exists(options.saveDirPlots): os.makedirs(options.saveDirPlots, exist_ok=True)
+    if not os.path.exists(options.saveDir): os.makedirs(options.saveDir, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
     #hosts = ["http://telasmos.org/"]
-    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
+    hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
