@@ -15,18 +15,14 @@ from candidate import GetLangsVisited
 def GetNextState(env, params, action, visited, candidates):
 
     #print("candidates", action, candidates.Debug())
-    if action == -1:
-        # no explicit stop state but no candidates
-        stopNode = env.nodes[0]
-        link = Link("", 0, stopNode, stopNode)
-    else:
-        #_, parentLang, _ = candidates.GetFeatures()
-        #parentLang1 = parentLang[0, action]
-        #key = (parentLang1,)
-        key = (action,)
-        
-        link = candidates.Pop(key)
-        candidates.AddLinks(link.childNode, visited, params)
+    numActions, mask, parentLang = candidates.GetFeatures()
+    #print("   mask", numActions, mask)
+    parentLang1 = parentLang[0, action]
+    key = (parentLang1,)
+    #print("   key", key)
+    
+    link = candidates.Pop(key)
+    candidates.AddLinks(link.childNode, visited, params)
 
     assert(link.childNode.urlId not in visited)
     visited.add(link.childNode.urlId)
@@ -221,7 +217,7 @@ class Qnetwork():
 
         #print("action", action, probs, logit, mask, langsVisited, parentLang, numActions)
         if np.random.rand(1) < .005:
-            print("action", action, probs, logit, mask, langsVisited, numActions)
+            print("action", action, probs, logit, mask, parentLang, langsVisited, numActions)
         #print()
 
         return action

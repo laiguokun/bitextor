@@ -104,6 +104,7 @@ class Candidates:
         numActions = 0
         mask = np.full([1, self.params.NUM_ACTIONS], False, dtype=np.bool)
         parentLang = np.empty([1, self.params.NUM_ACTIONS], dtype=np.int32)
+        #parentLang = np.full([1, self.params.NUM_ACTIONS], fill_value=66543.44, dtype=np.int32)
 
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
@@ -112,8 +113,8 @@ class Candidates:
             assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
 
-            mask[0, key[0] ] = True
-            parentLang[0, key[0] ] = key[0]
+            mask[0, numActions ] = True
+            parentLang[0, numActions ] = key[0]
             numActions += 1
 
         return numActions, mask, parentLang
