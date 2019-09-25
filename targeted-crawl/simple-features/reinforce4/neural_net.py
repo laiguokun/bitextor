@@ -96,7 +96,7 @@ class Qnetwork():
         print("self.hidden2", self.hidden2.shape)
 
         # link-specific
-        self.linkSpecific = tf.stack([tf.transpose(self.parentLang), tf.transpose(self.parentLang)])
+        self.linkSpecific = tf.stack([tf.transpose(self.parentLang)])
 
         self.numLinkFeatures = int(self.linkSpecific.shape[0])
         #print("self.numLinkFeatures", type(self.numLinkFeatures), self.numLinkFeatures)
