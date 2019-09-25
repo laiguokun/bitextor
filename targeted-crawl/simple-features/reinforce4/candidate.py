@@ -103,7 +103,8 @@ class Candidates:
         #print("self", self.Debug())
         numActions = 0
         mask = np.full([1, self.params.NUM_ACTIONS], False, dtype=np.bool)
-        
+        parentLang = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.int32)
+
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
             #    break
@@ -112,9 +113,10 @@ class Candidates:
             assert(len(nodes) > 0)
 
             mask[0, key[0] ] = True
+            parentLang[0, key[0] ] = key[0]
             numActions += 1
 
-        return numActions, mask
+        return numActions, mask, parentLang
 
     def Debug(self):
         ret = str(len(self.links)) + " "

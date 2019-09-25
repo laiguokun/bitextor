@@ -180,7 +180,7 @@ class Qnetwork():
         self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, mask = candidates.GetFeatures()
+        numActions, mask, parentLang = candidates.GetFeatures()
         #print("numActions", numActions)
         #print("mask", mask.shape, mask)
         #print("parentLang", parentLang.shape, parentLang)
@@ -191,7 +191,8 @@ class Qnetwork():
         
         (probs,logit, smNumer, smNumerSum, maxLogit, maskBigNeg) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum, self.maxLogit, self.maskBigNeg], 
                                 feed_dict={self.mask: mask,
-                                    self.langsVisited: langsVisited})
+                                        self.parentLang: parentLang,
+                                        self.langsVisited: langsVisited})
         probs = np.reshape(probs, [probs.shape[1] ])        
         try:
             action = np.random.choice(self.params.NUM_ACTIONS,p=probs)
