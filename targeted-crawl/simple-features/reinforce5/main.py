@@ -72,9 +72,10 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates
-            numActions, numCandidates = candidates.GetMask()
+            numActions, numCandidates, parentLang = candidates.GetMask()
             self.numActions = numActions
             self.numCandidates = np.array(numCandidates, copy=True) 
+            self.parentLang = np.array(parentLang, copy=True) 
 
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates

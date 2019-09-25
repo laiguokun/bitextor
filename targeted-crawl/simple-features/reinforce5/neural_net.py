@@ -134,8 +134,8 @@ class Qnetwork():
         tvars = tf.trainable_variables()
         self.gradient_holders = []
         for idx,var in enumerate(tvars): # idx = contiguous int, var = variable shape (4,8) (8,2)
-            print("idx", idx)
-            print("var", var)
+            #print("idx", idx)
+            #print("var", var)
             placeholder = tf.placeholder(tf.float32,name=str(idx)+'_holder')
             self.gradient_holders.append(placeholder)
         self.gradients = tf.gradients(self.loss,tvars) # grads same shape as gradient_holder0. (4,8) (8,2)
@@ -147,7 +147,7 @@ class Qnetwork():
         self.update_batch = self.trainer.apply_gradients(zip(self.gradient_holders,tvars))
 
     def PredictAll(self, env, sess, langIds, visited, candidates):
-        numActions, numCandidates = candidates.GetMask()
+        numActions, numCandidates, parentLang = candidates.GetMask()
         #print("numActions", numActions)
         #print("mask", mask.shape, mask)
         #print("parentLang", parentLang.shape, parentLang)
