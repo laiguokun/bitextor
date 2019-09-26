@@ -22,7 +22,7 @@ def byCrawlDate(env, maxDocs, params):
         if node.urlId in (0, sys.maxsize):
             continue
 
-        print("   node", node.crawlDate, type(node.crawlDate))
+        #print("   node", node.crawlDate, type(node.crawlDate))
         if node.urlId not in visited:
             visited.add(node.urlId)
 
