@@ -3,15 +3,16 @@ import matplotlib
 matplotlib.use('Agg')
 import pylab as plt
 
-from other_strategies import dumb, randomCrawl, balanced
+from other_strategies import dumb, randomCrawl, balanced, byCrawlDate
 
 ######################################################################################
 def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
-    crawlLen = min(params.maxDocs, len(env.nodes))
+    crawlLen = min(params.maxCrawl, len(env.nodes))
     arrBreadth = dumb(env, crawlLen, params, 0)
     arrDepth = dumb(env, crawlLen, params, 1)
     arrRandom = randomCrawl(env, crawlLen, params)
     arrBalanced = balanced(env, crawlLen, params)
+    arrByCrawlDate = byCrawlDate(env, crawlLen, params)
     #print("arrRL", len(arrRL))
     
     url = env.rootURL
