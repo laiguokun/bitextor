@@ -13,10 +13,23 @@ def byCrawlDate(env, maxDocs, params):
     print("nodes", len(nodes))
     nodes.sort(key=lambda x: x.crawlDate)
 
-    for node in nodes:
-        print("   node", node.crawlDate, type(node.crawlDate))
+    ret = []
+    visited = set()
 
-    sdsd
+    for node in nodes:
+        if len(visited) >= maxDocs:
+            break
+        if node.urlId in (0, sys.maxsize):
+            continue
+
+        print("   node", node.crawlDate, type(node.crawlDate))
+        if node.urlId not in visited:
+            visited.add(node.urlId)
+
+            numParallelDocs = NumParallelDocs(env, visited)
+            ret.append(numParallelDocs)
+
+    return ret
 
 ######################################################################################
 def dumb(env, maxDocs, params, breadthOrDepth):

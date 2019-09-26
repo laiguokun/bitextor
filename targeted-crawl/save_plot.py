@@ -24,6 +24,7 @@ def SavePlot(params, env, saveDirPlots, epoch, sset, arrRL, totReward, totDiscou
     ax.plot(arrDepth, label="depth-first {0:.1f}".format(arrDepth[-1]), color='green')
     ax.plot(arrRandom, label="random {0:.1f}".format(arrRandom[-1]), color='firebrick')
     ax.plot(arrBalanced, label="balanced {0:.1f}".format(arrBalanced[-1]), color='red')
+    ax.plot(arrByCrawlDate, label="crawl date {0:.1f}".format(arrByCrawlDate[-1]), color='blue')
     ax.plot(arrRL, label="RL {0:.1f} {1:.1f} {2:.1f}".format(arrRL[-1], totReward, totDiscountedReward), color='salmon')
 
     ax.legend(loc='upper left')
