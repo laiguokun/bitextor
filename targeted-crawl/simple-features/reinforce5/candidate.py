@@ -113,6 +113,7 @@ class Candidates:
         numActions = 0
         numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
         linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, 2], dtype=np.float)
+        #linkSpecific = np.full([1, self.params.NUM_ACTIONS, 2], fill_value=99999999.9, dtype=np.float)
 
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
