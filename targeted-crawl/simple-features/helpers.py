@@ -133,6 +133,10 @@ class Node:
         self.url = url
         self.docIds = set(docIds)
 
+        self.crawlDate = None
+        if crawlDates is not None and len(crawlDates) > 0:
+            self.crawlDate = crawlDates[0]
+
         self.redirectId = redirectId
         self.redirect = None
 
@@ -195,7 +199,7 @@ class Node:
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedNode),
                         StrNone(self.redirect), str(len(self.links)),
-                        StrNone(self.normURL) ] )
+                        StrNone(self.normURL), StrNone(self.crawlDate) ] )
                         # , str(self.depth)
                         
 ######################################################################################
