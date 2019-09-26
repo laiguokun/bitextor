@@ -83,6 +83,17 @@ class Candidates:
     def LinkToKey(self, link, visited):
         parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
         linkLang = GroupLang(link.textLang, self.params.langIds)
+
+        numSiblings = len(link.parentNode.links)
+        
+        numVisitedSiblings = GetVistedSiblings(link.childNode.urlId, link.parentNode, visited)
+        numVisitedSiblings = len(numVisitedSiblings)
+
+        matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
+        numMatchedSiblings = len(matchedSiblings)
+        
+        parentMatched = GetNodeMatched(link.parentNode, visited)
+
         key = (parentLang,linkLang)
         return key
 
