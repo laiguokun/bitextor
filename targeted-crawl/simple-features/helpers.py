@@ -4,6 +4,7 @@ import hashlib
 import sys
 from tldextract import extract
 import pickle
+import datetime
 from common import Timer, StrNone
 from common import MySQL
 
@@ -133,7 +134,7 @@ class Node:
         self.url = url
         self.docIds = set(docIds)
 
-        self.crawlDate = None
+        self.crawlDate = datetime.datetime.min
         if crawlDates is not None and len(crawlDates) > 0:
             self.crawlDate = crawlDates[0]
 

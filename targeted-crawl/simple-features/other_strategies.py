@@ -8,6 +8,17 @@ sys.path.append(relDir)
 from helpers import NumParallelDocs
 
 ######################################################################################
+def byCrawlDate(env, maxDocs, params):
+    nodes = list(env.nodes.values())
+    print("nodes", len(nodes))
+    nodes.sort(key=lambda x: x.crawlDate)
+
+    for node in nodes:
+        print("   node", node.crawlDate, type(node.crawlDate))
+
+    sdsd
+
+######################################################################################
 def dumb(env, maxDocs, params, breadthOrDepth):
     ret = []
     todo = []

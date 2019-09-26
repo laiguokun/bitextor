@@ -61,6 +61,8 @@ allhostNames = ["http://www.buchmann.ch/",
 
 sys.setrecursionlimit(9999999)
 
+if not os.path.exists("pickled_domains"): os.makedirs("pickled_domains", exist_ok=True)
+
 if len(sys.argv) < 2:
     for url in allhostNames:
         PickleDomain(url)
