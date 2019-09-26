@@ -127,11 +127,15 @@ class Link:
 
 ######################################################################################
 class Node:
-    def __init__(self, urlId, url, docIds, langIds, redirectId):
+    def __init__(self, urlId, url, docIds, langIds, crawlDates, redirectId):
         assert(len(docIds) == len(langIds))
         self.urlId = urlId
         self.url = url
         self.docIds = set(docIds)
+
+        self.crawlDate = None
+        if crawlDates is not None and len(crawlDates) > 0:
+            self.crawlDate = crawlDates[0]
 
         self.redirectId = redirectId
         self.redirect = None
@@ -195,7 +199,7 @@ class Node:
         return " ".join([str(self.urlId), self.url, StrNone(self.docIds),
                         StrNone(self.lang), StrNone(self.alignedNode),
                         StrNone(self.redirect), str(len(self.links)),
-                        StrNone(self.normURL) ] )
+                        StrNone(self.normURL), StrNone(self.crawlDate) ] )
                         # , str(self.depth)
                         
 ######################################################################################
@@ -232,13 +236,13 @@ class Env:
         self.rootNode.depth = 0
         self.CalcDepth(self.rootNode)
 
-        startNode = Node(sys.maxsize, "START", [], [], None)
+        startNode = Node(sys.maxsize, "START", [], [], None, None)
         startNode.CreateLink("", 0, self.rootNode)
         self.nodes[startNode.urlId] = startNode
 
 
         # stop node
-        node = Node(0, "STOP", [], [], None)
+        node = Node(0, "STOP", [], [], None, None)
         self.nodes[0] = node
 
         self.UpdateStats()
@@ -360,8 +364,8 @@ class Env:
         elif urlId in unvisited:
             return unvisited[urlId]
         else:
-            docIds, langIds, redirectId = self.UrlId2Responses(sqlconn, urlId)
-            node = Node(urlId, url, docIds, langIds, redirectId)
+            docIds, langIds, crawlDates, redirectId = self.UrlId2Responses(sqlconn, urlId)
+            node = Node(urlId, url, docIds, langIds, crawlDates, redirectId)
             assert(urlId not in visited)
             assert(urlId not in unvisited)
             unvisited[urlId] = node
@@ -410,7 +414,7 @@ class Env:
         return linksStruct
 
     def UrlId2Responses(self, sqlconn, urlId):
-        sql = "SELECT id, status_code, to_url_id, lang_id FROM response WHERE url_id = %s"
+        sql = "SELECT id, status_code, crawl_date, to_url_id, lang_id FROM response WHERE url_id = %s"
         val = (urlId,)
         sqlconn.mycursor.execute(sql, val)
         ress = sqlconn.mycursor.fetchall()
@@ -418,17 +422,19 @@ class Env:
 
         docIds = []
         langIds = []
+        crawlDates = []
         redirectId = None
         for res in ress:
             if res[1] == 200:
                 assert(redirectId == None)
                 docIds.append(res[0])
-                langIds.append(res[3])
+                crawlDates.append(res[2])
+                langIds.append(res[4])
             elif res[1] in (301, 302):
                 assert(len(docIds) == 0)
-                redirectId = res[2]
+                redirectId = res[3]
 
-        return docIds, langIds, redirectId
+        return docIds, langIds, crawlDates, redirectId
 
     def RespId2URL(self, sqlconn, respId):
         sql = "SELECT T1.id, T1.val FROM url T1, response T2 " \
