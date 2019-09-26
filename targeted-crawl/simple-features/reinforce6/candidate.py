@@ -63,10 +63,7 @@ class Candidates:
         self.grouped.clear()
         
         for link in self.links:
-            parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
-            linkLang = GroupLang(link.textLang, self.params.langIds)
-            key = (parentLang,linkLang)
-
+            key = self.LinkToKey(link, visited)
             if key not in self.grouped:
                 self.grouped[key] = []
             self.grouped[key].append(link)
@@ -82,6 +79,12 @@ class Candidates:
     def Count(self):
         ret = len(self.links)
         return ret
+
+    def LinkToKey(self, link, visited):
+        parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
+        linkLang = GroupLang(link.textLang, self.params.langIds)
+        key = (parentLang,linkLang)
+        return key
 
     def ActionToKey(self, action):
         _, _, linkSpecific = self.GetMask()
