@@ -64,7 +64,7 @@ class Qnetwork():
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
         
         # link representation
-        self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, 2], dtype=tf.float32)
+        self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, 6], dtype=tf.float32)
         print("self.linkSpecific", self.linkSpecificInput.shape)
         self.numLinkFeatures = int(self.linkSpecificInput.shape[2])
         #print("self.numLinkFeatures", type(self.numLinkFeatures), self.numLinkFeatures)
@@ -76,7 +76,7 @@ class Qnetwork():
         self.input = tf.concat([self.langsVisited, self.numCandidates], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3 + 9, HIDDEN_DIM], minval=0, maxval=0))
+        self.W1 = tf.Variable(tf.random_uniform([3 + params.NUM_ACTIONS, HIDDEN_DIM], minval=0, maxval=0))
         self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=0, maxval=0))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -245,7 +245,7 @@ class Qnetwork():
         actions = np.empty([batchSize], dtype=np.int)
         discountedRewards = np.empty([batchSize], dtype=np.float32)
 
-        linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, 2], dtype=np.float32)
+        linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, 6], dtype=np.float32)
 
         i = 0
         for transition in corpus.transitions:

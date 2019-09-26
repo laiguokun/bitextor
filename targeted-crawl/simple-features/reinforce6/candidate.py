@@ -94,14 +94,21 @@ class Candidates:
         
         parentMatched = GetNodeMatched(link.parentNode, visited)
 
-        key = (parentLang,linkLang)
+        #key = (parentLang,linkLang)
+        key = (parentLang, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)
+        #print("key", key)
         return key
 
     def ActionToKey(self, action):
         _, _, linkSpecific = self.GetMask()
-        parentLang1 = linkSpecific[0, action, 0]
-        linkLang1 = linkSpecific[0, action, 1]
-        key = (parentLang1,linkLang1)    
+        parentLang = linkSpecific[0, action, 0]
+        linkLang = linkSpecific[0, action, 1]
+        numSiblings = linkSpecific[0, action, 2]
+        numVisitedSiblings = linkSpecific[0, action, 3]
+        numMatchedSiblings = linkSpecific[0, action, 4]
+        parentMatched = linkSpecific[0, action, 5]
+
+        key = (parentLang, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)    
         return key
 
     def PopWithAction(self, action):
@@ -126,7 +133,7 @@ class Candidates:
         #print("self", self.Debug())
         numActions = 0
         numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
-        linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, 2], dtype=np.float)
+        linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, 6], dtype=np.float)
         #linkSpecific = np.full([1, self.params.NUM_ACTIONS, 2], fill_value=99999999.9, dtype=np.float)
 
         for key, nodes in self.grouped.items():
@@ -138,8 +145,8 @@ class Candidates:
 
             numCandidates[0, numActions] += len(nodes)
 
-            linkSpecific[0, numActions, 0] = key[0]
-            linkSpecific[0, numActions, 1] = key[1]
+            for i in range(6):
+                linkSpecific[0, numActions, i] = key[i]
 
             numActions += 1
 
