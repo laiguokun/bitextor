@@ -96,7 +96,6 @@ class Qnetwork():
         self.WlinkSpecific = tf.Variable(tf.random_uniform([self.numLinkFeatures, HIDDEN_DIM], 0, 0.01))
         self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
 
-        #self.linkSpecific = tf.transpose(self.linkSpecific)
         #print("self.linkSpecific1", self.linkSpecific.shape)
         self.linkSpecific = tf.reshape(self.linkSpecificInput, [self.batchSize * self.params.NUM_ACTIONS, self.numLinkFeatures ])
         #print("self.linkSpecific2", self.linkSpecific.shape)
@@ -111,15 +110,11 @@ class Qnetwork():
         #print("self.linkSpecific5", self.linkSpecific.shape)
 
         # final q-values
-        self.hidden2 = tf.reshape(self.hidden2, [self.batchSize, 1, HIDDEN_DIM])
-        #print("self.hidden2.1", self.hidden2.shape)
-        self.hidden2 = tf.multiply(self.linkSpecific, self.hidden2)
-        #print("self.hidden2.2", self.hidden2.shape)
-        self.hidden2 = tf.reduce_sum(self.hidden2, axis=2)
-        #print("self.hidden2.3", self.hidden2.shape)
+        self.logit = tf.reshape(self.hidden2, [self.batchSize, 1, HIDDEN_DIM])
+        self.logit = tf.multiply(self.linkSpecific, self.logit)
+        self.logit = tf.reduce_sum(self.logit, axis=2)
 
         # softmax
-        self.logit = self.hidden2
         self.maxLogit = tf.add(self.logit, self.maskBigNeg)
         self.maxLogit = tf.reduce_max(self.maxLogit, axis=1)
         self.maxLogit = tf.reshape(self.maxLogit, [self.batchSize, 1])
