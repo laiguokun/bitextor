@@ -233,10 +233,11 @@ def main():
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
 
+    if not os.path.exists(options.saveDir): os.makedirs(options.saveDir, exist_ok=True)
+    if not os.path.exists("pickled_domains"): os.makedirs("pickled_domains", exist_ok=True)
+
     languages = GetLanguages(options.configFile)
     params = LearningParams(languages, options, languages.maxLangId, languages.GetLang("None"))
-
-    if not os.path.exists(options.saveDir): os.makedirs(options.saveDir, exist_ok=True)
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
