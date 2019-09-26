@@ -7,8 +7,11 @@ import hashlib
 import tensorflow as tf
 
 relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(relDir)
+relDir = os.path.dirname(relDir)
 #print("relDir", relDir)
 sys.path.append(relDir)
+
 from common import GetLanguages, Languages, Timer
 from helpers import GetEnvs, GetVistedSiblings, GetMatchedSiblings, NumParallelDocs, Env, Link
 from corpus import Corpus
