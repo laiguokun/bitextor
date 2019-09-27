@@ -60,6 +60,7 @@ class Qnetwork():
 
         # graph represention
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
+        self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         
         # link representation
         self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=tf.float32)
@@ -71,10 +72,10 @@ class Qnetwork():
         self.batchSize = tf.shape(self.mask)[0]
         
         # network
-        self.input = tf.concat([self.langsVisited], 1)
+        self.input = tf.concat([self.langsVisited, self.numActions], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3, params.hiddenDim], minval=0, maxval=0))
+        self.W1 = tf.Variable(tf.random_uniform([3 + 1, params.hiddenDim], minval=0, maxval=0))
         self.b1 = tf.Variable(tf.random_uniform([1, params.hiddenDim], minval=0, maxval=0))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
@@ -167,13 +168,17 @@ class Qnetwork():
         #print("linkSpecific", linkSpecific.shape, linkSpecific)
         assert(numActions > 0)
 
+        numActionsArr = np.empty([1,1])
+        numActionsArr[0,0] = numActions
+
         langsVisited = GetLangsVisited(visited, langIds, env)
         #print("langsVisited", langsVisited)
         
         (probs,logit, smNumer, smNumerSum, maxLogit, maskNum, maskBigNeg) = sess.run([self.probs, self.logit, self.smNumer, self.smNumerSum, self.maxLogit, self.maskNum, self.maskBigNeg], 
                                 feed_dict={self.numCandidates: numCandidates,
                                         self.linkSpecificInput: linkSpecific,
-                                        self.langsVisited: langsVisited})
+                                        self.langsVisited: langsVisited,
+                                        self.numActions: numActionsArr})
         probs = np.reshape(probs, [probs.shape[1] ])        
         try:
             action = np.random.choice(self.params.NUM_ACTIONS,p=probs)
@@ -236,6 +241,7 @@ class Qnetwork():
         #print("batchSize", batchSize)
         numActions = np.empty([batchSize, 1], dtype=np.int)
         numCandidates = np.empty([batchSize, self.params.NUM_ACTIONS], dtype=np.float)
+        #print("numActions", numActions, numCandidates)
 
         langIds = np.empty([batchSize, 2], dtype=np.int)
         langsVisited = np.empty([batchSize, 3])
@@ -267,6 +273,7 @@ class Qnetwork():
                                     feed_dict={self.numCandidates: numCandidates,
                                             self.linkSpecificInput: linkSpecific,
                                             self.langsVisited: langsVisited,
+                                            self.numActions: numActions,
                                             self.action_holder: actions,
                                             self.reward_holder: discountedRewards})
         #print("loss", loss, numActions)
