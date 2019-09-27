@@ -82,33 +82,21 @@ class Candidates:
 
     def LinkToKey(self, link, visited):
         parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
-        linkLang = GroupLang(link.textLang, self.params.langIds)
-
-        numSiblings = len(link.parentNode.links)
-        
-        numVisitedSiblings = GetVistedSiblings(link.childNode.urlId, link.parentNode, visited)
-        numVisitedSiblings = len(numVisitedSiblings)
 
         matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
         numMatchedSiblings = len(matchedSiblings)
         
-        parentMatched = GetNodeMatched(link.parentNode, visited)
-
-        #key = (parentLang,linkLang)
-        key = (parentLang, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)
-        #print("key", key)
+        key = (parentLang, numMatchedSiblings)
+        print("key", key)
         return key
 
     def ActionToKey(self, action):
         _, _, linkSpecific = self.GetMask()
         parentLang = linkSpecific[0, action, 0]
-        linkLang = linkSpecific[0, action, 1]
-        numSiblings = linkSpecific[0, action, 2]
-        numVisitedSiblings = linkSpecific[0, action, 3]
-        numMatchedSiblings = linkSpecific[0, action, 4]
-        parentMatched = linkSpecific[0, action, 5]
+        numMatchedSiblings = linkSpecific[0, action, 1]
 
-        key = (parentLang, linkLang, numSiblings, numVisitedSiblings, numMatchedSiblings, parentMatched)    
+        key = (parentLang, numMatchedSiblings)    
+        print("key", key)
         return key
 
     def PopWithAction(self, action):
@@ -133,7 +121,7 @@ class Candidates:
         #print("self", self.Debug())
         numActions = 0
         numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
-        linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, 6], dtype=np.float)
+        linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, 2], dtype=np.float)
         #linkSpecific = np.full([1, self.params.NUM_ACTIONS, 2], fill_value=99999999.9, dtype=np.float)
 
         for key, nodes in self.grouped.items():
