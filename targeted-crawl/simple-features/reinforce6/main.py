@@ -50,6 +50,9 @@ class LearningParams:
         self.langIds[0,1] = languages.GetLang(langPairList[1])
         #print("self.langs", self.langs)
 
+        self.hiddenDim = options.hiddenDim
+        self.linkDim = options.linkDim
+
 ######################################################################################
 def RunRLSavePlots(sess, qn, corpus, params, envs, saveDir, epoch, sset):
     for env in envs:
@@ -247,6 +250,10 @@ def main():
                          default=5, help="Number of epoch between model gradient updates")
     oparser.add_argument("--learning-rate", dest="lrn_rate", type=float,
                          default=0.001, help="Model learning rate")
+    oparser.add_argument("--hidden-dim", dest="hiddenDim", type=int,
+                         default=10, help="Hidden dimension")
+    oparser.add_argument("--link-dim", dest="linkDim", type=int,
+                         default=5, help="Link dimension")
     options = oparser.parse_args()
 
     np.random.seed()
@@ -261,8 +268,8 @@ def main():
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
-    hosts = ["http://www.buchmann.ch/"]
-    #hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
+    #hosts = ["http://www.buchmann.ch/"]
+    hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
     #hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]

@@ -51,8 +51,6 @@ class Qnetwork():
     def __init__(self, params):
         self.params = params
 
-        HIDDEN_DIM = 40
-
         # mask
         self.numCandidates = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.float32)
         self.mask = tf.cast(self.numCandidates, dtype=tf.bool)
@@ -76,16 +74,16 @@ class Qnetwork():
         self.input = tf.concat([self.langsVisited], 1)
         #print("self.input", self.input.shape)
 
-        self.W1 = tf.Variable(tf.random_uniform([3, HIDDEN_DIM], minval=0, maxval=0))
-        self.b1 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=0, maxval=0))
+        self.W1 = tf.Variable(tf.random_uniform([3, params.hiddenDim], minval=0, maxval=0))
+        self.b1 = tf.Variable(tf.random_uniform([1, params.hiddenDim], minval=0, maxval=0))
         self.hidden1 = tf.matmul(self.input, self.W1)
         self.hidden1 = tf.add(self.hidden1, self.b1)
         self.hidden1 = tf.nn.relu(self.hidden1)
         #self.hidden1 = tf.nn.sigmoid(self.hidden1)
         print("self.hidden1", self.hidden1.shape)
 
-        self.W2 = tf.Variable(tf.random_uniform([HIDDEN_DIM, HIDDEN_DIM], minval=0, maxval=0))
-        self.b2 = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], minval=0, maxval=0))
+        self.W2 = tf.Variable(tf.random_uniform([params.hiddenDim, params.linkDim], minval=0, maxval=0))
+        self.b2 = tf.Variable(tf.random_uniform([1, params.linkDim], minval=0, maxval=0))
         self.hidden2 = tf.matmul(self.hidden1, self.W2)
         self.hidden2 = tf.add(self.hidden2, self.b2)
         #self.hidden2 = tf.nn.relu(self.hidden3)
@@ -93,8 +91,8 @@ class Qnetwork():
         print("self.hidden2", self.hidden2.shape)
 
         # link-specific
-        self.WlinkSpecific = tf.Variable(tf.random_uniform([self.numLinkFeatures, HIDDEN_DIM], 0, 0.01))
-        self.blinkSpecific = tf.Variable(tf.random_uniform([1, HIDDEN_DIM], 0, 0.01))
+        self.WlinkSpecific = tf.Variable(tf.random_uniform([self.numLinkFeatures, params.linkDim], 0, 0.01))
+        self.blinkSpecific = tf.Variable(tf.random_uniform([1, params.linkDim], 0, 0.01))
 
         #print("self.linkSpecific1", self.linkSpecific.shape)
         self.linkSpecific = tf.reshape(self.linkSpecificInput, [self.batchSize * self.params.NUM_ACTIONS, self.numLinkFeatures ])
@@ -106,11 +104,11 @@ class Qnetwork():
         #self.linkSpecific = tf.nn.relu(self.linkSpecific)
         #self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
         #print("self.linkSpecific4", self.linkSpecific.shape)
-        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.NUM_ACTIONS, HIDDEN_DIM])
+        self.linkSpecific = tf.reshape(self.linkSpecific, [self.batchSize, self.params.NUM_ACTIONS, params.linkDim])
         #print("self.linkSpecific5", self.linkSpecific.shape)
 
         # final q-values
-        self.logit = tf.reshape(self.hidden2, [self.batchSize, 1, HIDDEN_DIM])
+        self.logit = tf.reshape(self.hidden2, [self.batchSize, 1, params.linkDim])
         self.logit = tf.multiply(self.linkSpecific, self.logit)
         self.logit = tf.reduce_sum(self.logit, axis=2)
 
