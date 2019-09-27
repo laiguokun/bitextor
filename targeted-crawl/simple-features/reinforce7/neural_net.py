@@ -62,7 +62,7 @@ class Qnetwork():
         self.langsVisited = tf.placeholder(shape=[None, 3], dtype=tf.float32)
         
         # link representation
-        self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, 6], dtype=tf.float32)
+        self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=tf.float32)
         print("self.linkSpecific", self.linkSpecificInput.shape)
         self.numLinkFeatures = int(self.linkSpecificInput.shape[2])
         #print("self.numLinkFeatures", type(self.numLinkFeatures), self.numLinkFeatures)
@@ -243,7 +243,7 @@ class Qnetwork():
         actions = np.empty([batchSize], dtype=np.int)
         discountedRewards = np.empty([batchSize], dtype=np.float32)
 
-        linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, 6], dtype=np.float32)
+        linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=np.float32)
 
         i = 0
         for transition in corpus.transitions:
