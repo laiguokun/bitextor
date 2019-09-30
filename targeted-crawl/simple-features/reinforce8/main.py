@@ -33,7 +33,7 @@ class LearningParams:
 
         self.debug = False
         self.NUM_ACTIONS = 200
-        self.NUM_LINK_FEATURES = 2
+        self.NUM_LINK_FEATURES = 3
 
         self.saveDir = options.saveDir
         

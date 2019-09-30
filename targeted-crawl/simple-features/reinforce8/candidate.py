@@ -86,7 +86,9 @@ class Candidates:
         matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
         numMatchedSiblings = len(matchedSiblings)
         
-        key = (parentLang, numMatchedSiblings)
+        parentMatched = GetNodeMatched(link.parentNode, visited)
+
+        key = (parentLang, numMatchedSiblings, parentMatched)
         #print("key", key)
         return key
 
@@ -94,8 +96,9 @@ class Candidates:
         _, _, linkSpecific = self.GetMask()
         parentLang = linkSpecific[0, action, 0]
         numMatchedSiblings = linkSpecific[0, action, 1]
+        parentMatched = linkSpecific[0, action, 2]
 
-        key = (parentLang, numMatchedSiblings)    
+        key = (parentLang, numMatchedSiblings, parentMatched)    
         #print("key", key)
         return key
 
@@ -122,7 +125,7 @@ class Candidates:
         numActions = 0
         numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
         linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=np.float)
-        #linkSpecific = np.full([1, self.params.NUM_ACTIONS, 2], fill_value=99999999.9, dtype=np.float)
+        #linkSpecific = np.full([1, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], fill_value=99999999.9, dtype=np.float)
 
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:

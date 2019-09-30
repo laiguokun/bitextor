@@ -66,6 +66,7 @@ class Qnetwork():
         self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=tf.float32)
         print("self.linkSpecific", self.linkSpecificInput.shape)
         self.numLinkFeatures = int(self.linkSpecificInput.shape[2])
+        assert(self.numLinkFeatures == params.NUM_LINK_FEATURES)
         #print("self.numLinkFeatures", type(self.numLinkFeatures), self.numLinkFeatures)
 
         # batch size
