@@ -83,9 +83,7 @@ class Candidates:
         matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
         numMatchedSiblings = len(matchedSiblings)
         
-        parentMatched = GetNodeMatched(link.parentNode, visited)
-
-        key = (parentLang, numMatchedSiblings, parentMatched)
+        key = (parentLang, numMatchedSiblings)
         #print("key", key)
         return key
 
@@ -93,9 +91,8 @@ class Candidates:
         _, _, linkSpecific = self.GetMask()
         parentLang = linkSpecific[0, action, 0]
         numMatchedSiblings = linkSpecific[0, action, 1]
-        parentMatched = linkSpecific[0, action, 2]
 
-        key = (parentLang, numMatchedSiblings, parentMatched)    
+        key = (parentLang, numMatchedSiblings)    
         #print("key", key)
         return key
 
