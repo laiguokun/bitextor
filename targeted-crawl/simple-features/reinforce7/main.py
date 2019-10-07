@@ -55,13 +55,13 @@ class LearningParams:
         self.linkDim = options.linkDim
 
 ######################################################################################
-def RunRLSavePlots(sess, qn, corpus, params, envs, saveDir, epoch, sset):
+def RunRLSavePlots(sess, createFigure, qn, corpus, params, envs, saveDir, epoch, sset):
     for env in envs:
-        RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset)
+        RunRLSavePlot(sess, createFigure, qn, corpus, params, env, saveDir, epoch, sset)
 
-def RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset):
+def RunRLSavePlot(sess, createFigure, qn, corpus, params, env, saveDir, epoch, sset):
     arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, True)
-    SavePlot(params, env, saveDir, epoch, sset, arrRL, totReward, totDiscountedReward)
+    SavePlot(params, env, createFigure, saveDir, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
 class Transition:
@@ -194,14 +194,14 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward, lastLangVisited)
 
             if epoch % params.updateFrequency == 0:
-                SavePlot(params, env, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
+                SavePlot(params, env, False, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
 
             TIMER.Start("CalcGrads")
             qn.CalcGrads(sess, corpus)
             TIMER.Pause("CalcGrads")
 
         if epoch % params.updateFrequency == 0:
-            RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDir, epoch, "test")
+            RunRLSavePlots(sess, False, qn, corpus, params, envsTest, params.saveDir, epoch, "test")
 
             if epoch != 0:
                 print("UpdateGrads & Validating")
