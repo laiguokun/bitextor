@@ -58,19 +58,19 @@ class Candidates:
             ret.grouped[key] = nodes.copy()
 
         return ret
-    
+
     def Group(self, visited):
         self.grouped.clear()
         
         for link in self.links:
             parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
-            linkLang = GroupLang(link.textLang, self.params.langIds)
-            key = (parentLang,linkLang)
+            #linkLang = GroupLang(link.textLang, self.params.langIds)
+            key = (parentLang,parentLang)
 
             if key not in self.grouped:
                 self.grouped[key] = []
             self.grouped[key].append(link)
-        
+
     def AddLinks(self, node, visited, params):
         #print("   currNode", curr, currNode.Debug())
         newLinks = node.GetLinks(visited, params)
@@ -86,8 +86,8 @@ class Candidates:
     def ActionToKey(self, action):
         _, _, linkSpecific = self.GetMask()
         parentLang1 = linkSpecific[0, action, 0]
-        linkLang1 = linkSpecific[0, action, 1]
-        key = (parentLang1,linkLang1)    
+        parentLang2 = linkSpecific[0, action, 1]
+        key = (parentLang1,parentLang2)    
         return key
 
     def PopWithAction(self, action):
