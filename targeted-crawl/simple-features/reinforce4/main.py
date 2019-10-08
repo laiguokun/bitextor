@@ -36,7 +36,8 @@ class LearningParams:
         self.NUM_ACTIONS = 3
 
         self.saveDir = options.saveDir
-        
+        self.createFigure = bool(options.createFigure)
+
         self.reward = 1.0 #17.0
         self.cost = 0 #-1.0
         self.maxCrawl = options.maxCrawl #500 #9999999999
@@ -55,13 +56,13 @@ class LearningParams:
         self.linkDim = options.linkDim
 
 ######################################################################################
-def RunRLSavePlots(sess, qn, corpus, params, envs, saveDir, epoch, sset):
+def RunRLSavePlots(sess, createFigure, qn, corpus, params, envs, saveDir, epoch, sset):
     for env in envs:
-        RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset)
+        RunRLSavePlot(sess, createFigure, qn, corpus, params, env, saveDir, epoch, sset)
 
-def RunRLSavePlot(sess, qn, corpus, params, env, saveDir, epoch, sset):
+def RunRLSavePlot(sess, createFigure, qn, corpus, params, env, saveDir, epoch, sset):
     arrRL, totReward, totDiscountedReward = Trajectory(env, params, sess, qn, corpus, True)
-    SavePlot(params, env, saveDir, epoch, sset, arrRL, totReward, totDiscountedReward)
+    SavePlot(params, env, createFigure, saveDir, epoch, sset, arrRL, totReward, totDiscountedReward)
 
 ######################################################################################
 class Transition:
@@ -194,14 +195,14 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
             print("epoch train", epoch, env.rootURL, arrRL[-1], totReward, totDiscountedReward, lastLangVisited)
 
             if epoch % params.updateFrequency == 0:
-                SavePlot(params, env, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
+                SavePlot(params, env, params.createFigure, params.saveDir, epoch, "train", arrRL, totReward, totDiscountedReward)
 
             TIMER.Start("CalcGrads")
             qn.CalcGrads(sess, corpus)
             TIMER.Pause("CalcGrads")
 
         if epoch % params.updateFrequency == 0:
-            RunRLSavePlots(sess, qn, corpus, params, envsTest, params.saveDir, epoch, "test")
+            RunRLSavePlots(sess, params.createFigure, qn, corpus, params, envsTest, params.saveDir, epoch, "test")
 
             if epoch != 0:
                 print("UpdateGrads & Validating")
@@ -239,6 +240,8 @@ def main():
                          default=10, help="Hidden dimension")
     oparser.add_argument("--link-dim", dest="linkDim", type=int,
                          default=5, help="Link dimension")
+    oparser.add_argument("--create-figure", dest="createFigure", type=int,
+                         default=1, help="Create figures")
     options = oparser.parse_args()
 
     np.random.seed()
