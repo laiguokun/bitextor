@@ -2,9 +2,6 @@ import os
 import sys
 import numpy as np
 
-relDir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-#print("relDir", relDir)
-sys.path.append(relDir)
 from common import GetLanguages, Languages, Timer
 from helpers import GetVistedSiblings, GetMatchedSiblings, GetNodeMatched
 
@@ -63,9 +60,7 @@ class Candidates:
         self.grouped.clear()
         
         for link in self.links:
-            parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
-            key = (parentLang,)
-
+            key = self.LinkToKey(link, visited)
             if key not in self.grouped:
                 self.grouped[key] = []
             self.grouped[key].append(link)
@@ -78,8 +73,32 @@ class Candidates:
             assert(link not in self.links)
             self.links.add(link)
 
-    def Pop(self, key):
+    def Count(self):
+        ret = len(self.links)
+        return ret
+
+    def LinkToKey(self, link, visited):
+        parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
+
+        matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
+        numMatchedSiblings = len(matchedSiblings)
+        
+        key = (parentLang, numMatchedSiblings)
+        #print("key", key)
+        return key
+
+    def ActionToKey(self, action):
+        _, _, linkSpecific = self.GetMask()
+        parentLang = linkSpecific[0, action, 0]
+        numMatchedSiblings = linkSpecific[0, action, 1]
+
+        key = (parentLang, numMatchedSiblings)    
+        #print("key", key)
+        return key
+
+    def PopWithAction(self, action):
         assert(len(self.grouped) > 0)
+        key = self.ActionToKey(action)
         links = self.grouped[key]
         assert(len(links) > 0)
 
@@ -95,29 +114,29 @@ class Candidates:
 
         return link
 
-    def Count(self):
-        ret = len(self.links)
-        return ret
-
     def GetMask(self):
         #print("self", self.Debug())
         numActions = 0
-        numCandidates = np.full([1, self.params.NUM_ACTIONS], False, dtype=np.float)
-        parentLang = np.empty([1, self.params.NUM_ACTIONS], dtype=np.float)
-        #parentLang = np.full([1, self.params.NUM_ACTIONS], fill_value=66543.44, dtype=np.float)
+        numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
+        linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=np.float)
+        #linkSpecific = np.full([1, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], fill_value=99999999.9, dtype=np.float)
 
         for key, nodes in self.grouped.items():
             #if numActions >= self.params.NUM_ACTIONS:
             #    break
-            #print("numActions", numActions)
+            #print("numActions", numActions, key, len(nodes))
             assert(numActions < self.params.NUM_ACTIONS)
             assert(len(nodes) > 0)
 
-            numCandidates[0, numActions ] += len(nodes)
-            parentLang[0, numActions ] = key[0]
+            numCandidates[0, numActions] += len(nodes)
+
+            for i in range(self.params.NUM_LINK_FEATURES):
+                linkSpecific[0, numActions, i] = key[i]
+
             numActions += 1
 
-        return numActions, numCandidates, parentLang
+        #print("   numActions", numActions, mask)
+        return numActions, numCandidates, linkSpecific
 
     def Debug(self):
         ret = str(len(self.links)) + " "

@@ -29,18 +29,18 @@ class LearningParams:
         self.eps = 0.1
         self.maxBatchSize = 3000
         self.minCorpusSize = 3000
-        self.overSampling = 1
         self.updateFrequency = options.updateFrequency
 
         self.debug = False
-        self.NUM_ACTIONS = 3
+        self.NUM_ACTIONS = 200
+        self.NUM_LINK_FEATURES = 2
 
         self.saveDir = options.saveDir
         self.createFigure = bool(options.createFigure)
-
+        
         self.reward = 1.0 #17.0
         self.cost = 0 #-1.0
-        self.maxCrawl = options.maxCrawl #500 #9999999999
+        self.maxCrawl = options.maxCrawl
 
         self.maxLangId = maxLangId
         self.defaultLang = defaultLang
@@ -80,10 +80,10 @@ class Transition:
 
         if candidates is not None:
             self.candidates = candidates
-            numActions, numCandidates, parentLang = candidates.GetMask()
+            numActions, numCandidates, linkSpecific = candidates.GetMask()
             self.numActions = numActions
             self.numCandidates = np.array(numCandidates, copy=True) 
-            self.parentLang = np.array(parentLang, copy=True)
+            self.linkSpecific = np.array(linkSpecific, copy=True) 
 
         self.nextVisited = nextVisited
         self.nextCandidates = nextCandidates
@@ -210,8 +210,24 @@ def Train(params, sess, saver, qn, corpus, envs, envsTest):
                 qn.UpdateGrads(sess, corpus)
                 TIMER.Pause("UpdateGrads")
 
+
         sys.stdout.flush()
         
+######################################################################################
+def Temp():
+    a = np.empty([2,3])
+    a[0,0] = 1; a[0,1] = 2; a[0,2] = 3
+    a[1,0] = 4; a[1,1] = 5; a[1,2] = 6
+    print("a", a)
+    a = np.reshape(a, [6])
+    print("a", a)
+
+    s = {}
+    s[34] = 545
+    s[a] = 7
+
+    sasasdasd
+
 ######################################################################################
 def main():
     global TIMER
@@ -246,6 +262,7 @@ def main():
 
     np.random.seed()
     np.set_printoptions(formatter={'float': lambda x: "{0:0.1f}".format(x)}, linewidth=666)
+    #Temp()
 
     if not os.path.exists(options.saveDir): os.makedirs(options.saveDir, exist_ok=True)
     if not os.path.exists("pickled_domains"): os.makedirs("pickled_domains", exist_ok=True)
@@ -255,7 +272,7 @@ def main():
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
-    #hosts = ["http://telasmos.org/"]
+    #hosts = ["http://www.buchmann.ch/"]
     hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
     #hosts = ["http://www.visitbritain.com/"]
 
