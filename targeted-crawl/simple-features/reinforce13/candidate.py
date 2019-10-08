@@ -78,21 +78,18 @@ class Candidates:
         return ret
 
     def LinkToKey(self, link, visited):
-        parentLang = GroupLang(link.parentNode.lang, self.params.langIds)
-
         matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
         numMatchedSiblings = len(matchedSiblings)
         
-        key = (parentLang, numMatchedSiblings)
+        key = (numMatchedSiblings, )
         #print("key", key)
         return key
 
     def ActionToKey(self, action):
         _, _, linkSpecific = self.GetMask()
-        parentLang = linkSpecific[0, action, 0]
-        numMatchedSiblings = linkSpecific[0, action, 1]
+        numMatchedSiblings = linkSpecific[0, action, 0]
 
-        key = (parentLang, numMatchedSiblings)    
+        key = (numMatchedSiblings,)    
         #print("key", key)
         return key
 
