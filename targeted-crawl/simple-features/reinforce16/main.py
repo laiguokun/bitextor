@@ -274,7 +274,7 @@ def main():
     #hosts = ["http://vade-retro.fr/"]
     #hosts = ["http://www.buchmann.ch/"]
     #hosts = ["http://chopescollection.be/"]
-    hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
+    hosts = ["http://www.buchmann.ch/", "http://telasmos.org/", "http://tagar.es/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
     #hostsTest = ["http://www.visitbritain.com/"]
