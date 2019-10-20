@@ -28,7 +28,7 @@ def GetLangsVisited(visited, langIds, env):
             
     return langsVisited
 
-def GroupLink(link):
+def GroupLink(link, langIds):
     #print("link.text", link.text, link.textLang)
     if link.text is None:
         return 11
@@ -46,6 +46,14 @@ def GroupLink(link):
     #print("link.text", ret, link.text, link.textLang, link.parentNode.url, link.childNode.url)
     #print("   ", ret)
     return ret
+
+def GroupLang(langId, langIds):
+    if langId == langIds[0, 0]:
+        return 0
+    elif langId == langIds[0, 1]:
+        return 1
+    else: 
+        return 2
 
 ######################################################################################
 class Candidates:
@@ -90,7 +98,7 @@ class Candidates:
 
 
     def LinkToKey(self, link, visited):
-        linkGp = GroupLink(link)
+        linkGp = GroupLink(link, self.params)
         
         key = (linkGp, )
         #print("key", key)

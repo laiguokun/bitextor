@@ -25,7 +25,7 @@ class LearningParams:
         self.gamma = options.gamma
         self.lrn_rate = options.lrn_rate # 0.001
         self.alpha = 0.7
-        self.max_epochs = 100001
+        self.max_epochs = 20001
         self.eps = 0.1
         self.maxBatchSize = 3000
         self.minCorpusSize = 3000
