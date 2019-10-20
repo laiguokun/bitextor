@@ -31,13 +31,17 @@ def GetLangsVisited(visited, langIds, env):
 def GroupLink(link):
     #print("link.text", link.text, link.textLang)
     if link.text is None:
-        return 33
+        return 11
     elif link.text.lower() in ['fr', 'francais', 'français']:
-        ret = 11
+        ret = 33
     elif link.text.lower() in ['en', 'english']:
-        ret = 22
-    else: # text is something else
         ret = 44
+    elif link.text.lower() in ['it', 'italiano']:
+        ret = 55
+    elif link.text.lower() in ['de', 'deutsch']:
+        ret = 66
+    else: # text is something else
+        ret = 22
 
     #print("link.text", ret, link.text, link.textLang, link.parentNode.url, link.childNode.url)
     #print("   ", ret)
