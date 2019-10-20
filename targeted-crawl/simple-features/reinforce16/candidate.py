@@ -31,15 +31,15 @@ def GetLangsVisited(visited, langIds, env):
 def GroupLink(link):
     #print("link.text", link.text, link.textLang)
     if link.text is None:
-        return 1
+        return 11
     elif link.text.lower() in ['fr', 'francais', 'français']:
-        ret = 2
+        ret = 22
     elif link.text.lower() in ['en', 'english']:
-        ret = 3
+        ret = 33
+    else: # text is something else
+        ret = 99
 
-    else:
-        ret = 0
-
+    #print("link.text", ret, link.text, link.textLang, link.parentNode.url, link.childNode.url)
     #print("   ", ret)
     return ret
 
@@ -143,7 +143,7 @@ class Candidates:
         return numActions, numCandidates, linkSpecific
 
     def Debug(self):
-        ret = str(len(self.links)) + " "
+        ret = str(len(self.grouped)) + "/" + str(len(self.links)) + " "
         for key in self.grouped:
             ret += str(key) + ":" + str(len(self.grouped[key])) + " "
             #links = self.dict[key]
