@@ -51,6 +51,10 @@ class Qnetwork():
     def __init__(self, params):
         self.params = params
 
+        # EMBEDDINGS
+        self.embeddings = tf.Variable(tf.random_uniform([self.params.NUM_ACTIONS + 1, params.linkDim], 0, 0.01))
+        #self.W2tt = tf.Variable(tf.random_uniform([params.hiddenDim, params.linkDim], minval=0, maxval=0))
+
         # mask
         self.numCandidates = tf.placeholder(shape=[None, self.params.NUM_ACTIONS], dtype=tf.float32)
         self.mask = tf.cast(self.numCandidates, dtype=tf.bool)
@@ -63,7 +67,7 @@ class Qnetwork():
         self.numActions = tf.placeholder(shape=[None, 1], dtype=tf.float32)
         
         # link representation
-        self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=tf.float32)
+        self.linkSpecificInput = tf.placeholder(shape=[None, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=tf.int32)
         print("self.linkSpecific", self.linkSpecificInput.shape)
         self.numLinkFeatures = int(self.linkSpecificInput.shape[2])
         assert(self.numLinkFeatures == params.NUM_LINK_FEATURES)
@@ -93,18 +97,24 @@ class Qnetwork():
         print("self.hidden2", self.hidden2.shape)
 
         # link-specific
-        self.WlinkSpecific = tf.Variable(tf.random_uniform([self.numLinkFeatures, params.linkDim], 0, 0.01))
-        self.blinkSpecific = tf.Variable(tf.random_uniform([1, params.linkDim], 0, 0.01))
+        self.linkSpecificInputEmbedding = tf.nn.embedding_lookup(self.embeddings, self.linkSpecificInput)
+        print("linkSpecificInputEmbedding1", self.linkSpecificInput.shape, self.linkSpecificInputEmbedding.shape)
+        self.linkSpecificInputEmbedding = tf.reshape(self.linkSpecificInputEmbedding, [self.batchSize * self.params.NUM_ACTIONS, params.linkDim])
+        print("linkSpecificInputEmbedding2", self.linkSpecificInput.shape, self.linkSpecificInputEmbedding.shape)
+        self.linkSpecific = self.linkSpecificInputEmbedding
 
-        print("self.linkSpecificInput", self.linkSpecificInput.shape)
-        self.linkSpecific = tf.reshape(self.linkSpecificInput, [self.batchSize * self.params.NUM_ACTIONS, self.numLinkFeatures ])
-        print("self.linkSpecific2", self.linkSpecific.shape)
+        #self.WlinkSpecific = tf.Variable(tf.random_uniform([self.numLinkFeatures, params.linkDim], 0, 0.01))
+        #self.blinkSpecific = tf.Variable(tf.random_uniform([1, params.linkDim], 0, 0.01))
 
-        self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
-        self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
+        #print("self.linkSpecificInput", self.linkSpecificInput.shape)
+        #self.linkSpecific = tf.reshape(self.linkSpecificInput, [self.batchSize * self.params.NUM_ACTIONS, self.numLinkFeatures ])
+        #print("self.linkSpecific2", self.linkSpecific.shape)
+
+        #self.linkSpecific = tf.matmul(self.linkSpecific, self.WlinkSpecific)
+        #self.linkSpecific = tf.add(self.linkSpecific, self.blinkSpecific)        
         #self.linkSpecific = tf.nn.relu(self.linkSpecific)
         #self.linkSpecific = tf.nn.sigmoid(self.linkSpecific)
-        print("self.linkSpecific3", self.linkSpecific.shape)
+        #print("self.linkSpecific3", self.linkSpecific.shape)
         
         self.WlinkSpecific2 = tf.Variable(tf.random_uniform([params.linkDim, params.linkDim], 0, 0.01))
         self.blinkSpecific2 = tf.Variable(tf.random_uniform([1, params.linkDim], 0, 0.01))
@@ -258,7 +268,7 @@ class Qnetwork():
         actions = np.empty([batchSize], dtype=np.int)
         discountedRewards = np.empty([batchSize], dtype=np.float32)
 
-        linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=np.float32)
+        linkSpecific = np.empty([batchSize, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=np.int32)
 
         i = 0
         for transition in corpus.transitions:
@@ -277,6 +287,10 @@ class Qnetwork():
             linkSpecific[i, :, :] = transition.linkSpecific
 
             i += 1
+
+        gradBuffer = sess.run(tf.trainable_variables())
+        for idx,grad in enumerate(gradBuffer):
+            print("idx", idx)
 
         (loss, W1, b1, grads) = sess.run([self.loss, self.W1, self.b1, self.gradients], 
                                     feed_dict={self.numCandidates: numCandidates,
@@ -301,8 +315,12 @@ class Qnetwork():
         #print()
 
         for idx,grad in enumerate(grads):
-            #print("idx", idx)
-            corpus.gradBuffer[idx] += grad         # accumulate gradients
+            print("idx", idx)
+            print("corpus.gradBuffer[idx]", corpus.gradBuffer[idx].shape, corpus.gradBuffer[idx])
+            print("grad", grad[0].shape, grad)
+            #a = grad.indices.astype(np.float32)
+            #corpus.gradBuffer[idx] += grad         # accumulate gradients
+            corpus.gradBuffer[idx] = np.add(corpus.gradBuffer[idx], grad)         # accumulate gradients
 
         corpus.transitions.clear()
 

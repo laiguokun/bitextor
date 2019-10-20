@@ -34,17 +34,17 @@ def GroupLink(link, langIds):
 
     #print("link.text", link.text, link.textLang)
     if link.text is None:
-        return 11
+        return 1
     elif link.text.lower() in ['fr', 'francais', 'français']:
-        ret = 33
+        ret = 2
     elif link.text.lower() in ['en', 'english']:
-        ret = 44
+        ret = 3
     elif link.text.lower() in ['it', 'italiano']:
-        ret = 55
+        ret = 4
     elif link.text.lower() in ['de', 'deutsch']:
-        ret = 66
+        ret = 5
     else: # text is something else
-        ret = 22
+        ret = 6
 
     #print("link.text", ret, link.text, link.textLang, link.parentNode.url, link.childNode.url)
     #print("   ", ret)
@@ -138,7 +138,7 @@ class Candidates:
         #print("self", self.Debug())
         numActions = 0
         numCandidates = np.zeros([1, self.params.NUM_ACTIONS], dtype=np.float)
-        linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=np.float)
+        linkSpecific = np.zeros([1, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], dtype=np.int32)
         #linkSpecific = np.full([1, self.params.NUM_ACTIONS, self.params.NUM_LINK_FEATURES], fill_value=99999999.9, dtype=np.float)
 
         for key, nodes in self.grouped.items():
