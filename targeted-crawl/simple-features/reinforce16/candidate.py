@@ -100,8 +100,9 @@ class Candidates:
         _, _, linkSpecific = self.GetMask()
         linkLang = linkSpecific[0, action, 0]
 
-        key = (linkLang,)    
-        #print("key", key)
+        key = (linkLang,)
+        #print("self", self.Debug())    
+        #print("   action", action, linkSpecific, linkLang, key)
         return key
 
     def PopWithAction(self, action):
