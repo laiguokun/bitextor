@@ -205,3 +205,85 @@ def AddTodo(langsTodo, visited, link):
     if parentLang not in langsTodo:
         langsTodo[parentLang] = []
     langsTodo[parentLang].append(link)
+
+######################################################################################
+def linkText(env, maxDocs, params):
+    ret = []
+    visited = set()
+    langsTodo = {}
+
+    startNode = env.nodes[sys.maxsize]
+    #print("startNode", startNode.Debug())
+    assert(len(startNode.links) == 1)
+    link = next(iter(startNode.links))
+
+    while link is not None and len(visited) < maxDocs:
+        node = link.childNode
+        if node.urlId not in visited:
+            #print("node", node.Debug())
+            visited.add(node.urlId)
+    
+            for link in node.links:
+                #print("   ", childNode.Debug())
+                AddTodoLinkText(langsTodo, visited, link)
+
+            numParallelDocs = NumParallelDocs(env, visited)
+            ret.append(numParallelDocs)
+
+        link = PopLinkLinkText(langsTodo, params)
+
+    return ret
+
+def PopLinkLinkText(langsTodo, params):
+    numLang = 0
+    langToPop = "don't care"
+    if "fr" in langsTodo:
+        numLang += 1
+        langToPop = "fr"
+    if "en" in langsTodo:
+        numLang += 1
+        langToPop = "en"
+
+    if numLang == 2:
+        rnd = np.random.rand(1)
+        if rnd < 0.5:
+            langToPop = "fr"
+        else:
+            langToPop = "en"
+    
+    links = langsTodo[langToPop]
+    if links is not None and len(links) > 0:
+        link = links.pop(0)
+    else:
+        link = RandomLink(langsTodo)
+    #print("   node", node.Debug())
+    return link
+
+def AddTodoLinkText(langsTodo, visited, link):
+    childNode = link.childNode
+    
+    if childNode.urlId in visited:
+        return
+
+    linkLang = GroupLink(link)
+    if linkLang not in langsTodo:
+        langsTodo[linkLang] = []
+    langsTodo[linkLang].append(link)
+
+def GroupLink(link):
+    #ret = GroupLang(link.parentNode.lang, langIds)
+    #return ret
+
+    #print("link.text", link.text, link.textLang)
+    if link.text is None:
+        return 0
+    elif link.text.lower() in ['fr', 'francais', 'français']:
+        ret = "fr"
+    elif link.text.lower() in ['en', 'english']:
+        ret = "en"
+    else: # text is something else
+        ret = "don't care"
+
+    #print("link.text", ret, link.text, link.textLang, link.parentNode.url, link.childNode.url)
+    #print("   ", ret)
+    return ret

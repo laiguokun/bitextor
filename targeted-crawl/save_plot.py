@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.use('Agg')
 import pylab as plt
 
-from other_strategies import dumb, randomCrawl, balanced, byCrawlDate
+from other_strategies import dumb, randomCrawl, balanced, byCrawlDate, linkText
 
 ######################################################################################
 def SavePlot(params, env, createFigure, saveDirPlots, epoch, sset, arrRL, totReward, totDiscountedReward):
@@ -16,6 +16,7 @@ def SavePlot(params, env, createFigure, saveDirPlots, epoch, sset, arrRL, totRew
         arrDepth = dumb(env, crawlLen, params, 1)
         arrRandom = randomCrawl(env, crawlLen, params)
         arrBalanced = balanced(env, crawlLen, params)
+        arrLinkText = linkText(env, crawlLen, params)
         arrByCrawlDate = byCrawlDate(env, crawlLen, params)
         #print("arrRL", len(arrRL))
         
@@ -25,6 +26,7 @@ def SavePlot(params, env, createFigure, saveDirPlots, epoch, sset, arrRL, totRew
         ax.plot(arrDepth, label="depth-first {0:.1f}".format(arrDepth[-1]), color='green')
         ax.plot(arrRandom, label="random {0:.1f}".format(arrRandom[-1]), color='firebrick')
         ax.plot(arrBalanced, label="balanced {0:.1f}".format(arrBalanced[-1]), color='red')
+        ax.plot(arrLinkText, label="link text {0:.1f}".format(arrLinkText[-1]), color='yellow')
         ax.plot(arrByCrawlDate, label="crawl date {0:.1f}".format(arrByCrawlDate[-1]), color='blue')
         ax.plot(arrRL, label="RL {0:.1f} {1:.1f} {2:.1f}".format(arrRL[-1], totReward, totDiscountedReward), color='salmon')
 
