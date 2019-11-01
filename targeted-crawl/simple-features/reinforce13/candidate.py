@@ -80,7 +80,9 @@ class Candidates:
     def LinkToKey(self, link, visited):
         matchedSiblings = GetMatchedSiblings(link.childNode.urlId, link.parentNode, visited)
         numMatchedSiblings = len(matchedSiblings)
-        
+        if numMatchedSiblings >= self.params.NUM_ACTIONS:
+            numMatchedSiblings = self.params.NUM_ACTIONS - 1
+
         key = (numMatchedSiblings, )
         #print("key", key)
         return key

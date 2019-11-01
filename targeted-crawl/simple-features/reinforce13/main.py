@@ -32,7 +32,7 @@ class LearningParams:
         self.updateFrequency = options.updateFrequency
 
         self.debug = False
-        self.NUM_ACTIONS = 200
+        self.NUM_ACTIONS = 5
         self.NUM_LINK_FEATURES = 1
 
         self.saveDir = options.saveDir
@@ -273,8 +273,8 @@ def main():
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
     #hosts = ["http://www.buchmann.ch/"]
-    hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
-    #hosts = ["http://www.visitbritain.com/"]
+    #hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
+    hosts = ["http://www.visitbritain.com/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
     #hostsTest = ["http://www.visitbritain.com/"]
