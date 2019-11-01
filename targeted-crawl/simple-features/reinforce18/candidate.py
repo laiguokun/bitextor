@@ -44,7 +44,7 @@ def GroupLink(link, langIds):
     elif link.text.lower() in ['de', 'deutsch']:
         ret = 5
     else: # text is something else
-        ret = 1
+        ret = 6
 
     #print("link.text", ret, link.text, link.textLang, link.parentNode.url, link.childNode.url)
     #print("   ", ret)
