@@ -35,16 +35,16 @@ def GroupLink(link, langIds):
     #print("link.text", link.text, link.textLang)
     if link.text is None:
         return 1
-    elif link.text.lower() in ['fr', 'francais', 'français']:
+    elif link.text.lower() in ['fr', 'fra', 'francais', 'français']:
         ret = 2
-    elif link.text.lower() in ['en', 'english']:
-        ret = 4
+    elif link.text.lower() in ['en', 'eng', 'english']:
+        ret = 3
     elif link.text.lower() in ['it', 'italiano']:
-        ret = 8
+        ret = 4
     elif link.text.lower() in ['de', 'deutsch']:
-        ret = 16
+        ret = 5
     else: # text is something else
-        ret = 32
+        ret = 1
 
     #print("link.text", ret, link.text, link.textLang, link.parentNode.url, link.childNode.url)
     #print("   ", ret)

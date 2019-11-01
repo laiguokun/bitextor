@@ -301,9 +301,9 @@ class Qnetwork():
         #print()
 
         for idx,grad in enumerate(grads):
-            print("idx", idx)
-            print("corpus.gradBuffer[idx]", corpus.gradBuffer[idx])
-            print("grad", grad)
+            #print("idx", idx)
+            #print("corpus.gradBuffer[idx]", corpus.gradBuffer[idx])
+            #print("grad", grad)
             corpus.gradBuffer[idx] += grad         # accumulate gradients
 
         corpus.transitions.clear()

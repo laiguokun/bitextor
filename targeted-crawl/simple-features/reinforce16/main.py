@@ -32,7 +32,7 @@ class LearningParams:
         self.updateFrequency = options.updateFrequency
 
         self.debug = False
-        self.NUM_ACTIONS = 6
+        self.NUM_ACTIONS = 5
         self.NUM_LINK_FEATURES = 1
 
         self.saveDir = options.saveDir
