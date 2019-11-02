@@ -251,12 +251,15 @@ def PopLinkLinkText(langsTodo, params):
         else:
             langToPop = "en"
     
-    links = langsTodo[langToPop]
-    if links is not None and len(links) > 0:
-        link = links.pop(0)
-    else:
+    if langToPop == "don't care":
         link = RandomLink(langsTodo)
-    #print("   node", node.Debug())
+    else:
+        links = langsTodo[langToPop]
+        if links is not None and len(links) > 0:
+            link = links.pop(0)
+        else:
+            link = RandomLink(langsTodo)
+        #print("   node", node.Debug())
     return link
 
 def AddTodoLinkText(langsTodo, visited, link):

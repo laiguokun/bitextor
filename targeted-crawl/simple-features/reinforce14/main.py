@@ -175,9 +175,9 @@ def Trajectory(env, params, sess, qn, corpus, test):
     if test:
         mainStr += " " + str(len(ret)) 
         rewardStr += " " + str(totReward) + "/" + str(totDiscountedReward)
-        print(actionStr)
-        print(mainStr)
-        print(rewardStr)
+        #print(actionStr)
+        #print(mainStr)
+        #print(rewardStr)
 
     return ret, totReward, totDiscountedReward
 
@@ -278,7 +278,8 @@ def main():
 
     #hostsTest = ["http://vade-retro.fr/"]
     #hostsTest = ["http://www.visitbritain.com/"]
-    hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
+    hostsTest = ["http://chopescollection.be/"]
+    #hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
     envs = GetEnvs(options.configFile, languages, hosts[:options.numTrainHosts])
     envsTest = GetEnvs(options.configFile, languages, hostsTest[:options.numTestHosts])
