@@ -272,14 +272,14 @@ def main():
 
     print("options.numTrainHosts", options.numTrainHosts)
     #hosts = ["http://vade-retro.fr/"]
-    #hosts = ["http://www.buchmann.ch/"]
-    hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
+    #hosts = ["http://tagar.es/"]
     #hosts = ["http://www.visitbritain.com/"]
+    hosts = ["http://telasmos.org/", "http://tagar.es/", "http://www.buchmann.ch/"]
 
     #hostsTest = ["http://vade-retro.fr/"]
     #hostsTest = ["http://www.visitbritain.com/"]
-    hostsTest = ["http://chopescollection.be/"]
-    #hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
+    #hostsTest = ["http://chopescollection.be/"]
+    hostsTest = ["http://www.visitbritain.com/", "http://chopescollection.be/", "http://www.bedandbreakfast.eu/"]
 
     envs = GetEnvs(options.configFile, languages, hosts[:options.numTrainHosts])
     envsTest = GetEnvs(options.configFile, languages, hostsTest[:options.numTestHosts])
