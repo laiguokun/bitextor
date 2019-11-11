@@ -17,22 +17,13 @@
 import argparse
 import base64
 import os
-import string
 import sys
 import html
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../utils")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../..")
 from external_processor import ExternalTextProcessor
-from common import open_xz_or_gzip_or_plain
-
-
-def filter_digits_and_punctuation(original_text):
-    text_split = original_text.split()
-    if len(text_split) == 1 and sum([1 for m in text_split[0] if m in string.punctuation + string.digits]) > len(
-            text_split[0]) // 2:
-        return False
-
-    return True
+from utils.common import open_xz_or_gzip_or_plain
+from utils.tokenization import filter_digits_and_punctuation
 
 
 def split_sentences(original_text, sentence_splitter_cmd):

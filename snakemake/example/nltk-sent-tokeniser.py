@@ -21,6 +21,6 @@ from nltk import tokenize
 lang = sys.argv[1]
 for line in sys.stdin:
     try:
-        print("\n".join(tokenize.sent_tokenize(line,lang)))
+        print("\n".join(tokenize.sent_tokenize(line,lang)), flush=True, end="\n<P>\n")
     except:
-        print("\n".join(tokenize.sent_tokenize(line,"english")))
+        print("\n".join(tokenize.sent_tokenize(line,"english")), flush=True, end="\n<P>\n")

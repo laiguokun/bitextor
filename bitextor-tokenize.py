@@ -19,40 +19,31 @@ import sys
 import os
 import argparse
 import base64
-import string
-import ast
-import lzma
-from external_processor import ExternalTextProcessor
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/utils")
 from utils.common import open_xz_or_gzip_or_plain
+from utils.tokenization import filter_digits_and_punctuation
+from utils.tokenization import SentenceSplitter
+from utils.tokenization import Tokenizer
 
 
-def extract_encoded_text(encoded, sent_tokeniser, word_tokeniser, morph_analyser):
-    if not sent_tokeniser:
-        return encoded
-
-    proc_sent = ExternalTextProcessor(sent_tokeniser.split())
+def extract_encoded_text(encoded, sent_proc, tok_proc, morph_proc):
     content = base64.b64decode(encoded).decode("utf-8").replace("\t", " ")
-    tokenized_segs = proc_sent.process(content).strip()
-    tokenized_filtered = ""
+    segments = sent_proc.split_sentences(content, "")
 
-    for sent in tokenized_segs.split("\n"):
-        if sum([1 for m in sent if m in string.punctuation + string.digits]) < len(sent) // 2:
-            tokenized_filtered += sent + "\n"
+    segments_filtered = [n for n in segments.split("\n") if filter_digits_and_punctuation(n)]
 
-    if not word_tokeniser:
-        b64text = base64.b64encode(tokenized_filtered.lower().encode("utf-8"))
-        return b64text.decode()
+    tokenized_text = []
+    for segment in segments_filtered:
+        tokenized_text.append(tok_proc.tokenize(segment))
 
-    proc_word = ExternalTextProcessor(word_tokeniser.split())
-    tokenized_text = proc_word.process(tokenized_filtered)
+    if morph_proc:
+        lemmatized_text = []
+        for segment in tokenized_text:
+            lemmatized_text.append(morph_proc.tokenize(segment))
+        tokenized_text = lemmatized_text
 
-    if morph_analyser:
-        proc_morph = ExternalTextProcessor(morph_analyser.split())
-        tokenized_text = proc_morph.process(tokenized_text)
-
-    b64text = base64.b64encode(tokenized_text.lower().encode("utf-8"))
+    b64text = base64.b64encode(("\n".join(tokenized_text) + "\n").lower().encode("utf-8"))
     return b64text.decode()
 
 
@@ -66,7 +57,13 @@ oparser.add_argument('--morph-analyser', dest='lemmatizer', help="Morphological 
 options = oparser.parse_args()
 
 with open_xz_or_gzip_or_plain(options.text) as reader:
+    sent_proc = SentenceSplitter(options.splitter.split())
+    tok_proc = Tokenizer(options.tokenizer.split())
+    if options.lemmatizer:
+        morph_proc = Tokenizer(options.lemmatizer.split())
+    else:
+        morph_proc = None
     for line in reader:
         encoded_text = line.strip()
-        tokenized = extract_encoded_text(encoded_text, options.splitter, options.tokenizer, options.lemmatizer)
+        tokenized = extract_encoded_text(encoded_text, sent_proc, tok_proc, morph_proc)
         print(tokenized)

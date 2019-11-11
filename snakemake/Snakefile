@@ -986,9 +986,8 @@ if "onlyConcat" in config and config["onlyConcat"]:
 elif "onlyPreprocessing" in config and config["onlyPreprocessing"]:
     for tld in domainKey2Hosts.keys():
         for lang in PPROCLANGS:
-            for file in FILES:
+            for file in FILES + ["plain_tokenized.xz"]:
                 PPROCOUTPUT.append("{dir}/preprocess/{tld}/{pproc}/bitextorlang/{lang}/{file}".format(dir=data, tld=tld, pproc=PPROC, lang=lang, file=file))
-
         if DOCALIGNEXT != "bitextor":
             for lang in PPROCLANGS:
                 PPROCOUTPUT.append("{dir}/preprocess/{tld}/docalign/{lang}.extracted.xz".format(dir=data, tld=tld, pproc=PPROC,lang=lang))
