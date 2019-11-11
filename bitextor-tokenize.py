@@ -19,6 +19,7 @@ import sys
 import os
 import argparse
 import base64
+import lzma
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/utils")
 from utils.common import open_xz_or_gzip_or_plain
@@ -43,8 +44,9 @@ def extract_encoded_text(encoded, sent_proc, tok_proc, morph_proc):
             lemmatized_text.append(morph_proc.tokenize(segment))
         tokenized_text = lemmatized_text
 
-    b64text = base64.b64encode(("\n".join(tokenized_text) + "\n").lower().encode("utf-8"))
-    return b64text.decode()
+    b64sentences = base64.b64encode(("\n".join(segments_filtered)+"\n").encode("utf-8"))
+    b64tokenized = base64.b64encode(("\n".join(tokenized_text)+"\n").lower().encode("utf-8"))
+    return b64sentences, b64tokenized
 
 
 oparser = argparse.ArgumentParser(
@@ -53,10 +55,12 @@ oparser.add_argument('--text', dest='text', help='Plain text file', required=Tru
 oparser.add_argument('--sentence-splitter', dest='splitter', required=True, help="Sentence splitter commands")
 oparser.add_argument('--word-tokenizer', dest='tokenizer', required=True, help="Word tokenisation command")
 oparser.add_argument('--morph-analyser', dest='lemmatizer', help="Morphological analyser command")
+oparser.add_argument('--sentences-output', default="plain_sentences.xz", dest='sent_output', help="Path of the output file that will contain sentence splitted text")
+oparser.add_argument('--tokenized-output', default="plain_tokenized.xz", dest='tok_output', help="Path of the output file that will contain sentence splitted and tokenized text")
 
 options = oparser.parse_args()
 
-with open_xz_or_gzip_or_plain(options.text) as reader:
+with open_xz_or_gzip_or_plain(options.text) as reader, lzma.open(options.sent_output, "w") as sent_writer, lzma.open(options.tok_output, "w") as tok_writer:
     sent_proc = SentenceSplitter(options.splitter.split())
     tok_proc = Tokenizer(options.tokenizer.split())
     if options.lemmatizer:
@@ -65,5 +69,7 @@ with open_xz_or_gzip_or_plain(options.text) as reader:
         morph_proc = None
     for line in reader:
         encoded_text = line.strip()
-        tokenized = extract_encoded_text(encoded_text, sent_proc, tok_proc, morph_proc)
-        print(tokenized)
+        sentences, tokenized = extract_encoded_text(encoded_text, sent_proc, tok_proc, morph_proc)
+        sent_writer.write(sentences + b"\n")
+        tok_writer.write(tokenized + b"\n")
+
