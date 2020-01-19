@@ -76,7 +76,7 @@ if __name__ == "__main__":
                 tok1 = next(tok_reader1, None).strip()
                 doc1_current_line = doc1_current_line + 1
 
-            while doc2_last_written != doc2 and doc2 != 0:
+            while doc2_last_written != doc2:
                 if doc2_current_line <= doc2:
                     text2 = next(text_reader2, None).strip()
                     tok2 = next(tok_reader2, None).strip()

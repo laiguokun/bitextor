@@ -67,3 +67,6 @@ with open_xz_or_gzip_or_plain(options.text) as reader, lzma.open(options.sent_ou
         if sentences and tokenized:
             sent_writer.write(sentences + b"\n")
             tok_writer.write(tokenized + b"\n")
+        else:
+            sent_writer.write(b"\n")
+            tok_writer.write(b"\n")
